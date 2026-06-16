@@ -112,7 +112,7 @@ try {
   ok('全スプライト・鉱脈・卵・全エフェクト描画で例外が出ない', true);
 } catch (e) { ok('描画で例外が出ない', false, e && (e.stack || e.message || e)); }
 ok('鉱脈テーブルは5種類ある', ['moss','meat','venom','stone','ember'].every(k => !!G.VEIN[k]));
-ok('少数精鋭向けにゲーム速度が遅い', G.FIRST_GRACE === 36000 && G.WAVE_INTERVAL === 39000 && G.HERO_STAGGER === 2200 && G.DIG_CD === 780);
+ok('襲来待ち時間が短縮されている', G.FIRST_GRACE === 27000 && G.WAVE_INTERVAL === 29000 && G.HERO_STAGGER === 2200 && G.DIG_CD === 780);
 ok('栄養経済は1マス1消費向けの値', G.DIG_COST === 1 && G.START_NUT === 25 && Math.abs(G.monsterIncomeRate() - 0.045) < 0.0001);
 ok('スライムは以前より少し強い', G.KINDS.slime.hp === 10 && G.KINDS.slime.atk === 2);
 ok('上位種は卵で増える種として定義される', ['superslime','evolved','tarantula','titan','infernal'].every(k => G.isElite(k) && G.KINDS[k].breedEvery === 0));
