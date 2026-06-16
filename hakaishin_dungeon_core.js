@@ -56,6 +56,13 @@ const HERO_CLASSES={
   priest: {name:'僧侶',    hpMul:0.85, atkMul:0.35, range:1, moveMul:1.0, atkCd:1000, weight:1.0, unlock:7, heal:true, healCd:1500, healRange:2, msg:'僧侶が現れた ─ 仲間を癒やす'},
 };
 
+/* 画像素材。sprites.json と同じ並びを JS 側にも持ち、ローカルHTML直開きで fetch なしに使う */
+const PIXEL_ASSET_PATH='assets/pixel/';
+const PIXEL_CELL=32, PIXEL_FRAMES=4;
+const PIXEL_ACTORS=['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal','warrior','tank','mage','priest','egg_superslime','egg_evolved','egg_tarantula','egg_titan','egg_infernal'];
+const PIXEL_TILES=['earth','tunnel','bedrock','surface','core','moss','meat','venom','stone','ember','moss_evo','meat_evo','venom_evo','stone_evo','ember_evo'];
+const PIXEL_EFFECTS=['slash','shot','bite','birth','puff'];
+
 /* ===================== 状態 ===================== */
 let grid=[], monsters=[], heroes=[], eggs=[], effects=[], spawnQueue=[];
 let nutrients, coreHP, wave, score, kills, waveCountdown, idc=0;
@@ -158,4 +165,3 @@ function seedVeins(wv){
   if(wv>=6) seedType('stone', 1, 7, ROWS-3);
   if(wv>=9) seedType('ember', 1, 8, ROWS-3);
 }
-

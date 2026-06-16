@@ -11,6 +11,11 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const repoDir = path.dirname(htmlPath);
 const css = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon.css'), 'utf8');
 const pixiLayerJs = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon_pixi.js'), 'utf8');
+const pixelMeta = JSON.parse(fs.readFileSync(path.join(repoDir, 'assets/pixel/sprites.json'), 'utf8'));
+function pngSize(file) {
+  const b = fs.readFileSync(path.join(repoDir, file));
+  return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+}
 
 function loadGameScripts(htmlText, sourcePath) {
   const dir = path.dirname(sourcePath);
@@ -109,6 +114,13 @@ ok('PixiJSはゲーム本体より前に読み込まれる', scriptSrcs[0] === '
 ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_dungeon_core.js','hakaishin_dungeon_logic.js','hakaishin_dungeon_canvas.js','hakaishin_dungeon_pixi.js','hakaishin_dungeon.js'].every(s => scriptSrcs.includes(s)), scriptSrcs.join(','));
 ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
 ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
+ok('ピクセル素材PNGが配置されている', ['assets/pixel/actors.png','assets/pixel/tiles.png','assets/pixel/effects.png'].every(f => fs.existsSync(path.join(repoDir, f))));
+ok('スプライト定義は全魔物と全勇者を含む', Object.keys(G.KINDS).every(k => pixelMeta.actors[k]) && Object.keys(G.HERO_CLASSES).every(k => pixelMeta.actors[k]));
+ok('スプライト定義は主要タイルとエフェクトを含む', ['earth','tunnel','bedrock','surface','core','moss_evo','ember_evo'].every(k => pixelMeta.tiles[k]) && ['slash','shot','bite','birth','puff'].every(k => pixelMeta.effects[k]));
+{
+  const a = pngSize('assets/pixel/actors.png'), t = pngSize('assets/pixel/tiles.png'), e = pngSize('assets/pixel/effects.png');
+  ok('PNGサイズはスプライト定義と一致する', a.width === pixelMeta.cell * pixelMeta.frames && a.height >= Object.keys(pixelMeta.actors).length * pixelMeta.cell && t.height === pixelMeta.cell && e.width === pixelMeta.cell * pixelMeta.frames, JSON.stringify({ a, t, e }));
+}
 try {
   freshPlay();
   ['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal'].forEach((k, i) => G.spawnMonster(k, 2 + (i % 8), 3 + Math.floor(i / 8)));

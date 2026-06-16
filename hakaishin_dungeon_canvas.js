@@ -1,6 +1,12 @@
 "use strict";
 /* ===================== 描画 ===================== */
 function px(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
+let pixelTilesImg=null, pixelTilesReady=false;
+if(typeof Image!=='undefined'){
+  pixelTilesImg=new Image();
+  pixelTilesImg.onload=()=>{ pixelTilesReady=true; };
+  pixelTilesImg.src=PIXEL_ASSET_PATH+'tiles.png';
+}
 function bob(e,time){ return Math.sin(time*4+e.bob)*1.3; }
 function lunge(e){
   if(e.actionTime>0) return actorPose(e);
@@ -28,7 +34,9 @@ function draw(){
 
   for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
     const t=grid[r][c], x=c*TILE, y=r*TILE;
-    if(t.t==='bedrock') drawBedrock(x,y,c,r);
+    if(drawPixelTile(x,y,t,c,r)){
+      drawDigCrack(x,y,t);
+    } else if(t.t==='bedrock') drawBedrock(x,y,c,r);
     else if(t.t==='earth') drawEarth(x,y,t,c,r,time);
     else if(t.t==='surface') drawSurface(x,y);
     else { drawTunnel(x,y,t,c,r,time); }
@@ -70,6 +78,25 @@ function drawBedrock(x,y,c,r){
   px(x,y,TILE,TILE,'#15101c');
   const s=(c*7+r*13)%5;
   px(x+4+s,y+6,3,3,'#221a2e'); px(x+TILE-9-s,y+TILE-10,3,3,'#221a2e'); px(x,y,TILE,1,'#0c0814');
+}
+function pixelTileKey(t){
+  if(t.t==='earth' && t.sub) return t.sub+(t.evo?'_evo':'');
+  if(t.t==='earth' || t.t==='tunnel' || t.t==='bedrock' || t.t==='surface' || t.t==='core') return t.t;
+  return 'tunnel';
+}
+function drawPixelTile(x,y,t,c,r){
+  if(!pixelTilesReady || !pixelTilesImg) return false;
+  const key=pixelTileKey(t), idx=PIXEL_TILES.indexOf(key);
+  if(idx<0) return false;
+  ctx.drawImage(pixelTilesImg, idx*PIXEL_CELL, 0, PIXEL_CELL, PIXEL_CELL, x, y, TILE, TILE);
+  return true;
+}
+function drawDigCrack(x,y,t){
+  if(!t.dig) return;
+  const f=clamp(t.dig/DIG_BREAK,0,1);
+  ctx.strokeStyle='rgba(0,0,0,0.55)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(x+6,y+4); ctx.lineTo(x+12,y+14); ctx.lineTo(x+9,y+24); ctx.stroke();
+  if(f>0.5){ ctx.beginPath(); ctx.moveTo(x+TILE-6,y+6); ctx.lineTo(x+TILE-14,y+16); ctx.lineTo(x+TILE-10,y+26); ctx.stroke(); }
 }
 function drawDiamond(cx0,cy0,s){ ctx.beginPath(); ctx.moveTo(cx0,cy0-s); ctx.lineTo(cx0+s,cy0); ctx.lineTo(cx0,cy0+s); ctx.lineTo(cx0-s,cy0); ctx.closePath(); ctx.fill(); ctx.stroke(); }
 function drawStar(cx0,cy0,rOut,rot){ const rIn=rOut*0.45; ctx.beginPath(); for(let i=0;i<10;i++){ const ang=rot+i*Math.PI/5-Math.PI/2, rr=(i%2===0)?rOut:rIn; const px0=cx0+Math.cos(ang)*rr, py0=cy0+Math.sin(ang)*rr; i?ctx.lineTo(px0,py0):ctx.moveTo(px0,py0); } ctx.closePath(); ctx.fill(); }

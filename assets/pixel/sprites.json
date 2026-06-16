@@ -1,0 +1,403 @@
+{
+  "cell": 32,
+  "frames": 4,
+  "actors": {
+    "slime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "carniv": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "evolved": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "spitter": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "golem": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 128,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "flame": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 160,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "superslime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 192,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "tarantula": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 224,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "titan": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 256,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 288,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "warrior": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 320,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "tank": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 352,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "mage": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 384,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "priest": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 416,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "egg_superslime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 448,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "egg_evolved": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 480,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "egg_tarantula": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 512,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "egg_titan": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 544,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    },
+    "egg_infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 576,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        24
+      ]
+    }
+  },
+  "tiles": {
+    "earth": {
+      "sheet": "tiles",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "tunnel": {
+      "sheet": "tiles",
+      "x": 32,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "bedrock": {
+      "sheet": "tiles",
+      "x": 64,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "surface": {
+      "sheet": "tiles",
+      "x": 96,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "core": {
+      "sheet": "tiles",
+      "x": 128,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "moss": {
+      "sheet": "tiles",
+      "x": 160,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "meat": {
+      "sheet": "tiles",
+      "x": 192,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "venom": {
+      "sheet": "tiles",
+      "x": 224,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "stone": {
+      "sheet": "tiles",
+      "x": 256,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "ember": {
+      "sheet": "tiles",
+      "x": 288,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "moss_evo": {
+      "sheet": "tiles",
+      "x": 320,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "meat_evo": {
+      "sheet": "tiles",
+      "x": 352,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "venom_evo": {
+      "sheet": "tiles",
+      "x": 384,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "stone_evo": {
+      "sheet": "tiles",
+      "x": 416,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    },
+    "ember_evo": {
+      "sheet": "tiles",
+      "x": 448,
+      "y": 0,
+      "w": 32,
+      "h": 32
+    }
+  },
+  "effects": {
+    "slash": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 0,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "shot": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 32,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "bite": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 64,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "birth": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 96,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        16
+      ]
+    },
+    "puff": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 128,
+      "w": 32,
+      "h": 32,
+      "frames": 4,
+      "anchor": [
+        16,
+        16
+      ]
+    }
+  }
+}

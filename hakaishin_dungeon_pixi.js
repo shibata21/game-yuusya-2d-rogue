@@ -1,6 +1,7 @@
 "use strict";
 
 let pixiApp=null, pixiRoot=null, pixiReady=false, pixiStarting=false;
+let pixelPixiReady=false, pixelPixiBase={}, pixelPixiCache={};
 
 async function initPixiLayer(){
   if(pixiReady || pixiStarting || typeof PIXI==='undefined') return false;
@@ -10,6 +11,7 @@ async function initPixiLayer(){
     await pixiApp.init({width:W, height:H, backgroundAlpha:0, antialias:false, resolution:1, autoDensity:false});
     pixiRoot=new PIXI.Container();
     pixiApp.stage.addChild(pixiRoot);
+    initPixelPixiAssets();
     const view=pixiApp.canvas;
     view.className='pixi-layer';
     view.style.position='absolute'; view.style.inset='0'; view.style.width='100%'; view.style.height='100%';
@@ -47,11 +49,81 @@ function pg(){ return new PIXI.Graphics(); }
 function addRect(g,x,y,w,h,c){ g.rect(x,y,w,h).fill(pc(c)); }
 function addCircle(g,x,y,r,c,a){ g.circle(x,y,r).fill({color:pc(c), alpha:a===undefined?1:a}); }
 function addEllipse(g,x,y,w,h,c,a){ g.ellipse(x,y,w,h).fill({color:pc(c), alpha:a===undefined?1:a}); }
+function initPixelPixiAssets(){
+  try{
+    pixelPixiBase.actors=PIXI.Texture.from(PIXEL_ASSET_PATH+'actors.png');
+    pixelPixiBase.effects=PIXI.Texture.from(PIXEL_ASSET_PATH+'effects.png');
+    pixelPixiReady=true;
+  }catch(e){
+    console.warn('画像スプライト初期化失敗:', e);
+    pixelPixiReady=false;
+  }
+}
+function pixelTexture(sheet,x,y,w,h){
+  if(!pixelPixiReady || !pixelPixiBase[sheet] || !PIXI.Rectangle) return null;
+  const key=sheet+':'+x+':'+y+':'+w+':'+h;
+  if(pixelPixiCache[key]) return pixelPixiCache[key];
+  try{
+    const base=pixelPixiBase[sheet];
+    const tex=new PIXI.Texture({source:base.source, frame:new PIXI.Rectangle(x,y,w,h)});
+    pixelPixiCache[key]=tex;
+    return tex;
+  }catch(e){ return null; }
+}
+function actorSpriteName(e,isHero){
+  if(isHero) return e.cls;
+  return e.kind;
+}
+function actorFrame(e,time){
+  if(e.actionTime>0) return Math.floor((1-e.actionTime/(e.actionMax||ATK_ANIM))*PIXEL_FRAMES)%PIXEL_FRAMES;
+  if(e.moveAnim>0) return Math.floor(time*10+e.id)%PIXEL_FRAMES;
+  return Math.floor(time*3+e.id)%PIXEL_FRAMES;
+}
+function drawPixelPixiActor(c,e,isHero,time){
+  const name=actorSpriteName(e,isHero), row=PIXEL_ACTORS.indexOf(name);
+  if(row<0) return false;
+  const tex=pixelTexture('actors', actorFrame(e,time)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+  if(!tex) return false;
+  const s=new PIXI.Sprite(tex);
+  s.anchor.set(0.5,0.75);
+  c.addChild(s);
+  return true;
+}
+function drawPixelPixiEgg(e,time){
+  const key='egg_'+e.kind, row=PIXEL_ACTORS.indexOf(key);
+  if(row<0) return false;
+  const frame=Math.floor(time*4+e.col)%PIXEL_FRAMES;
+  const tex=pixelTexture('actors', frame*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+  if(!tex) return false;
+  const s=new PIXI.Sprite(tex);
+  s.anchor.set(0.5,0.75); s.x=cx(e.col); s.y=cy(e.row)+8;
+  pixiRoot.addChild(s);
+  return true;
+}
+function drawPixelPixiEffect(f){
+  const row=PIXEL_EFFECTS.indexOf(f.type);
+  if(row<0) return false;
+  const frame=clamp(Math.floor((1-f.life/f.max)*PIXEL_FRAMES),0,PIXEL_FRAMES-1);
+  const tex=pixelTexture('effects', frame*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+  if(!tex) return false;
+  const s=new PIXI.Sprite(tex);
+  s.anchor.set(0.5,0.5);
+  if(f.type==='shot' || f.type==='bite'){
+    const p=1-f.life/f.max; s.x=f.sx+(f.tx-f.sx)*p; s.y=f.sy+(f.ty-f.sy)*p;
+    s.rotation=Math.atan2(f.ty-f.sy,f.tx-f.sx);
+  }else{
+    s.x=f.x; s.y=f.y; if(f.rot) s.rotation=f.rot;
+  }
+  s.alpha=clamp(f.life/f.max*1.4,0,1);
+  pixiRoot.addChild(s);
+  return true;
+}
 
 function drawPixiActor(e,isHero,time){
   const pose=actorPose(e), c=new PIXI.Container();
   c.x=e.px+pose.x; c.y=e.py+pose.y; c.scale.set(pose.scale||1); c.rotation=pose.rot||0;
   pixiRoot.addChild(c);
+  if(drawPixelPixiActor(c,e,isHero,time)) return;
   const shadow=pg(); addEllipse(shadow,0,9,isHero?11:12,3,'#09050d',0.45); c.addChild(shadow);
   if(isHero) drawPixiHero(c,e,time); else drawPixiMonster(c,e,time);
 }
@@ -100,12 +172,14 @@ function drawPixiHero(c,h,time){
   c.addChild(g);
 }
 function drawPixiEgg(e,time){
+  if(drawPixelPixiEgg(e,time)) return;
   const g=pg(), p=0.5+0.5*Math.sin(time*5+e.col), K=KINDS[e.kind];
   g.x=cx(e.col); g.y=cy(e.row); addEllipse(g,0,8,8,3,'#09050d',0.45); addEllipse(g,0,0,6,8,K.col,0.92);
   addEllipse(g,-2,-3,2,3,'#fff',0.35+0.25*p); g.ellipse(0,0,6,8).stroke({color:0x120c1a, width:1});
   pixiRoot.addChild(g);
 }
 function drawPixiEffect(f){
+  if(drawPixelPixiEffect(f)) return;
   const g=pg(), k=f.life/f.max;
   if(f.type==='shot'){
     const p=1-k, x=f.sx+(f.tx-f.sx)*p, y=f.sy+(f.ty-f.sy)*p; g.x=x; g.y=y; addCircle(g,0,0,4,f.color,clamp(k*1.4,0,1));
