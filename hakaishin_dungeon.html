@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>破壊神ダンジョン</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="hakaishin_dungeon.css">
+</head>
+<body>
+<div id="app">
+  <div class="crown">
+    <div class="tag">地 底 タ ワ ー デ ィ フ ェ ン ス</div>
+    <h1>破 壊 神 ダ ン ジ ョ ン</h1>
+    <div class="tag" style="letter-spacing:.06em; color:var(--ink-dim)">― 魔 物 を 育 て、勇 者 を 阻 め ―</div>
+  </div>
+
+  <div class="hud">
+    <div class="core-line">
+      <span class="lab">魔王コア</span>
+      <div class="bar"><i id="coreFill"></i><span class="num" id="coreNum">120 / 120</span></div>
+    </div>
+    <div class="stats">
+      <div class="stat gold"><b id="nutNum">50</b><span class="k">栄養</span></div>
+      <div class="stat"><b id="waveNum">0</b><span class="k">ウェーブ</span></div>
+      <div class="stat"><b id="monNum">0</b><span class="k">魔物</span></div>
+    </div>
+    <div class="stat" style="justify-self:end; align-self:center"><b id="scoreNum">0</b><span class="k">スコア</span></div>
+  </div>
+
+  <div class="stage">
+    <canvas id="game" width="352" height="512"></canvas>
+
+    <div class="overlay" id="startOverlay">
+      <div class="deco">破 壊 神 の 命 令 書</div>
+      <h2>地底に君臨せよ</h2>
+      <div class="scroll">
+        <span class="key gold">▸</span> 茶色い<b style="color:#c89c6b">土</b>をタップして掘り進め、地下の環境を作れ（掘れるのは通路に隣り合う土だけ）。<br>
+        <span class="key">▸ 色付きの土</span>は生態系の種。掘ると<b>養分と土壌</b>が通路に残り、条件が揃うと魔物が自然発生する。<br>
+        <span class="key pur">▸</span> 魔物は上位種として湧くのではなく、個体が条件を満たして<b>進化</b>する。スライムは養分、肉食魔物は捕食で育つ。<br>
+        <span class="key red">▸</span> 土壌は放置で濃くなり、掘った時に多くの養分を残す。急いで道を作るか、育つまで待つかを選べ。<br>
+        <span class="key">▸</span> 毒吐きは戦闘、岩兵は被弾、炎魔は死骸養分で育つ。掘る場所がそのまま防衛線になる。<br>
+        <span class="key gold">▸</span> 勇者は地上から侵入し最下層の<b style="color:var(--magic)">魔王コア</b>を狙う。地下の食物連鎖で迎え撃て。
+      </div>
+      <button class="btn-start" id="startBtn">侵 略 を 開 始 す る</button>
+    </div>
+
+    <div class="overlay dead hidden" id="deadOverlay">
+      <div class="deco">敗 北</div>
+      <h2>魔王コア、陥落</h2>
+      <div class="res">到達ウェーブ <b id="deadWave">0</b><br>討ち取った勇者 <b id="deadKills">0</b><br>最終スコア <b id="deadScore">0</b></div>
+      <button class="btn-start" id="restartBtn">再 び 君 臨 す る</button>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div class="wavebox">
+      <span class="t" id="waveLabel">次の襲来まで</span>
+      <span class="v" id="waveTimer">--</span>
+    </div>
+    <button class="btn-taunt" id="tauntBtn">すぐ襲来<br>待ち時間を短縮</button>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="hint">色付きの土を掘ると養分が通路に染み出す。基礎魔物を湧かせ、養分・捕食・戦闘・死骸で上位種へ育てろ。</div>
+</div>
+
+<script src="hakaishin_dungeon.js"></script>
+</body>
+</html>
