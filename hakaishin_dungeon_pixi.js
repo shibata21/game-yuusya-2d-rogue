@@ -11,8 +11,10 @@ async function initPixiLayer(){
     pixiRoot=new PIXI.Container();
     pixiApp.stage.addChild(pixiRoot);
     const view=pixiApp.canvas;
+    view.className='pixi-layer';
     view.style.position='absolute'; view.style.inset='0'; view.style.width='100%'; view.style.height='100%';
-    view.style.pointerEvents='none'; view.style.imageRendering='pixelated';
+    view.style.pointerEvents='none'; view.style.imageRendering='pixelated'; view.style.background='transparent';
+    view.style.border='0'; view.style.borderRadius='0'; view.style.boxShadow='none'; view.style.zIndex='2';
     canvas.parentElement.appendChild(view);
     pixiReady=true;
     return true;

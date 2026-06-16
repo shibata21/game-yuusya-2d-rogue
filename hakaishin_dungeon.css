@@ -35,10 +35,14 @@
   .stat.gold b{ color:var(--gold); text-shadow:0 0 8px rgba(255,207,77,.4);}
 
   .stage{ position:relative; width:100%; line-height:0;}
-  canvas{
+  #game{
     width:100%; height:auto; display:block; image-rendering:pixelated; image-rendering:crisp-edges;
     border:2px solid var(--frame); border-radius:10px; background:var(--void);
     box-shadow:inset 0 0 40px #000, 0 6px 0 #0c0814; touch-action:none;
+  }
+  .stage canvas.pixi-layer{
+    position:absolute; inset:0; width:100%; height:100%; display:block; image-rendering:pixelated; image-rendering:crisp-edges;
+    border:0; border-radius:0; background:transparent; box-shadow:none; pointer-events:none; z-index:2;
   }
 
   .controls{ display:flex; gap:8px; align-items:stretch;}

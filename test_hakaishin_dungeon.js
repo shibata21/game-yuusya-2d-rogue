@@ -8,6 +8,9 @@ const path = require('path');
 
 const htmlPath = process.argv[2] || path.join(__dirname, 'hakaishin_dungeon.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
+const repoDir = path.dirname(htmlPath);
+const css = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon.css'), 'utf8');
+const pixiLayerJs = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon_pixi.js'), 'utf8');
 
 function loadGameScripts(htmlText, sourcePath) {
   const dir = path.dirname(sourcePath);
@@ -104,6 +107,8 @@ function run(ms, step) { for (let t = 0; t < ms; t += step) G.update(step); }
 section('T1 描画と基本データ');
 ok('PixiJSはゲーム本体より前に読み込まれる', scriptSrcs[0] === 'vendor/pixi.min.js' && scriptSrcs.indexOf('hakaishin_dungeon_core.js') > 0 && scriptSrcs.indexOf('hakaishin_dungeon.js') > scriptSrcs.indexOf('hakaishin_dungeon_pixi.js'), scriptSrcs.join(','));
 ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_dungeon_core.js','hakaishin_dungeon_logic.js','hakaishin_dungeon_canvas.js','hakaishin_dungeon_pixi.js','hakaishin_dungeon.js'].every(s => scriptSrcs.includes(s)), scriptSrcs.join(','));
+ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
+ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
 try {
   freshPlay();
   ['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal'].forEach((k, i) => G.spawnMonster(k, 2 + (i % 8), 3 + Math.floor(i / 8)));
