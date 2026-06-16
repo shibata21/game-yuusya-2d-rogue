@@ -382,6 +382,7 @@ function hasAdjacentMonster(h){
 }
 function beginMove(e,col,row,duration){
   if(e.col===col && e.row===row) return;
+  e.dirX=Math.sign(col-e.col); e.dirY=Math.sign(row-e.row);
   e.moveFromX=e.px===undefined?cx(e.col):e.px; e.moveFromY=e.py===undefined?cy(e.row):e.py;
   e.moveToX=cx(col); e.moveToY=cy(row); e.moveAnim=duration||MOVE_ANIM; e.moveMax=e.moveAnim;
   e.col=col; e.row=row;
@@ -749,6 +750,7 @@ function drawMonster(m,time){
   if(K.eliteOf){
     // 進化種：元スプライトを「色だけ変えて」描く（形・大きさは元のまま）
     ctx.filter=K.tint||'none'; drawBaseSprite(K.eliteOf,x,y,time); ctx.filter='none';
+    drawEliteMark(x,y,K.col,time);
     if(K.eliteOf==='golem'){ bw=22; by=y-13; } else if(K.eliteOf==='flame'){ bw=20; by=y-18; } else if(K.eliteOf==='spitter'){ by=y-11; }
   } else {
     switch(m.kind){
@@ -775,46 +777,72 @@ function drawEgg(e,time){
   const p=clamp(1-e.hatchCd/EGG_HATCH,0,1);
   px(x-7,y-12,14,2,'#2a1538'); px(x-7,y-12,Math.round(14*p),2,K.col);
 }
+function drawGroundShadow(x,y,w,a){
+  ctx.globalAlpha=a||0.45; ctx.fillStyle='#09050d'; ctx.beginPath(); ctx.ellipse(x,y+9,w||11,3,0,0,6.28); ctx.fill(); ctx.globalAlpha=1;
+}
+function drawRuneGlow(x,y,r,col,a){
+  ctx.globalAlpha=a; ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,6.28); ctx.fill(); ctx.globalAlpha=1;
+}
+function drawEliteMark(x,y,col,time){
+  const pulse=0.45+0.35*Math.sin(time*6+x);
+  ctx.globalAlpha=0.35+pulse*0.35; ctx.strokeStyle=col; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(x,y-4,13+pulse*2,0,6.28); ctx.stroke();
+  ctx.globalAlpha=0.85; ctx.fillStyle=col;
+  drawDiamond(x-8,y-10,2); drawDiamond(x+8,y-10,2); drawDiamond(x,y-15,2);
+  ctx.globalAlpha=1;
+}
 function drawSlime(x,y){
-  px(x-8,y+3,16,5,'#3fae4b'); px(x-7,y-2,14,6,'#5fd16b'); px(x-5,y-6,10,5,'#5fd16b'); px(x-4,y-5,8,3,'#8be88f');
-  px(x-4,y-1,3,3,'#10240f'); px(x+1,y-1,3,3,'#10240f'); px(x-3,y-1,1,1,'#fff'); px(x+2,y-1,1,1,'#fff');
+  drawGroundShadow(x,y,10,0.42);
+  px(x-9,y+3,18,5,'#1f6f2b'); px(x-8,y-2,16,7,'#3fae4b'); px(x-6,y-6,12,5,'#5fd16b');
+  px(x-4,y-7,8,2,'#9bff9f'); px(x-7,y+2,14,2,'#2f8d3b'); px(x-9,y+5,18,2,'#154d1f');
+  px(x-5,y-2,3,4,'#081a0a'); px(x+2,y-2,3,4,'#081a0a'); px(x-4,y-1,1,1,'#fff'); px(x+3,y-1,1,1,'#fff');
+  px(x-1,y+3,2,1,'#bdf7bd'); px(x+5,y+1,2,2,'#7bf08a');
 }
 function drawCarniv(x,y){
-  px(x-9,y+4,18,4,'#7a3318'); px(x-9,y-3,18,8,'#e06b3a'); px(x-9,y-3,18,3,'#b34a22');
-  px(x-9,y+5,4,4,'#7a3318'); px(x+5,y+5,4,4,'#7a3318');
-  px(x-6,y+4,2,3,'#fff'); px(x-1,y+4,2,3,'#fff'); px(x+4,y+4,2,3,'#fff');
-  px(x-6,y-1,3,3,'#3a0d0d'); px(x+3,y-1,3,3,'#3a0d0d'); px(x-6,y-1,1,1,'#ff5b5b'); px(x+3,y-1,1,1,'#ff5b5b');
+  drawGroundShadow(x,y,12,0.48);
+  px(x-11,y+4,22,4,'#4f1d13'); px(x-10,y-4,20,9,'#b84d27'); px(x-8,y-7,16,4,'#e06b3a');
+  px(x-12,y-1,4,6,'#7a3318'); px(x+8,y-1,4,6,'#7a3318'); px(x-9,y+6,4,4,'#35110b'); px(x+5,y+6,4,4,'#35110b');
+  px(x-11,y-6,3,5,'#2a0f1c'); px(x+8,y-6,3,5,'#2a0f1c'); px(x-7,y+3,3,5,'#fff'); px(x-1,y+4,2,4,'#fff'); px(x+5,y+3,3,5,'#fff');
+  px(x-6,y-2,3,3,'#2b0606'); px(x+3,y-2,3,3,'#2b0606'); px(x-5,y-1,1,1,'#ffcf4d'); px(x+4,y-1,1,1,'#ffcf4d');
+  px(x-2,y-5,4,2,'#ff9b5a');
 }
 function drawEvolved(x,y){
-  px(x-11,y+5,22,4,'#3a1020'); px(x-11,y-4,22,10,'#9b2f4f'); px(x-11,y-4,22,3,'#6e1f38');
-  px(x-11,y-9,3,6,'#2a0f1c'); px(x+8,y-9,3,6,'#2a0f1c'); px(x-11,y+6,5,5,'#3a1020'); px(x+6,y+6,5,5,'#3a1020');
-  px(x-7,y+5,3,4,'#fff'); px(x+4,y+5,3,4,'#fff'); px(x-1,y+6,2,3,'#fff');
-  px(x-7,y-1,3,3,'#ffcf4d'); px(x+4,y-1,3,3,'#ffcf4d');
+  drawGroundShadow(x,y,14,0.55);
+  px(x-12,y+5,24,4,'#210812'); px(x-12,y-5,24,11,'#6e1f38'); px(x-10,y-8,20,4,'#9b2f4f');
+  px(x-13,y-11,4,8,'#180711'); px(x+9,y-11,4,8,'#180711'); px(x-12,y+6,6,5,'#210812'); px(x+6,y+6,6,5,'#210812');
+  px(x-10,y-2,3,9,'#3a1020'); px(x+7,y-2,3,9,'#3a1020'); px(x-6,y+4,3,5,'#fff'); px(x+3,y+4,3,5,'#fff'); px(x-1,y+5,2,4,'#fff');
+  drawRuneGlow(x-6,y-2,2,'#ffcf4d',0.9); drawRuneGlow(x+5,y-2,2,'#ffcf4d',0.9);
+  px(x-3,y-7,6,2,'#e06b8a');
 }
 function drawSpitter(x,y,time){
   const drip=Math.sin(time*8+x)>0;
-  px(x-7,y+3,14,5,'#5a2f7a'); px(x-7,y-2,13,6,'#7a3aa6'); px(x-5,y-1,10,3,'#a64dff');
-  px(x+5,y-1,5,3,'#a64dff');                 // 口先
-  px(x-5,y+5,3,3,'#3a1f52'); px(x+2,y+5,3,3,'#3a1f52');
-  px(x-3,y-1,2,2,'#dfffe0'); px(x+1,y-1,2,2,'#dfffe0');
-  if(drip) px(x+9,y+1,2,2,'#9bff9b');         // 毒
+  drawGroundShadow(x,y,11,0.46);
+  px(x-8,y+4,16,4,'#321942'); px(x-8,y-3,15,8,'#6b3094'); px(x-6,y-6,12,5,'#7a3aa6');
+  px(x+5,y-3,6,4,'#a64dff'); px(x+9,y-2,3,3,'#4e1f6d');                 // 口先
+  px(x-9,y-1,3,5,'#3a1f52'); px(x+2,y+5,4,3,'#2b153d'); px(x-6,y+5,4,3,'#2b153d');
+  drawRuneGlow(x-3,y-1,2,'#dfffe0',0.9); drawRuneGlow(x+2,y-1,2,'#dfffe0',0.9);
+  ctx.globalAlpha=0.55; px(x-5,y-5,9,2,'#d08cff'); ctx.globalAlpha=1;
+  if(drip){ drawRuneGlow(x+11,y+1,2,'#9bff9b',0.85); px(x+11,y+3,1,2,'#9bff9b'); }         // 毒
 }
 function drawGolem(x,y){
-  px(x-10,y-6,20,14,'#4f5e85'); px(x-10,y-6,20,3,'#6f86c4'); px(x-10,y+5,20,3,'#2e3a59');
-  px(x-13,y-2,4,8,'#4f5e85'); px(x+9,y-2,4,8,'#4f5e85');     // 腕
-  px(x-1,y-4,2,9,'#2e3a59'); px(x-6,y,5,2,'#2e3a59'); px(x+2,y+1,4,2,'#2e3a59'); // 亀裂
-  px(x-4,y-2,3,3,'#9bd0ff'); px(x+1,y-2,3,3,'#9bd0ff'); // 眼
+  drawGroundShadow(x,y,14,0.58);
+  px(x-11,y-8,22,16,'#2e3a59'); px(x-9,y-10,18,4,'#6f86c4'); px(x-10,y+5,20,4,'#1c263d');
+  px(x-14,y-4,5,10,'#3f4f73'); px(x+9,y-4,5,10,'#3f4f73'); px(x-15,y+4,5,4,'#222c45'); px(x+10,y+4,5,4,'#222c45');
+  px(x-2,y-7,4,13,'#1d2840'); px(x-7,y-1,6,2,'#1d2840'); px(x+2,y+1,5,2,'#1d2840'); px(x-10,y-5,3,12,'#43547a');
+  drawRuneGlow(x-4,y-3,2,'#9bd0ff',0.9); drawRuneGlow(x+3,y-3,2,'#9bd0ff',0.9); px(x-1,y+2,2,2,'#9bd0ff');
 }
 function drawFlame(x,y,time){
   const fj=Math.round(Math.sin(time*12)*1.5);
-  px(x-7,y-2,14,9,'#3a1020'); px(x-7,y+5,14,3,'#1a0810');
-  px(x-7,y-7,3,5,'#2a0f1c'); px(x+4,y-7,3,5,'#2a0f1c');     // 角
-  px(x-5+fj,y-11,3,5,'#ff8a3a'); px(x-1,y-13,3,6,'#ffcf4d'); px(x+3-fj,y-11,3,5,'#ff8a3a'); // 炎冠
-  px(x-4,y-1,3,3,'#ffcf4d'); px(x+1,y-1,3,3,'#ffcf4d'); px(x-3,y+3,6,2,'#ff5b2a'); // 眼・口
+  drawGroundShadow(x,y,12,0.48);
+  ctx.globalAlpha=0.28; ctx.fillStyle='#ff5b2a'; ctx.beginPath(); ctx.arc(x,y-5,14+fj,0,6.28); ctx.fill(); ctx.globalAlpha=1;
+  px(x-8,y-3,16,10,'#2b0710'); px(x-7,y+5,14,3,'#120408'); px(x-9,y-8,4,6,'#1a0610'); px(x+5,y-8,4,6,'#1a0610');
+  px(x-6+fj,y-13,4,7,'#ff5b2a'); px(x-2,y-16,4,9,'#ffcf4d'); px(x+3-fj,y-13,4,7,'#ff8a3a');
+  px(x-5,y-1,3,3,'#ffcf4d'); px(x+2,y-1,3,3,'#ffcf4d'); px(x-3,y+3,6,2,'#ff5b2a'); px(x-1,y+4,2,2,'#ffcf4d');
 }
 
 function drawHero(h,time){
-  const L=lunge(h); const x=h.px+L.x, y=h.py+bob(h,time)+L.y;
+  const L=lunge(h), walk=h.moveAnim>0?Math.sin(time*18+h.id)*1.2:0;
+  const x=h.px+L.x+walk*(h.dirX||0)*0.5, y=h.py+bob(h,time)+L.y+Math.abs(walk)*0.25;
   // ウェーブで装備の格が上がる色味（戦士・盾兵向け）
   let steel='#c3cdd9';
   if(h.wave>=8) steel=lerpHex('#ffd34d','#e0556b', clamp((h.wave-8)/6,0,1));
@@ -828,41 +856,45 @@ function drawHero(h,time){
   drawHpBar(x, y-19, h.cls==='tank'?20:16, h.hp, h.maxHp, '#ffd34d');
 }
 function drawWarrior(x,y,armor){
-  const dark='#5a6475';
-  px(x+8,y-7,2,12,'#dfe6ef'); px(x+7,y+5,4,2,'#8a5e16');     // 剣
-  px(x-11,y-3,4,9,'#8a5e16'); px(x-10,y-2,2,7,armor);        // 盾
-  px(x-4,y+5,3,5,dark); px(x+1,y+5,3,5,dark);                // 脚
-  px(x-5,y-4,10,9,armor); px(x-5,y-4,10,2,'#fff7'); px(x-5,y+3,10,2,'rgba(0,0,0,.25)'); // 胴
-  px(x-4,y-11,8,7,armor); px(x-4,y-11,8,2,'#fff7'); px(x-3,y-8,6,2,'#1a2230');          // 兜
-  px(x-1,y-15,2,4,'#e0556b');                                 // 前立て
+  const dark='#485161', edge='#151a23';
+  drawGroundShadow(x,y,11,0.45);
+  px(x+8,y-10,2,16,'#f1f5f9'); px(x+7,y+5,4,2,'#8a5e16'); px(x+9,y-10,1,10,'#7a8290');     // 剣
+  px(x-13,y-5,5,12,'#4a2f10'); px(x-12,y-4,3,10,armor); px(x-11,y-2,1,6,'#fff7');        // 盾
+  px(x-5,y+5,4,5,dark); px(x+1,y+5,4,5,dark); px(x-5,y+9,4,2,edge); px(x+1,y+9,4,2,edge);
+  px(x-6,y-5,12,11,edge); px(x-5,y-4,10,9,armor); px(x-4,y-4,8,2,'#fff7'); px(x-5,y+3,10,2,'rgba(0,0,0,.3)');
+  px(x-5,y-12,10,8,edge); px(x-4,y-11,8,7,armor); px(x-4,y-11,8,2,'#fff7'); px(x-3,y-8,6,2,'#101722');
+  px(x-1,y-16,2,4,'#e0556b'); px(x-2,y-14,4,1,'#ff9aa8');                                 // 前立て
 }
 function drawTank(x,y){
-  const iron='#7a8290', dk='#3f4651';
-  px(x-6,y+5,4,5,dk); px(x+2,y+5,4,5,dk);                     // 太い脚
-  px(x-8,y-5,16,11,iron); px(x-8,y-5,16,2,'#aab2bd'); px(x-8,y+4,16,2,'rgba(0,0,0,.3)'); // 厚い胴
-  px(x-6,y-12,12,8,iron); px(x-6,y-12,12,2,'#aab2bd'); px(x-4,y-8,8,2,'#11161d');        // 大兜
-  px(x-14,y-7,6,16,'#566070'); px(x-14,y-7,6,2,'#8a93a0'); px(x-12,y-2,2,6,'#cfd6df');   // 大盾
-  px(x+8,y-1,3,8,'#3f4651');                                  // 鈍器
+  const iron='#7a8290', dk='#303743', edge='#151a23';
+  drawGroundShadow(x,y,13,0.55);
+  px(x-7,y+5,5,5,dk); px(x+2,y+5,5,5,dk); px(x-8,y+9,6,2,edge); px(x+2,y+9,6,2,edge);
+  px(x-9,y-6,18,12,edge); px(x-8,y-5,16,11,iron); px(x-8,y-5,16,2,'#c4ccd6'); px(x-8,y+4,16,2,'rgba(0,0,0,.34)');
+  px(x-7,y-13,14,9,edge); px(x-6,y-12,12,8,iron); px(x-6,y-12,12,2,'#c4ccd6'); px(x-4,y-8,8,2,'#0b1018');
+  px(x-15,y-8,7,18,'#2f3949'); px(x-14,y-7,5,16,'#566070'); px(x-14,y-7,5,2,'#9aa4b2'); px(x-12,y-3,2,8,'#cfd6df');
+  px(x+8,y-3,4,10,'#2f3540'); px(x+7,y+5,6,3,'#566070');                                  // 鈍器
 }
 function drawMage(x,y,time){
   const robe='#6a5acd', robe2='#4b3fa0', glow=0.5+0.5*Math.sin(time*5);
-  px(x-5,y+1,10,9,robe); px(x-5,y+8,10,2,robe2); px(x-5,y+1,10,2,'#8979e0'); // ローブ
-  px(x-3,y-6,6,7,robe);                                       // 上半身
-  px(x-5,y-9,10,3,robe2); px(x-3,y-13,6,4,robe2); px(x-1,y-16,2,3,robe2);    // とんがり帽子
-  px(x-1,y-2,2,2,'#cfc6ff');                                  // 顔の覗き
-  px(x+7,y-8,2,16,'#6b4a2f');                                 // 杖
-  ctx.globalAlpha=0.6*glow+0.35; ctx.fillStyle='#b6a6ff';
-  ctx.beginPath(); ctx.arc(x+8,y-9,3.6,0,6.28); ctx.fill(); ctx.globalAlpha=1;
-  px(x+7,y-10,2,2,'#fff');                                    // 宝珠の芯
+  drawGroundShadow(x,y,10,0.42);
+  px(x-6,y+1,12,10,'#261d57'); px(x-5,y+1,10,9,robe); px(x-5,y+8,10,2,robe2); px(x-5,y+1,10,2,'#a296ff');
+  px(x-4,y-7,8,8,'#261d57'); px(x-3,y-6,6,7,robe); px(x-1,y-2,2,2,'#cfc6ff');
+  px(x-6,y-10,12,3,robe2); px(x-4,y-14,8,5,robe2); px(x-1,y-18,3,5,robe2); px(x-4,y-13,8,1,'#a296ff');
+  px(x+8,y-9,2,17,'#6b4a2f'); px(x+7,y+5,4,2,'#3b2718');
+  ctx.globalAlpha=0.5*glow+0.35; ctx.fillStyle='#b6a6ff';
+  ctx.beginPath(); ctx.arc(x+9,y-10,5,0,6.28); ctx.fill(); ctx.globalAlpha=1;
+  drawRuneGlow(x+9,y-10,2,'#fff',0.95);
 }
 function drawPriest(x,y,time){
   const robe='#ede6d0', gold='#e8c860', halo=0.5+0.5*Math.sin(time*4);
-  px(x-5,y+1,10,9,robe); px(x-5,y+8,10,2,'#c9c0a6'); px(x-5,y+1,10,2,gold);  // ローブ＋金縁
-  px(x-3,y-6,6,7,robe);                                       // 上半身
-  px(x-4,y-12,8,7,robe); px(x-3,y-8,6,2,'#9a917a');            // 頭巾
-  ctx.globalAlpha=0.4+0.4*halo; ctx.strokeStyle='#fff0a8'; ctx.lineWidth=2;
-  ctx.beginPath(); ctx.arc(x,y-13,5,Math.PI,0); ctx.stroke(); ctx.globalAlpha=1; // 光輪
-  px(x+7,y-8,2,16,'#cbb78a'); px(x+5,y-8,6,2,gold); px(x+7,y-11,2,6,gold);    // 杖＋十字
+  drawGroundShadow(x,y,10,0.4);
+  ctx.globalAlpha=0.22+0.18*halo; ctx.fillStyle='#fff0a8'; ctx.beginPath(); ctx.arc(x,y-6,13,0,6.28); ctx.fill(); ctx.globalAlpha=1;
+  px(x-6,y+1,12,10,'#6a604e'); px(x-5,y+1,10,9,robe); px(x-5,y+8,10,2,'#c9c0a6'); px(x-5,y+1,10,2,gold);
+  px(x-4,y-7,8,8,'#c9c0a6'); px(x-3,y-6,6,7,robe); px(x-4,y-13,8,8,robe); px(x-3,y-9,6,2,'#8b846e');
+  px(x-1,y-4,2,10,gold); px(x-4,y,8,2,gold);
+  ctx.globalAlpha=0.45+0.45*halo; ctx.strokeStyle='#fff0a8'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.arc(x,y-14,6,Math.PI,0); ctx.stroke(); ctx.globalAlpha=1;
+  px(x+8,y-9,2,17,'#cbb78a'); px(x+6,y-9,6,2,gold); px(x+8,y-12,2,6,gold);
 }
 
 function drawHpBar(cx0, topY, w, hp, maxHp, col){
