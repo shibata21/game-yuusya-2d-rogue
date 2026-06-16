@@ -27,11 +27,12 @@ const hook = `
   get waveCountdown(){return waveCountdown}, set waveCountdown(v){waveCountdown=v},
   get gameState(){return gameState}, set gameState(v){gameState=v},
   update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
+  beginMove, updateVisualPosition,
   spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,
   countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
   VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME,
-  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, cx, cy, ATK_ANIM, DIG_CD
+  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD
 }; }
 `;
 body = body.replace('})();', hook + '})();');
@@ -116,6 +117,15 @@ ok('襲来待ち時間が短縮されている', G.FIRST_GRACE === 27000 && G.WA
 ok('栄養経済は1マス1消費向けの値', G.DIG_COST === 1 && G.START_NUT === 25 && Math.abs(G.monsterIncomeRate() - 0.045) < 0.0001);
 ok('スライムは以前より少し強い', G.KINDS.slime.hp === 10 && G.KINDS.slime.atk === 2);
 ok('上位種は卵で増える種として定義される', ['superslime','evolved','tarantula','titan','infernal'].every(k => G.isElite(k) && G.KINDS[k].breedEvery === 0));
+(function () {
+  const e = { col: 1, row: 1, px: G.cx(1), py: G.cy(1) };
+  const startX = e.px, goalX = G.cx(2);
+  G.beginMove(e, 2, 1, 200);
+  G.updateVisualPosition(e, 100);
+  ok('移動中の描画座標はマス間を補間する', e.col === 2 && e.row === 1 && e.px > startX && e.px < goalX, 'px=' + e.px);
+  G.updateVisualPosition(e, 100);
+  ok('移動補間は終了時に目的マスへ到達する', e.px === goalX && e.py === G.cy(1) && e.moveAnim === 0, 'px=' + e.px + ' py=' + e.py);
+})();
 
 section('T2 鉱脈採掘と熟成');
 (function () {

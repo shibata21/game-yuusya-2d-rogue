@@ -17,6 +17,7 @@ const EGG_HATCH=40000, EGG_CHECK=10000, EGG_CHANCE=0.20, EGG_KIND_CAP=2;
 const EAT_CHECK=2600, EAT_CHANCE_STEP=0.09;
 const EFFECT_CAP=90;
 const ATK_ANIM=190, LUNGE=5;                       // 攻撃アクションの長さ(ms)と踏み込み量(px)
+const MOVE_ANIM=220;                               // 1マス移動の見た目補間時間(ms)
 const DIG_BREAK=140, DIG_CD=780;                   // 勇者が土を壊す耐久と振り間隔
 const heroDigDmg=(atk)=>Math.min(95, 30+atk*1.2);  // 攻撃力依存・一撃禁止（必ず2回以上要る）
 
@@ -379,7 +380,23 @@ function hasAdjacentMonster(h){
   for(const m of monsters) if(cheb(m,h)<=1) return true;
   return false;
 }
-function moveToward(m,t){ const nb=openNeighbors(m.col,m.row); if(!nb.length)return; let b=nb[0],bd=cheb(b,t); for(const n of nb){const d=cheb(n,t); if(d<bd){bd=d;b=n;}} m.col=b.col; m.row=b.row; }
+function beginMove(e,col,row,duration){
+  if(e.col===col && e.row===row) return;
+  e.moveFromX=e.px===undefined?cx(e.col):e.px; e.moveFromY=e.py===undefined?cy(e.row):e.py;
+  e.moveToX=cx(col); e.moveToY=cy(row); e.moveAnim=duration||MOVE_ANIM; e.moveMax=e.moveAnim;
+  e.col=col; e.row=row;
+}
+function updateVisualPosition(e,dt){
+  if(e.moveAnim>0){
+    e.moveAnim=Math.max(0,e.moveAnim-dt);
+    const p=clamp(1-e.moveAnim/(e.moveMax||MOVE_ANIM),0,1);
+    const q=p<0.5 ? 2*p*p : 1-Math.pow(-2*p+2,2)/2;
+    e.px=e.moveFromX+(e.moveToX-e.moveFromX)*q; e.py=e.moveFromY+(e.moveToY-e.moveFromY)*q;
+  } else {
+    e.px=cx(e.col); e.py=cy(e.row);
+  }
+}
+function moveToward(m,t){ const nb=openNeighbors(m.col,m.row); if(!nb.length)return; let b=nb[0],bd=cheb(b,t); for(const n of nb){const d=cheb(n,t); if(d<bd){bd=d;b=n;}} beginMove(m,b.col,b.row); }
 // 視線判定：2マス間に壁（土・岩盤）があれば遮られる＝遠距離攻撃は壁を貫通しない
 function hasLOS(c0,r0,c1,r1){
   let dx=Math.abs(c1-c0), dy=Math.abs(r1-r0), sx=c0<c1?1:-1, sy=r0<r1?1:-1, err=dx-dy, c=c0, r=r0;
@@ -398,7 +415,7 @@ function wanderHome(m){
     return;
   }
   const nb=openNeighbors(m.col,m.row).filter(n=>m.homeCol===undefined || cheb(n,{col:m.homeCol,row:m.homeRow})<=3);
-  if(nb.length && Math.random()<0.82){ const n=nb[ri(0,nb.length-1)]; m.col=n.col; m.row=n.row; }
+  if(nb.length && Math.random()<0.82){ const n=nb[ri(0,nb.length-1)]; beginMove(m,n.col,n.row); }
 }
 function wander(m){ wanderHome(m); }
 function killMonster(m){
@@ -538,7 +555,7 @@ function update(dt){
       h.blockedMs+=dt;
       if(h.blockedMs>4500){
         const step=heroStep(h);
-        if(step && step.tile.t!=='earth'){ h.col=step.col; h.row=step.row; h.actCd=h.moveCd; }
+        if(step && step.tile.t!=='earth'){ beginMove(h,step.col,step.row); h.actCd=h.moveCd; }
         h.blockedMs=0;
       }
       continue;
@@ -564,14 +581,14 @@ function update(dt){
           if(step.tile.dig>=DIG_BREAK){
             step.tile.t='tunnel'; step.tile.sub=null; step.tile.dig=0;
           }
-        } else { h.col=step.col; h.row=step.row; h.actCd=h.moveCd; }
+        } else { beginMove(h,step.col,step.row); h.actCd=h.moveCd; }
       } else h.actCd=400;
     }
   }
 
   // 描画位置の補間＋攻撃／出現アクションの進行
-  for(const m of monsters){ m.px+=(cx(m.col)-m.px)*0.22; m.py+=(cy(m.row)-m.py)*0.22; if(m.atkAnim>0) m.atkAnim-=dt; if(m.bornAnim>0) m.bornAnim-=dt; }
-  for(const h of heroes){ h.px+=(cx(h.col)-h.px)*0.20; h.py+=(cy(h.row)-h.py)*0.20; if(h.atkAnim>0) h.atkAnim-=dt; }
+  for(const m of monsters){ updateVisualPosition(m,dt); if(m.atkAnim>0) m.atkAnim-=dt; if(m.bornAnim>0) m.bornAnim-=dt; }
+  for(const h of heroes){ updateVisualPosition(h,dt); if(h.atkAnim>0) h.atkAnim-=dt; }
 
   // エフェクト寿命
   for(let i=effects.length-1;i>=0;i--){ const f=effects[i]; f.life-=dt; if(f.type==='float') f.y+=f.vy*dt; if(f.life<=0) effects.splice(i,1); }
