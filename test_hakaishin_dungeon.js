@@ -28,8 +28,8 @@ const hook = `
   get gameState(){return gameState}, set gameState(v){gameState=v},
   update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
   spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,
-  countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite,
-  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
+  countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
+  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME,
   MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, cx, cy, ATK_ANIM, DIG_CD
 }; }
@@ -113,6 +113,7 @@ try {
 } catch (e) { ok('描画で例外が出ない', false, e && (e.stack || e.message || e)); }
 ok('鉱脈テーブルは5種類ある', ['moss','meat','venom','stone','ember'].every(k => !!G.VEIN[k]));
 ok('少数精鋭向けにゲーム速度が遅い', G.FIRST_GRACE === 36000 && G.WAVE_INTERVAL === 39000 && G.HERO_STAGGER === 2200 && G.DIG_CD === 780);
+ok('栄養経済は1マス1消費向けの値', G.DIG_COST === 1 && G.START_NUT === 25 && Math.abs(G.monsterIncomeRate() - 0.045) < 0.0001);
 ok('スライムは以前より少し強い', G.KINDS.slime.hp === 10 && G.KINDS.slime.atk === 2);
 ok('上位種は卵で増える種として定義される', ['superslime','evolved','tarantula','titan','infernal'].every(k => G.isElite(k) && G.KINDS[k].breedEvery === 0));
 
@@ -126,6 +127,10 @@ section('T2 鉱脈採掘と熟成');
   ok('通常鉱脈を掘ると対応する下位種が即出現する', G.monsters.length === 1 && G.monsters[0].kind === 'slime', G.monsters.map(m => m.kind).join(','));
   ok('掘った後は単なる通路になる', G.grid[r][c].t === 'tunnel' && !G.grid[r][c].sub && !G.grid[r][c].soil && !G.grid[r][c].nutrient);
   ok('採掘で固定コストを消費する', Math.abs(G.nutrients - (100 - G.DIG_COST)) < 0.001, 'nutrients=' + G.nutrients);
+})();
+(function () {
+  freshPlay();
+  ok('初期栄養は25', G.nutrients === G.START_NUT, 'nutrients=' + G.nutrients);
 })();
 (function () {
   freshPlay(); G.nutrients = 100;
@@ -182,6 +187,16 @@ section('T3 増殖と卵');
   G.update(500);
   ok('卵は勇者の攻撃対象にならない', G.eggs.length === 1, 'eggs=' + G.eggs.length);
 })();
+(function () {
+  freshPlay(); carveAll();
+  G.spawnMonster('carniv', 5, 5);
+  const eater = G.monsters[0]; eater.hp = 10; eater.eatCd = 0;
+  G.spawnMonster('slime', 5, 6);
+  const oldRandom = Math.random; Math.random = () => 0;
+  G.update(100);
+  Math.random = oldRandom;
+  ok('序列上位の魔物は下位を捕食してHPを回復する', G.monsters.length === 1 && eater.hp > 10, 'len=' + G.monsters.length + ' hp=' + eater.hp);
+})();
 
 section('T4 戦闘・ウェーブ・長時間');
 (function () {
@@ -216,6 +231,14 @@ section('T4 戦闘・ウェーブ・長時間');
   ok('すぐ襲来は栄養を変えない', Math.abs(G.nutrients - beforeNut) < 0.001);
   G.startWave();
   ok('すぐ襲来は勇者数を増やさない', G.spawnQueue.length === 1, 'queue=' + G.spawnQueue.length);
+})();
+(function () {
+  freshPlay(); carveAll();
+  const h = mkHero('warrior', 5, 5, { hp: 1, maxHp: 1, wave: 5 });
+  G.heroes.push(h);
+  const before = G.nutrients;
+  G.killHero(h);
+  ok('勇者撃破報酬は4+wave', G.nutrients === before + 9, 'before=' + before + ' after=' + G.nutrients);
 })();
 (function () {
   try {
