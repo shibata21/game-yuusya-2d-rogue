@@ -9,15 +9,24 @@ const path = require('path');
 const htmlPath = process.argv[2] || path.join(__dirname, 'hakaishin_dungeon.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
-function loadGameScript(htmlText, sourcePath) {
-  const inline = htmlText.match(/<script>([\s\S]*?)<\/script>/);
-  if (inline) return inline[1];
-  const external = htmlText.match(/<script\s+src="([^"]+)"\s*><\/script>/);
-  if (!external) { console.error('No game <script> found in ' + sourcePath); process.exit(1); }
-  return fs.readFileSync(path.resolve(path.dirname(sourcePath), external[1]), 'utf8');
+function loadGameScripts(htmlText, sourcePath) {
+  const dir = path.dirname(sourcePath);
+  const bodies = [];
+  const re = /<script(?:\s+src="([^"]+)")?\s*>([\s\S]*?)<\/script>/g;
+  let m;
+  while ((m = re.exec(htmlText))) {
+    if (m[1]) {
+      if (/^vendor\//.test(m[1])) continue;
+      bodies.push(fs.readFileSync(path.resolve(dir, m[1]), 'utf8'));
+    } else if (m[2] && m[2].trim()) {
+      bodies.push(m[2]);
+    }
+  }
+  if (!bodies.length) { console.error('No game <script> found in ' + sourcePath); process.exit(1); }
+  return bodies.join('\n');
 }
 
-let body = loadGameScript(html, htmlPath);
+let body = loadGameScripts(html, htmlPath);
 const hook = `
 ;if(typeof globalThis!=='undefined'){ globalThis.__GAME__={
   get monsters(){return monsters}, get heroes(){return heroes}, get eggs(){return eggs}, get grid(){return grid}, get effects(){return effects}, get spawnQueue(){return spawnQueue},
@@ -27,7 +36,7 @@ const hook = `
   get waveCountdown(){return waveCountdown}, set waveCountdown(v){waveCountdown=v},
   get gameState(){return gameState}, set gameState(v){gameState=v},
   update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
-  beginMove, updateVisualPosition,
+  beginMove, updateVisualPosition, setAction, actorPose,
   spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,
   countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
   VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
@@ -35,7 +44,7 @@ const hook = `
   MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD
 }; }
 `;
-body = body.replace('})();', hook + '})();');
+body += hook;
 
 const noop = () => {};
 const grad = { addColorStop: noop };
@@ -63,6 +72,7 @@ try { global.performance = { now: () => 0 }; } catch (e) {}
 eval(body);
 const G = globalThis.__GAME__;
 if (!G) { console.error('Hook failed: __GAME__ not set'); process.exit(1); }
+const scriptSrcs = Array.from(html.matchAll(/<script\s+src="([^"]+)"\s*><\/script>/g)).map(m => m[1]);
 
 let pass = 0, fail = 0;
 function ok(name, cond, detail) {
@@ -92,6 +102,8 @@ function mkHero(cls, col, row, extra) {
 function run(ms, step) { for (let t = 0; t < ms; t += step) G.update(step); }
 
 section('T1 描画と基本データ');
+ok('PixiJSはゲーム本体より前に読み込まれる', scriptSrcs[0] === 'vendor/pixi.min.js' && scriptSrcs.indexOf('hakaishin_dungeon_core.js') > 0 && scriptSrcs.indexOf('hakaishin_dungeon.js') > scriptSrcs.indexOf('hakaishin_dungeon_pixi.js'), scriptSrcs.join(','));
+ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_dungeon_core.js','hakaishin_dungeon_logic.js','hakaishin_dungeon_canvas.js','hakaishin_dungeon_pixi.js','hakaishin_dungeon.js'].every(s => scriptSrcs.includes(s)), scriptSrcs.join(','));
 try {
   freshPlay();
   ['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal'].forEach((k, i) => G.spawnMonster(k, 2 + (i % 8), 3 + Math.floor(i / 8)));
@@ -125,6 +137,12 @@ ok('上位種は卵で増える種として定義される', ['superslime','evol
   ok('移動中の描画座標はマス間を補間する', e.col === 2 && e.row === 1 && e.px > startX && e.px < goalX, 'px=' + e.px);
   G.updateVisualPosition(e, 100);
   ok('移動補間は終了時に目的マスへ到達する', e.px === goalX && e.py === G.cy(1) && e.moveAnim === 0, 'px=' + e.px + ' py=' + e.py);
+})();
+(function () {
+  const e = { col: 1, row: 1, px: G.cx(1), py: G.cy(1) };
+  G.setAction(e, 'attack', G.cx(2), G.cy(1), 200);
+  const p = G.actorPose(e);
+  ok('攻撃アクションは対象座標と時間を保持する', e.actionType === 'attack' && e.actionTX === G.cx(2) && e.actionTime === 200 && p.x === 0, 'type=' + e.actionType);
 })();
 
 section('T2 鉱脈採掘と熟成');
@@ -206,6 +224,7 @@ section('T3 増殖と卵');
   G.update(100);
   Math.random = oldRandom;
   ok('序列上位の魔物は下位を捕食してHPを回復する', G.monsters.length === 1 && eater.hp > 10, 'len=' + G.monsters.length + ' hp=' + eater.hp);
+  ok('捕食成功時に捕食アクションと噛み付きエフェクトが出る', eater.actionType === 'eat' && G.effects.some(e => e.type === 'bite'), 'action=' + eater.actionType);
 })();
 
 section('T4 戦闘・ウェーブ・長時間');
