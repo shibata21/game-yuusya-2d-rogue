@@ -58,8 +58,9 @@ const HERO_CLASSES={
 
 /* 画像素材。sprites.json と同じ並びを JS 側にも持ち、ローカルHTML直開きで fetch なしに使う */
 const PIXEL_ASSET_PATH='assets/pixel/';
-const PIXEL_ASSET_VERSION='v2-48-2';
+const PIXEL_ASSET_VERSION='v3-48-8dir-1';
 const PIXEL_CELL=48, PIXEL_FRAMES=4;
+const PIXEL_DIRS=['e','se','s','sw','w','nw','n','ne'];
 const PIXEL_ACTORS=['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal','warrior','tank','mage','priest','egg_superslime','egg_evolved','egg_tarantula','egg_titan','egg_infernal'];
 const PIXEL_TILES=['earth','tunnel','bedrock','surface','core','moss','meat','venom','stone','ember','moss_evo','meat_evo','venom_evo','stone_evo','ember_evo'];
 const PIXEL_EFFECTS=['slash','shot','bite','birth','puff'];

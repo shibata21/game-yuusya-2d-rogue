@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { PNG } = require("pngjs");
 const {
-  CELL, FRAMES, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
+  CELL, FRAMES, DIRECTIONS, OUT_DIR, ACTORS, TILES, EFFECTS,
   readPng, spritePath,
 } = require("./pixel_asset_common");
 
@@ -58,7 +58,7 @@ function validatePng(file, w, h, allowWhiteEdge) {
 
 function validateSource() {
   for (const name of TILES) validatePng(spritePath("tiles", name), CELL, CELL, false);
-  for (const name of ACTORS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("actors", name, f), CELL, CELL, false);
+  for (const name of ACTORS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("actors", name, f, dir), CELL, CELL, false);
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("effects", name, f), CELL, CELL, true);
   ok("個別PNGフレームを検査しました");
 }
@@ -68,6 +68,7 @@ function validateMeta() {
   exists(file);
   const meta = JSON.parse(fs.readFileSync(file, "utf8"));
   if (meta.cell !== CELL || meta.frames !== FRAMES) fail("sprites.json のセル仕様が不正です");
+  if (JSON.stringify(meta.directions) !== JSON.stringify(DIRECTIONS)) fail("directions の順序が不正です");
   if (JSON.stringify(Object.keys(meta.actors)) !== JSON.stringify(ACTORS)) fail("actors の順序が不正です");
   if (JSON.stringify(Object.keys(meta.tiles)) !== JSON.stringify(TILES)) fail("tiles の順序が不正です");
   if (JSON.stringify(Object.keys(meta.effects)) !== JSON.stringify(EFFECTS)) fail("effects の順序が不正です");
@@ -75,14 +76,16 @@ function validateMeta() {
 }
 
 function validateAtlas() {
-  const actors = validatePng(path.join(OUT_DIR, "actors.png"), CELL * FRAMES, CELL * ACTORS.length, false);
+  const actors = validatePng(path.join(OUT_DIR, "actors.png"), CELL * FRAMES * DIRECTIONS.length, CELL * ACTORS.length, false);
   const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL, false);
   const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length, true);
   for (let row = 0; row < ACTORS.length; row++) {
-    for (let f = 0; f < FRAMES; f++) {
-      const frame = new PNG({ width: CELL, height: CELL });
-      PNG.bitblt(actors, frame, f * CELL, row * CELL, CELL, CELL, 0, 0);
-      nonEmpty(frame, "actors.png:" + ACTORS[row] + ":" + f);
+    for (let di = 0; di < DIRECTIONS.length; di++) {
+      for (let f = 0; f < FRAMES; f++) {
+        const frame = new PNG({ width: CELL, height: CELL });
+        PNG.bitblt(actors, frame, (di * FRAMES + f) * CELL, row * CELL, CELL, CELL, 0, 0);
+        nonEmpty(frame, "actors.png:" + ACTORS[row] + ":" + DIRECTIONS[di] + ":" + f);
+      }
     }
   }
   for (let col = 0; col < TILES.length; col++) {
@@ -110,7 +113,9 @@ async function validateGeneratedDiff() {
     const source = new PNG({ width: img.width, height: img.height });
     if (file === "actors.png") {
       ACTORS.forEach((name, row) => {
-        for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("actors", name, f)), source, 0, 0, CELL, CELL, f * CELL, row * CELL);
+        DIRECTIONS.forEach((dir, di) => {
+          for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("actors", name, f, dir)), source, 0, 0, CELL, CELL, (di * FRAMES + f) * CELL, row * CELL);
+        });
       });
     } else if (file === "tiles.png") {
       TILES.forEach((name, col) => PNG.bitblt(readPng(spritePath("tiles", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
@@ -126,10 +131,18 @@ async function validateGeneratedDiff() {
   ok("アトラスの再生成一致を検査しました");
 }
 
+function validateNoCircleSyntax() {
+  const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
+  const common = fs.readFileSync(path.join("tools", "pixel_asset_common.js"), "utf8");
+  if (/\bring\s*\(/.test(build) || /function\s+ring\b/.test(common)) fail("円形囲み用の ring が残っています");
+  ok("円形囲みヘルパーが残っていないことを検査しました");
+}
+
 (async () => {
   validateSource();
   validateMeta();
   validateAtlas();
+  validateNoCircleSyntax();
   await validateGeneratedDiff();
   if (failed) process.exit(1);
   console.log("ピクセル素材検査が完了しました。");

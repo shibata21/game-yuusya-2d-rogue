@@ -54,7 +54,7 @@ async function initPixelPixiAssets(){
     pixelPixiCache={};
     pixelPixiBase.actors=await loadPixelPixiTexture('actors.png');
     pixelPixiBase.effects=await loadPixelPixiTexture('effects.png');
-    validatePixelPixiBase('actors', pixelPixiBase.actors, PIXEL_CELL*PIXEL_FRAMES, PIXEL_CELL*PIXEL_ACTORS.length);
+    validatePixelPixiBase('actors', pixelPixiBase.actors, PIXEL_CELL*PIXEL_FRAMES*PIXEL_DIRS.length, PIXEL_CELL*PIXEL_ACTORS.length);
     validatePixelPixiBase('effects', pixelPixiBase.effects, PIXEL_CELL*PIXEL_FRAMES, PIXEL_CELL*PIXEL_EFFECTS.length);
     pixelPixiReady=true;
     validatePixelPixiFrames();
@@ -87,9 +87,9 @@ function validatePixelPixiBase(sheet, tex, w, h){
   if(s.w!==w || s.h!==h) throw new Error(sheet+'画像の寸法が不正です: '+s.w+'x'+s.h+' expected '+w+'x'+h);
 }
 function validatePixelPixiFrames(){
-  for(let row=0; row<PIXEL_ACTORS.length; row++) for(let f=0; f<PIXEL_FRAMES; f++){
-    const tex=pixelTexture('actors', f*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
-    if(!tex) throw new Error('actorsフレーム作成失敗: '+PIXEL_ACTORS[row]+' '+f);
+  for(let row=0; row<PIXEL_ACTORS.length; row++) for(let d=0; d<PIXEL_DIRS.length; d++) for(let f=0; f<PIXEL_FRAMES; f++){
+    const tex=pixelTexture('actors', (d*PIXEL_FRAMES+f)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+    if(!tex) throw new Error('actorsフレーム作成失敗: '+PIXEL_ACTORS[row]+' '+PIXEL_DIRS[d]+' '+f);
   }
   for(let row=0; row<PIXEL_EFFECTS.length; row++) for(let f=0; f<PIXEL_FRAMES; f++){
     const tex=pixelTexture('effects', f*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
@@ -122,7 +122,9 @@ function actorFrame(e,time){
 function drawPixelPixiActor(c,e,isHero,time){
   const name=actorSpriteName(e,isHero), row=PIXEL_ACTORS.indexOf(name);
   if(row<0) return false;
-  const tex=pixelTexture('actors', actorFrame(e,time)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+  const dir=PIXEL_DIRS.indexOf(e.faceDir||'s');
+  const dirIndex=dir<0 ? PIXEL_DIRS.indexOf('s') : dir;
+  const tex=pixelTexture('actors', (dirIndex*PIXEL_FRAMES+actorFrame(e,time))*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
   if(!tex) return false;
   const s=new PIXI.Sprite(tex);
   s.anchor.set(0.5,0.75);
@@ -133,7 +135,8 @@ function drawPixelPixiEgg(e,time){
   const key='egg_'+e.kind, row=PIXEL_ACTORS.indexOf(key);
   if(row<0) return false;
   const frame=Math.floor(time*4+e.col)%PIXEL_FRAMES;
-  const tex=pixelTexture('actors', frame*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+  const dirIndex=PIXEL_DIRS.indexOf('s');
+  const tex=pixelTexture('actors', (dirIndex*PIXEL_FRAMES+frame)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
   if(!tex) return false;
   const s=new PIXI.Sprite(tex);
   s.anchor.set(0.5,0.75); s.x=cx(e.col); s.y=cy(e.row)+8;
@@ -161,8 +164,8 @@ function drawPixelPixiEffect(f){
 
 function drawPixiActor(e,isHero,time){
   const pose=actorPose(e), c=new PIXI.Container();
-  const scale=pose.scale||1, face=e.faceX<0?-1:1;
-  c.x=e.px+pose.x; c.y=e.py+pose.y; c.scale.set(scale*face, scale); c.rotation=pose.rot||0;
+  const scale=pose.scale||1;
+  c.x=e.px+pose.x; c.y=e.py+pose.y; c.scale.set(scale); c.rotation=pose.rot||0;
   pixiRoot.addChild(c);
   if(drawPixelPixiActor(c,e,isHero,time)) return;
   const shadow=pg(); addEllipse(shadow,0,9,isHero?11:12,3,'#09050d',0.45); c.addChild(shadow);

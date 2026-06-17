@@ -1,7 +1,7 @@
 "use strict";
 /* ===================== 描画 ===================== */
 function px(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
-let pixelTilesImg=null, pixelTilesReady=false;
+let pixelTilesImg=null, pixelTilesReady=false, pixelActorsImg=null, pixelActorsReady=false;
 if(typeof Image!=='undefined'){
   pixelTilesImg=new Image();
   pixelTilesImg.onload=()=>{
@@ -10,6 +10,13 @@ if(typeof Image!=='undefined'){
   };
   pixelTilesImg.onerror=()=>{ pixelTilesReady=false; console.warn('タイル画像の読み込みに失敗しました'); };
   pixelTilesImg.src=pixelAssetUrl('tiles.png');
+  pixelActorsImg=new Image();
+  pixelActorsImg.onload=()=>{
+    pixelActorsReady = pixelActorsImg.naturalWidth===PIXEL_CELL*PIXEL_FRAMES*PIXEL_DIRS.length && pixelActorsImg.naturalHeight===PIXEL_CELL*PIXEL_ACTORS.length;
+    if(!pixelActorsReady) console.warn('アクター画像の寸法が不正です:', pixelActorsImg.naturalWidth, pixelActorsImg.naturalHeight);
+  };
+  pixelActorsImg.onerror=()=>{ pixelActorsReady=false; console.warn('アクター画像の読み込みに失敗しました'); };
+  pixelActorsImg.src=pixelAssetUrl('actors.png');
 }
 function bob(e,time){ return Math.sin(time*4+e.bob)*1.3; }
 function lunge(e){
@@ -48,12 +55,15 @@ function draw(){
 
   drawCore(cx(CORE_COL), cy(CORE_ROW), time);
   if(!pixiActive){
-    for(const e of eggs) drawEgg(e,time);
+    for(const e of eggs) if(!drawPixelCanvasEgg(e,time)) drawEgg(e,time);
     const ents=[];
     for(const m of monsters) ents.push({z:m.row, k:'m', e:m});
     for(const h of heroes) ents.push({z:h.row+0.5, k:'h', e:h});
     ents.sort((a,b)=>a.z-b.z);
-    for(const o of ents){ if(o.k==='m') drawMonster(o.e,time); else drawHero(o.e,time); }
+    for(const o of ents){
+      if(drawPixelCanvasActor(o.e,o.k==='h',time)) continue;
+      if(o.k==='m') drawMonster(o.e,time); else drawHero(o.e,time);
+    }
   }
 
   for(const f of effects) if(!pixiActive || !pixiEffect(f)) drawEffect(f);
@@ -94,6 +104,37 @@ function drawPixelTile(x,y,t,c,r){
   if(idx<0) return false;
   ctx.drawImage(pixelTilesImg, idx*PIXEL_CELL, 0, PIXEL_CELL, PIXEL_CELL, x, y, TILE+0.5, TILE+0.5);
   return true;
+}
+function canvasActorFrame(e,time){
+  if(e.actionTime>0) return Math.floor((1-e.actionTime/(e.actionMax||ATK_ANIM))*PIXEL_FRAMES)%PIXEL_FRAMES;
+  if(e.moveAnim>0) return Math.floor(time*10+e.id)%PIXEL_FRAMES;
+  return Math.floor(time*3+e.id)%PIXEL_FRAMES;
+}
+function drawPixelCanvasSprite(name,dir,frame,x,y){
+  if(!pixelActorsReady || !pixelActorsImg) return false;
+  const row=PIXEL_ACTORS.indexOf(name), di=PIXEL_DIRS.indexOf(dir||'s');
+  if(row<0 || di<0) return false;
+  ctx.drawImage(pixelActorsImg, (di*PIXEL_FRAMES+frame)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL, x-PIXEL_CELL/2, y-PIXEL_CELL*0.75, PIXEL_CELL, PIXEL_CELL);
+  return true;
+}
+function drawPixelCanvasActor(e,isHero,time){
+  const L=lunge(e), x=e.px+L.x, y=e.py+bob(e,time)+L.y;
+  const name=isHero?e.cls:e.kind;
+  const s=(e.bornAnim>0)?(0.4+0.6*clamp(1-e.bornAnim/BORN_ANIM,0,1)):1;
+  if(s!==1){ ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.translate(-x,-y); }
+  const ok=drawPixelCanvasSprite(name,e.faceDir||'s',canvasActorFrame(e,time),x,y);
+  if(s!==1) ctx.restore();
+  if(ok) drawHpBar(x, isHero?y-25:y-23, isHero?(e.cls==='tank'?22:18):20, e.hp, e.maxHp, isHero?'#ffd34d':'#7bd96b');
+  return ok;
+}
+function drawPixelCanvasEgg(e,time){
+  const frame=Math.floor(time*4+e.col)%PIXEL_FRAMES;
+  const ok=drawPixelCanvasSprite('egg_'+e.kind,'s',frame,cx(e.col),cy(e.row)+8);
+  if(ok){
+    const p=clamp(1-e.hatchCd/EGG_HATCH,0,1), x=cx(e.col), y=cy(e.row);
+    px(x-7,y-12,14,2,'#2a1538'); px(x-7,y-12,Math.round(14*p),2,KINDS[e.kind].col);
+  }
+  return ok;
 }
 function drawDigCrack(x,y,t){
   if(!t.dig) return;

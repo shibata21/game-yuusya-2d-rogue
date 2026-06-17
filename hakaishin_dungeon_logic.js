@@ -31,10 +31,24 @@ function banner(text){ effects.push({type:'banner', text, life:2700, max:2700, s
 function slash(x,y,color){ effects.push({type:'slash', x, y, color, life:170, max:170, rot:rnd(0,6.28)}); }
 function shoot(sx,sy,tx,ty,color){ effects.push({type:'shot', sx, sy, tx, ty, color, life:230, max:230}); }
 function bite(sx,sy,tx,ty,color){ effects.push({type:'bite', sx, sy, tx, ty, color, life:260, max:260}); }
+function dirFromDelta(dx,dy,fallback){
+  const sx=Math.sign(dx), sy=Math.sign(dy);
+  if(sx>0 && sy>0) return 'se';
+  if(sx>0 && sy<0) return 'ne';
+  if(sx<0 && sy>0) return 'sw';
+  if(sx<0 && sy<0) return 'nw';
+  if(sx>0) return 'e';
+  if(sx<0) return 'w';
+  if(sy>0) return 's';
+  if(sy<0) return 'n';
+  return fallback||'s';
+}
+function faceToward(e,tx,ty){
+  e.faceDir=dirFromDelta(tx-(e.px===undefined?cx(e.col):e.px), ty-(e.py===undefined?cy(e.row):e.py), e.faceDir);
+}
 function setAction(e,type,tx,ty,duration){
   const d=duration||ATK_ANIM;
-  const dx=tx-(e.px===undefined?cx(e.col):e.px);
-  if(Math.abs(dx)>4) e.faceX=Math.sign(dx);
+  faceToward(e,tx,ty);
   e.actionType=type; e.actionTime=d; e.actionMax=d; e.actionTX=tx; e.actionTY=ty;
   e.atkAnim=d; e.atkTX=tx; e.atkTY=ty;
 }
@@ -43,7 +57,7 @@ function setAction(e,type,tx,ty,duration){
 function spawnMonster(kind,col,row){
   if(monsters.length>=MONSTER_CAP) return;
   const k=KINDS[kind];
-  monsters.push({id:++idc, kind, col, row, px:cx(col), py:cy(row), bob:rnd(0,6.28), faceX:1,
+  monsters.push({id:++idc, kind, col, row, px:cx(col), py:cy(row), bob:rnd(0,6.28), faceDir:'s',
     homeCol:col, homeRow:row,
     hp:k.hp, maxHp:k.hp, atk:k.atk, range:k.range, moveCd:rnd(0,k.moveCd), atkCd:0, eggCd:EGG_CHECK*rnd(0.7,1.3),
     eatCd:EAT_CHECK*rnd(0.6,1.2),
@@ -135,7 +149,7 @@ function spawnHero(){
   const cls=pickHeroClass(), C=HERO_CLASSES[cls];
   const hp=Math.max(12, Math.round((26+wave*8)*C.hpMul));
   const atk=Math.max(1, Math.round((4+wave*1.2)*C.atkMul));
-  heroes.push({id:++idc, cls, col:ENTRANCE_COL, row:0, px:cx(ENTRANCE_COL), py:cy(0), faceX:1,
+  heroes.push({id:++idc, cls, col:ENTRANCE_COL, row:0, px:cx(ENTRANCE_COL), py:cy(0), faceDir:'s',
     hp, maxHp:hp, atk, range:C.range, wave,
     moveCd:Math.round(720*C.moveMul), atkCd:0, coreCd:0, actCd:300, healCd:800, blockedMs:0,
     atkAnim:0, atkTX:0, atkTY:0, bob:rnd(0,6.28)});
@@ -223,7 +237,7 @@ function hasAdjacentMonster(h){
 function beginMove(e,col,row,duration){
   if(e.col===col && e.row===row) return;
   e.dirX=Math.sign(col-e.col); e.dirY=Math.sign(row-e.row);
-  if(e.dirX) e.faceX=e.dirX;
+  e.faceDir=dirFromDelta(col-e.col,row-e.row,e.faceDir);
   e.moveFromX=e.px===undefined?cx(e.col):e.px; e.moveFromY=e.py===undefined?cy(e.row):e.py;
   e.moveToX=cx(col); e.moveToY=cy(row); e.moveAnim=duration||MOVE_ANIM; e.moveMax=e.moveAnim;
   e.col=col; e.row=row;

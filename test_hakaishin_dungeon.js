@@ -46,12 +46,12 @@ const hook = `
   get waveCountdown(){return waveCountdown}, set waveCountdown(v){waveCountdown=v},
   get gameState(){return gameState}, set gameState(v){gameState=v},
   update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
-  beginMove, updateVisualPosition, setAction, actorPose,
+  beginMove, updateVisualPosition, setAction, actorPose, dirFromDelta, faceToward,
   spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,
   countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
   VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME,
-  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H, PIXEL_CELL, PIXEL_FRAMES, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ASSET_VERSION, pixelAssetUrl,
+  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H, PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ASSET_VERSION, pixelAssetUrl,
   cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD
 }; }
 `;
@@ -105,7 +105,7 @@ function mkHero(cls, col, row, extra) {
   const C = G.HERO_CLASSES[cls];
   return Object.assign({
     id: Math.random(), cls, col, row, px: G.cx(col), py: G.cy(row),
-    hp: 60, maxHp: 100, atk: 10, range: C.range, wave: 12,
+    hp: 60, maxHp: 100, atk: 10, range: C.range, wave: 12, faceDir: 's',
     moveCd: 720, atkCd: 0, coreCd: 0, actCd: 999999, healCd: 0, blockedMs: 0,
     atkAnim: G.ATK_ANIM, atkTX: G.cx(col + 1), atkTY: G.cy(row), bob: 0
   }, extra || {});
@@ -118,18 +118,19 @@ ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_du
 ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
 ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
 ok('内部Canvasは48pxタイル用の解像度を持つ', G.TILE === 48 && G.PIXEL_CELL === 48 && G.W === 528 && G.H === 768 && /width="528" height="768"/.test(html), 'tile=' + G.TILE + ' pixel=' + G.PIXEL_CELL);
-ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v2-48-2' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v2-48-2') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
+ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v3-48-8dir-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v3-48-8dir-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
 ok('ピクセル素材PNGが配置されている', ['assets/pixel/actors.png','assets/pixel/tiles.png','assets/pixel/effects.png'].every(f => fs.existsSync(path.join(repoDir, f))));
 ok('スプライト定義は全魔物と全勇者を含む', Object.keys(G.KINDS).every(k => pixelMeta.actors[k]) && Object.keys(G.HERO_CLASSES).every(k => pixelMeta.actors[k]));
 ok('スプライト定義は主要タイルとエフェクトを含む', ['earth','tunnel','bedrock','surface','core','moss_evo','ember_evo'].every(k => pixelMeta.tiles[k]) && ['slash','shot','bite','birth','puff'].every(k => pixelMeta.effects[k]));
 {
   const a = pngSize('assets/pixel/actors.png'), t = pngSize('assets/pixel/tiles.png'), e = pngSize('assets/pixel/effects.png');
-  ok('PNGサイズは48pxスプライト定義と一致する', pixelMeta.cell === 48 && a.width === pixelMeta.cell * pixelMeta.frames && a.height === Object.keys(pixelMeta.actors).length * pixelMeta.cell && t.width === Object.keys(pixelMeta.tiles).length * pixelMeta.cell && t.height === pixelMeta.cell && e.width === pixelMeta.cell * pixelMeta.frames && e.height === Object.keys(pixelMeta.effects).length * pixelMeta.cell, JSON.stringify({ a, t, e, cell: pixelMeta.cell }));
+  ok('PNGサイズは48px・8方向スプライト定義と一致する', pixelMeta.cell === 48 && JSON.stringify(pixelMeta.directions) === JSON.stringify(G.PIXEL_DIRS) && a.width === pixelMeta.cell * pixelMeta.frames * pixelMeta.directions.length && a.height === Object.keys(pixelMeta.actors).length * pixelMeta.cell && t.width === Object.keys(pixelMeta.tiles).length * pixelMeta.cell && t.height === pixelMeta.cell && e.width === pixelMeta.cell * pixelMeta.frames && e.height === Object.keys(pixelMeta.effects).length * pixelMeta.cell, JSON.stringify({ a, t, e, cell: pixelMeta.cell, dirs: pixelMeta.directions }));
 }
-ok('JS側のスプライト順序はsprites.jsonと一致する', JSON.stringify(G.PIXEL_ACTORS) === JSON.stringify(Object.keys(pixelMeta.actors)) && JSON.stringify(G.PIXEL_TILES) === JSON.stringify(Object.keys(pixelMeta.tiles)) && JSON.stringify(G.PIXEL_EFFECTS) === JSON.stringify(Object.keys(pixelMeta.effects)));
-ok('Pixiはロード完了後に全フレームを検証する', /await initPixelPixiAssets\(\)/.test(pixiLayerJs) && /validatePixelPixiFrames/.test(pixiLayerJs) && /validatePixelPixiBase/.test(pixiLayerJs) && /scaleMode='nearest'/.test(pixiLayerJs), 'pixi strict validation missing');
+ok('JS側のスプライト順序はsprites.jsonと一致する', JSON.stringify(G.PIXEL_DIRS) === JSON.stringify(pixelMeta.directions) && JSON.stringify(G.PIXEL_ACTORS) === JSON.stringify(Object.keys(pixelMeta.actors)) && JSON.stringify(G.PIXEL_TILES) === JSON.stringify(Object.keys(pixelMeta.tiles)) && JSON.stringify(G.PIXEL_EFFECTS) === JSON.stringify(Object.keys(pixelMeta.effects)));
+ok('Pixiはロード完了後に8方向全フレームを検証する', /PIXEL_FRAMES\*PIXEL_DIRS\.length/.test(pixiLayerJs) && /for\(let d=0; d<PIXEL_DIRS\.length; d\+\+\)/.test(pixiLayerJs) && /validatePixelPixiBase/.test(pixiLayerJs) && /scaleMode='nearest'/.test(pixiLayerJs), 'pixi strict validation missing');
 ok('ステージは48px内部Canvasを等倍表示できる幅を持つ', /max-width:532px/.test(css) && /TILE\+0\.5/.test(canvasLayerJs));
 ok('素材パイプラインのnpmスクリプトがある', /"assets:build": "node tools\/build_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')) && /"assets:check": "node tools\/check_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')));
+ok('素材パイプラインは円囲みを生成しない', !/\bring\s*\(/.test(fs.readFileSync(path.join(repoDir, 'tools/build_pixel_assets.js'), 'utf8')) && !/function\s+ring\b/.test(fs.readFileSync(path.join(repoDir, 'tools/pixel_asset_common.js'), 'utf8')) && /validateNoCircleSyntax/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')));
 try {
   freshPlay();
   ['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal'].forEach((k, i) => G.spawnMonster(k, 2 + (i % 8), 3 + Math.floor(i / 8)));
@@ -160,17 +161,20 @@ ok('上位種は卵で増える種として定義される', ['superslime','evol
   const startX = e.px, goalX = G.cx(2);
   G.beginMove(e, 2, 1, 200);
   G.updateVisualPosition(e, 100);
-  ok('移動中の描画座標はマス間を補間し、横向きを進行方向へ向ける', e.col === 2 && e.row === 1 && e.px > startX && e.px < goalX && e.faceX === 1, 'px=' + e.px + ' face=' + e.faceX);
+  ok('移動中の描画座標はマス間を補間し、進行方向へ向ける', e.col === 2 && e.row === 1 && e.px > startX && e.px < goalX && e.faceDir === 'e', 'px=' + e.px + ' face=' + e.faceDir);
   G.updateVisualPosition(e, 100);
   ok('移動補間は終了時に目的マスへ到達する', e.px === goalX && e.py === G.cy(1) && e.moveAnim === 0, 'px=' + e.px + ' py=' + e.py);
   G.beginMove(e, 1, 1, 200);
-  ok('左へ移動すると左向きになる', e.faceX === -1, 'face=' + e.faceX);
+  ok('左へ移動すると西向きになる', e.faceDir === 'w', 'face=' + e.faceDir);
+  G.beginMove(e, 2, 2, 200);
+  ok('斜め移動では斜め方向を向く', e.faceDir === 'se', 'face=' + e.faceDir);
+  ok('方向判定は8方向を返す', G.dirFromDelta(3, -2) === 'ne' && G.dirFromDelta(-1, 4) === 'sw' && G.dirFromDelta(0, 0, 'n') === 'n');
 })();
 (function () {
   const e = { col: 1, row: 1, px: G.cx(1), py: G.cy(1) };
   G.setAction(e, 'attack', G.cx(2), G.cy(1), 200);
   const p = G.actorPose(e);
-  ok('攻撃アクションは対象座標と時間を保持する', e.actionType === 'attack' && e.actionTX === G.cx(2) && e.actionTime === 200 && p.x === 0, 'type=' + e.actionType);
+  ok('攻撃アクションは対象座標と時間と向きを保持する', e.actionType === 'attack' && e.actionTX === G.cx(2) && e.actionTime === 200 && e.faceDir === 'e' && p.x === 0, 'type=' + e.actionType + ' face=' + e.faceDir);
 })();
 
 section('T2 鉱脈採掘と熟成');

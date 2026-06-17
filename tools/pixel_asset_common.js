@@ -6,8 +6,9 @@ const { PNG } = require("pngjs");
 
 const CELL = 48;
 const FRAMES = 4;
+const DIRECTIONS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
 const OUT_DIR = path.join("assets", "pixel");
-const SOURCE_DIR = path.join(OUT_DIR, "source", "v2");
+const SOURCE_DIR = path.join(OUT_DIR, "source", "v3");
 
 const ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",
@@ -75,29 +76,6 @@ function rect(img, x, y, w, h, hex, alpha = 255) {
   }
 }
 
-function ellipse(img, cx, cy, rx, ry, hex, alpha = 255) {
-  const c = rgba(hex, alpha);
-  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
-    for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
-      const dx = (x + 0.5 - cx) / rx;
-      const dy = (y + 0.5 - cy) / ry;
-      if (dx * dx + dy * dy <= 1) setPx(img, x, y, c);
-    }
-  }
-}
-
-function ring(img, cx, cy, rx, ry, thick, hex, alpha = 255) {
-  const c = rgba(hex, alpha);
-  for (let y = Math.floor(cy - ry - thick); y <= Math.ceil(cy + ry + thick); y++) {
-    for (let x = Math.floor(cx - rx - thick); x <= Math.ceil(cx + rx + thick); x++) {
-      const dx = (x + 0.5 - cx) / rx;
-      const dy = (y + 0.5 - cy) / ry;
-      const d = dx * dx + dy * dy;
-      if (d <= 1 && d >= Math.max(0, 1 - thick / Math.max(rx, ry) * 2.2)) setPx(img, x, y, c);
-    }
-  }
-}
-
 function diamond(img, cx, cy, r, hex, alpha = 255) {
   const c = rgba(hex, alpha);
   for (let y = Math.floor(cy - r); y <= Math.ceil(cy + r); y++) {
@@ -111,7 +89,7 @@ function line(img, x0, y0, x1, y1, hex, width = 1, alpha = 255) {
   const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) * 2 + 1;
   for (let i = 0; i <= steps; i++) {
     const t = i / steps;
-    ellipse(img, x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, width / 2, width / 2, hex, alpha);
+    rect(img, x0 + (x1 - x0) * t - width / 2, y0 + (y1 - y0) * t - width / 2, width, width, hex, alpha);
   }
 }
 
@@ -145,12 +123,13 @@ function copyInto(dst, src, dx, dy) {
   }
 }
 
-function spritePath(group, name, frame = null) {
-  const suffix = frame === null ? ".png" : "_" + frame + ".png";
+function spritePath(group, name, frame = null, dir = null) {
+  const dirPart = dir === null ? "" : "_" + dir;
+  const suffix = frame === null ? ".png" : dirPart + "_" + frame + ".png";
   return path.join(SOURCE_DIR, group, name + suffix);
 }
 
 module.exports = {
-  CELL, FRAMES, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
-  ensureDir, image, writePng, readPng, rgba, setPx, rect, ellipse, ring, diamond, line, tri, copyInto, spritePath,
+  CELL, FRAMES, DIRECTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
+  ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 };
