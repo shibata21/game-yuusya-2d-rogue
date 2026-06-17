@@ -11,7 +11,7 @@ async function initPixiLayer(){
     await pixiApp.init({width:W, height:H, backgroundAlpha:0, antialias:false, resolution:1, autoDensity:false});
     pixiRoot=new PIXI.Container();
     pixiApp.stage.addChild(pixiRoot);
-    initPixelPixiAssets();
+    await initPixelPixiAssets();
     const view=pixiApp.canvas;
     view.className='pixi-layer';
     view.style.position='absolute'; view.style.inset='0'; view.style.width='100%'; view.style.height='100%';
@@ -49,14 +49,51 @@ function pg(){ return new PIXI.Graphics(); }
 function addRect(g,x,y,w,h,c){ g.rect(x,y,w,h).fill(pc(c)); }
 function addCircle(g,x,y,r,c,a){ g.circle(x,y,r).fill({color:pc(c), alpha:a===undefined?1:a}); }
 function addEllipse(g,x,y,w,h,c,a){ g.ellipse(x,y,w,h).fill({color:pc(c), alpha:a===undefined?1:a}); }
-function initPixelPixiAssets(){
+async function initPixelPixiAssets(){
   try{
-    pixelPixiBase.actors=PIXI.Texture.from(PIXEL_ASSET_PATH+'actors.png');
-    pixelPixiBase.effects=PIXI.Texture.from(PIXEL_ASSET_PATH+'effects.png');
+    pixelPixiCache={};
+    pixelPixiBase.actors=await loadPixelPixiTexture('actors.png');
+    pixelPixiBase.effects=await loadPixelPixiTexture('effects.png');
+    validatePixelPixiBase('actors', pixelPixiBase.actors, PIXEL_CELL*PIXEL_FRAMES, PIXEL_CELL*PIXEL_ACTORS.length);
+    validatePixelPixiBase('effects', pixelPixiBase.effects, PIXEL_CELL*PIXEL_FRAMES, PIXEL_CELL*PIXEL_EFFECTS.length);
     pixelPixiReady=true;
+    validatePixelPixiFrames();
   }catch(e){
     console.warn('画像スプライト初期化失敗:', e);
+    pixelPixiBase={}; pixelPixiCache={};
     pixelPixiReady=false;
+  }
+}
+async function loadPixelPixiTexture(name){
+  const url=pixelAssetUrl(name);
+  const tex=PIXI.Assets && PIXI.Assets.load ? await PIXI.Assets.load(url) : PIXI.Texture.from(url);
+  applyNearestTexture(tex);
+  return tex;
+}
+function applyNearestTexture(tex){
+  if(!tex) return;
+  if(tex.source){
+    if(tex.source.style) tex.source.style.scaleMode='nearest';
+    if('scaleMode' in tex.source) tex.source.scaleMode='nearest';
+  }
+  if(tex.baseTexture && 'scaleMode' in tex.baseTexture) tex.baseTexture.scaleMode=PIXI.SCALE_MODES ? PIXI.SCALE_MODES.NEAREST : 'nearest';
+}
+function textureSize(tex){
+  const src=tex && tex.source;
+  return {w:(src&&src.width)||tex.width||0, h:(src&&src.height)||tex.height||0};
+}
+function validatePixelPixiBase(sheet, tex, w, h){
+  const s=textureSize(tex);
+  if(s.w!==w || s.h!==h) throw new Error(sheet+'画像の寸法が不正です: '+s.w+'x'+s.h+' expected '+w+'x'+h);
+}
+function validatePixelPixiFrames(){
+  for(let row=0; row<PIXEL_ACTORS.length; row++) for(let f=0; f<PIXEL_FRAMES; f++){
+    const tex=pixelTexture('actors', f*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+    if(!tex) throw new Error('actorsフレーム作成失敗: '+PIXEL_ACTORS[row]+' '+f);
+  }
+  for(let row=0; row<PIXEL_EFFECTS.length; row++) for(let f=0; f<PIXEL_FRAMES; f++){
+    const tex=pixelTexture('effects', f*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+    if(!tex) throw new Error('effectsフレーム作成失敗: '+PIXEL_EFFECTS[row]+' '+f);
   }
 }
 function pixelTexture(sheet,x,y,w,h){
@@ -65,7 +102,10 @@ function pixelTexture(sheet,x,y,w,h){
   if(pixelPixiCache[key]) return pixelPixiCache[key];
   try{
     const base=pixelPixiBase[sheet];
+    const size=textureSize(base);
+    if(x<0 || y<0 || x+w>size.w || y+h>size.h) return null;
     const tex=new PIXI.Texture({source:base.source, frame:new PIXI.Rectangle(x,y,w,h)});
+    applyNearestTexture(tex);
     pixelPixiCache[key]=tex;
     return tex;
   }catch(e){ return null; }

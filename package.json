@@ -1,0 +1,27 @@
+{
+  "name": "game-yuusya-2d-rogue",
+  "version": "1.0.0",
+  "description": "破壊神ダンジョンのローカル素材生成と検証",
+  "main": "hakaishin_dungeon.js",
+  "scripts": {
+    "assets:build": "node tools/build_pixel_assets.js",
+    "assets:check": "node tools/check_pixel_assets.js",
+    "test": "node test_hakaishin_dungeon.js hakaishin_dungeon.html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shibata21/game-yuusya-2d-rogue.git"
+  },
+  "private": true,
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "bugs": {
+    "url": "https://github.com/shibata21/game-yuusya-2d-rogue/issues"
+  },
+  "homepage": "https://github.com/shibata21/game-yuusya-2d-rogue#readme",
+  "devDependencies": {
+    "pixelmatch": "^7.2.0",
+    "pngjs": "^7.0.0"
+  }
+}

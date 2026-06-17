@@ -1,6 +1,6 @@
 "use strict";
 /* ===================== 定数 ===================== */
-const COLS=11, ROWS=16, TILE=32;
+const COLS=11, ROWS=16, TILE=48;
 const W=COLS*TILE, H=ROWS*TILE;
 const ENTRANCE_COL=5;
 const CORE_COL=5, CORE_ROW=ROWS-2;
@@ -58,10 +58,12 @@ const HERO_CLASSES={
 
 /* 画像素材。sprites.json と同じ並びを JS 側にも持ち、ローカルHTML直開きで fetch なしに使う */
 const PIXEL_ASSET_PATH='assets/pixel/';
-const PIXEL_CELL=32, PIXEL_FRAMES=4;
+const PIXEL_ASSET_VERSION='v2-48-1';
+const PIXEL_CELL=48, PIXEL_FRAMES=4;
 const PIXEL_ACTORS=['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal','warrior','tank','mage','priest','egg_superslime','egg_evolved','egg_tarantula','egg_titan','egg_infernal'];
 const PIXEL_TILES=['earth','tunnel','bedrock','surface','core','moss','meat','venom','stone','ember','moss_evo','meat_evo','venom_evo','stone_evo','ember_evo'];
 const PIXEL_EFFECTS=['slash','shot','bite','birth','puff'];
+function pixelAssetUrl(name){ return PIXEL_ASSET_PATH+name+'?v='+PIXEL_ASSET_VERSION; }
 
 /* ===================== 状態 ===================== */
 let grid=[], monsters=[], heroes=[], eggs=[], effects=[], spawnQueue=[];

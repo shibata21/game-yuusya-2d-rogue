@@ -4,8 +4,12 @@ function px(x,y,w,h,col){ ctx.fillStyle=col; ctx.fillRect(x,y,w,h); }
 let pixelTilesImg=null, pixelTilesReady=false;
 if(typeof Image!=='undefined'){
   pixelTilesImg=new Image();
-  pixelTilesImg.onload=()=>{ pixelTilesReady=true; };
-  pixelTilesImg.src=PIXEL_ASSET_PATH+'tiles.png';
+  pixelTilesImg.onload=()=>{
+    pixelTilesReady = pixelTilesImg.naturalWidth===PIXEL_CELL*PIXEL_TILES.length && pixelTilesImg.naturalHeight===PIXEL_CELL;
+    if(!pixelTilesReady) console.warn('タイル画像の寸法が不正です:', pixelTilesImg.naturalWidth, pixelTilesImg.naturalHeight);
+  };
+  pixelTilesImg.onerror=()=>{ pixelTilesReady=false; console.warn('タイル画像の読み込みに失敗しました'); };
+  pixelTilesImg.src=pixelAssetUrl('tiles.png');
 }
 function bob(e,time){ return Math.sin(time*4+e.bob)*1.3; }
 function lunge(e){

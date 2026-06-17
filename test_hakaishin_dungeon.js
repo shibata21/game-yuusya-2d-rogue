@@ -11,6 +11,8 @@ const html = fs.readFileSync(htmlPath, 'utf8');
 const repoDir = path.dirname(htmlPath);
 const css = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon.css'), 'utf8');
 const pixiLayerJs = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon_pixi.js'), 'utf8');
+const canvasLayerJs = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon_canvas.js'), 'utf8');
+const coreJs = fs.readFileSync(path.join(repoDir, 'hakaishin_dungeon_core.js'), 'utf8');
 const pixelMeta = JSON.parse(fs.readFileSync(path.join(repoDir, 'assets/pixel/sprites.json'), 'utf8'));
 function pngSize(file) {
   const b = fs.readFileSync(path.join(repoDir, file));
@@ -49,7 +51,8 @@ const hook = `
   countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
   VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME,
-  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD
+  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H, PIXEL_CELL, PIXEL_FRAMES, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ASSET_VERSION, pixelAssetUrl,
+  cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD
 }; }
 `;
 body += hook;
@@ -67,8 +70,8 @@ const ctxStub = new Proxy({}, {
   set(t, p, v) { t[p] = v; return true; }
 });
 const canvasStub = {
-  getContext: () => ctxStub, width: 352, height: 512,
-  getBoundingClientRect: () => ({ left: 0, top: 0, width: 352, height: 512 }),
+  getContext: () => ctxStub, width: 528, height: 768,
+  getBoundingClientRect: () => ({ left: 0, top: 0, width: 528, height: 768 }),
   addEventListener: noop, style: {}
 };
 const genEl = new Proxy({ style: {}, classList: { add: noop, remove: noop }, addEventListener: noop },
@@ -114,13 +117,18 @@ ok('PixiJSはゲーム本体より前に読み込まれる', scriptSrcs[0] === '
 ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_dungeon_core.js','hakaishin_dungeon_logic.js','hakaishin_dungeon_canvas.js','hakaishin_dungeon_pixi.js','hakaishin_dungeon.js'].every(s => scriptSrcs.includes(s)), scriptSrcs.join(','));
 ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
 ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
+ok('内部Canvasは48pxタイル用の解像度を持つ', G.TILE === 48 && G.PIXEL_CELL === 48 && G.W === 528 && G.H === 768 && /width="528" height="768"/.test(html), 'tile=' + G.TILE + ' pixel=' + G.PIXEL_CELL);
+ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v2-48-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v2-48-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
 ok('ピクセル素材PNGが配置されている', ['assets/pixel/actors.png','assets/pixel/tiles.png','assets/pixel/effects.png'].every(f => fs.existsSync(path.join(repoDir, f))));
 ok('スプライト定義は全魔物と全勇者を含む', Object.keys(G.KINDS).every(k => pixelMeta.actors[k]) && Object.keys(G.HERO_CLASSES).every(k => pixelMeta.actors[k]));
 ok('スプライト定義は主要タイルとエフェクトを含む', ['earth','tunnel','bedrock','surface','core','moss_evo','ember_evo'].every(k => pixelMeta.tiles[k]) && ['slash','shot','bite','birth','puff'].every(k => pixelMeta.effects[k]));
 {
   const a = pngSize('assets/pixel/actors.png'), t = pngSize('assets/pixel/tiles.png'), e = pngSize('assets/pixel/effects.png');
-  ok('PNGサイズはスプライト定義と一致する', a.width === pixelMeta.cell * pixelMeta.frames && a.height >= Object.keys(pixelMeta.actors).length * pixelMeta.cell && t.height === pixelMeta.cell && e.width === pixelMeta.cell * pixelMeta.frames, JSON.stringify({ a, t, e }));
+  ok('PNGサイズは48pxスプライト定義と一致する', pixelMeta.cell === 48 && a.width === pixelMeta.cell * pixelMeta.frames && a.height === Object.keys(pixelMeta.actors).length * pixelMeta.cell && t.width === Object.keys(pixelMeta.tiles).length * pixelMeta.cell && t.height === pixelMeta.cell && e.width === pixelMeta.cell * pixelMeta.frames && e.height === Object.keys(pixelMeta.effects).length * pixelMeta.cell, JSON.stringify({ a, t, e, cell: pixelMeta.cell }));
 }
+ok('JS側のスプライト順序はsprites.jsonと一致する', JSON.stringify(G.PIXEL_ACTORS) === JSON.stringify(Object.keys(pixelMeta.actors)) && JSON.stringify(G.PIXEL_TILES) === JSON.stringify(Object.keys(pixelMeta.tiles)) && JSON.stringify(G.PIXEL_EFFECTS) === JSON.stringify(Object.keys(pixelMeta.effects)));
+ok('Pixiはロード完了後に全フレームを検証する', /await initPixelPixiAssets\(\)/.test(pixiLayerJs) && /validatePixelPixiFrames/.test(pixiLayerJs) && /validatePixelPixiBase/.test(pixiLayerJs) && /scaleMode='nearest'/.test(pixiLayerJs), 'pixi strict validation missing');
+ok('素材パイプラインのnpmスクリプトがある', /"assets:build": "node tools\/build_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')) && /"assets:check": "node tools\/check_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')));
 try {
   freshPlay();
   ['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal'].forEach((k, i) => G.spawnMonster(k, 2 + (i % 8), 3 + Math.floor(i / 8)));
