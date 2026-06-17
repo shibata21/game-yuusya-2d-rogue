@@ -28,7 +28,7 @@ async function initPixiLayer(){
 }
 function pixiEffect(f){ return f.type==='slash' || f.type==='shot' || f.type==='bite' || f.type==='birth' || f.type==='puff'; }
 function drawPixiLayer(time){
-  if(!pixiReady || !pixiRoot) return false;
+  if(!pixiReady || !pixiRoot || !pixelPixiReady) return false;
   pixiRoot.removeChildren();
   for(const e of eggs) drawPixiEgg(e,time);
   const ents=[];
@@ -54,7 +54,7 @@ async function initPixelPixiAssets(){
     pixelPixiCache={};
     pixelPixiBase.actors=await loadPixelPixiTexture('actors.png');
     pixelPixiBase.effects=await loadPixelPixiTexture('effects.png');
-    validatePixelPixiBase('actors', pixelPixiBase.actors, PIXEL_CELL*PIXEL_FRAMES*PIXEL_DIRS.length, PIXEL_CELL*PIXEL_ACTORS.length);
+    validatePixelPixiBase('actors', pixelPixiBase.actors, PIXEL_CELL*PIXEL_FRAMES*PIXEL_DIRS.length*PIXEL_ACTIONS.length, PIXEL_CELL*PIXEL_ACTORS.length);
     validatePixelPixiBase('effects', pixelPixiBase.effects, PIXEL_CELL*PIXEL_FRAMES, PIXEL_CELL*PIXEL_EFFECTS.length);
     pixelPixiReady=true;
     validatePixelPixiFrames();
@@ -87,9 +87,9 @@ function validatePixelPixiBase(sheet, tex, w, h){
   if(s.w!==w || s.h!==h) throw new Error(sheet+'画像の寸法が不正です: '+s.w+'x'+s.h+' expected '+w+'x'+h);
 }
 function validatePixelPixiFrames(){
-  for(let row=0; row<PIXEL_ACTORS.length; row++) for(let d=0; d<PIXEL_DIRS.length; d++) for(let f=0; f<PIXEL_FRAMES; f++){
-    const tex=pixelTexture('actors', (d*PIXEL_FRAMES+f)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
-    if(!tex) throw new Error('actorsフレーム作成失敗: '+PIXEL_ACTORS[row]+' '+PIXEL_DIRS[d]+' '+f);
+  for(let row=0; row<PIXEL_ACTORS.length; row++) for(let a=0; a<PIXEL_ACTIONS.length; a++) for(let d=0; d<PIXEL_DIRS.length; d++) for(let f=0; f<PIXEL_FRAMES; f++){
+    const tex=pixelTexture('actors', ((a*PIXEL_DIRS.length+d)*PIXEL_FRAMES+f)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+    if(!tex) throw new Error('actorsフレーム作成失敗: '+PIXEL_ACTORS[row]+' '+PIXEL_ACTIONS[a]+' '+PIXEL_DIRS[d]+' '+f);
   }
   for(let row=0; row<PIXEL_EFFECTS.length; row++) for(let f=0; f<PIXEL_FRAMES; f++){
     const tex=pixelTexture('effects', f*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
@@ -119,12 +119,19 @@ function actorFrame(e,time){
   if(e.moveAnim>0) return Math.floor(time*10+e.id)%PIXEL_FRAMES;
   return Math.floor(time*3+e.id)%PIXEL_FRAMES;
 }
+function actorAction(e){
+  const a=e.actionTime>0 ? (e.actionType||'idle') : 'idle';
+  return PIXEL_ACTIONS.indexOf(a)>=0 ? a : 'idle';
+}
+function pixelActorX(action, dir, frame){
+  const ai=PIXEL_ACTIONS.indexOf(action), di=PIXEL_DIRS.indexOf(dir);
+  const actionIndex=ai<0 ? 0 : ai, dirIndex=di<0 ? PIXEL_DIRS.indexOf('s') : di;
+  return ((actionIndex*PIXEL_DIRS.length+dirIndex)*PIXEL_FRAMES+frame)*PIXEL_CELL;
+}
 function drawPixelPixiActor(c,e,isHero,time){
   const name=actorSpriteName(e,isHero), row=PIXEL_ACTORS.indexOf(name);
   if(row<0) return false;
-  const dir=PIXEL_DIRS.indexOf(e.faceDir||'s');
-  const dirIndex=dir<0 ? PIXEL_DIRS.indexOf('s') : dir;
-  const tex=pixelTexture('actors', (dirIndex*PIXEL_FRAMES+actorFrame(e,time))*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+  const tex=pixelTexture('actors', pixelActorX(actorAction(e), e.faceDir||'s', actorFrame(e,time)), row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
   if(!tex) return false;
   const s=new PIXI.Sprite(tex);
   s.anchor.set(0.5,0.75);
@@ -135,8 +142,7 @@ function drawPixelPixiEgg(e,time){
   const key='egg_'+e.kind, row=PIXEL_ACTORS.indexOf(key);
   if(row<0) return false;
   const frame=Math.floor(time*4+e.col)%PIXEL_FRAMES;
-  const dirIndex=PIXEL_DIRS.indexOf('s');
-  const tex=pixelTexture('actors', (dirIndex*PIXEL_FRAMES+frame)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
+  const tex=pixelTexture('actors', pixelActorX('idle', 's', frame), row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
   if(!tex) return false;
   const s=new PIXI.Sprite(tex);
   s.anchor.set(0.5,0.75); s.x=cx(e.col); s.y=cy(e.row)+8;

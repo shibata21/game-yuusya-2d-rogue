@@ -12,7 +12,7 @@ if(typeof Image!=='undefined'){
   pixelTilesImg.src=pixelAssetUrl('tiles.png');
   pixelActorsImg=new Image();
   pixelActorsImg.onload=()=>{
-    pixelActorsReady = pixelActorsImg.naturalWidth===PIXEL_CELL*PIXEL_FRAMES*PIXEL_DIRS.length && pixelActorsImg.naturalHeight===PIXEL_CELL*PIXEL_ACTORS.length;
+    pixelActorsReady = pixelActorsImg.naturalWidth===PIXEL_CELL*PIXEL_FRAMES*PIXEL_DIRS.length*PIXEL_ACTIONS.length && pixelActorsImg.naturalHeight===PIXEL_CELL*PIXEL_ACTORS.length;
     if(!pixelActorsReady) console.warn('アクター画像の寸法が不正です:', pixelActorsImg.naturalWidth, pixelActorsImg.naturalHeight);
   };
   pixelActorsImg.onerror=()=>{ pixelActorsReady=false; console.warn('アクター画像の読み込みに失敗しました'); };
@@ -110,11 +110,20 @@ function canvasActorFrame(e,time){
   if(e.moveAnim>0) return Math.floor(time*10+e.id)%PIXEL_FRAMES;
   return Math.floor(time*3+e.id)%PIXEL_FRAMES;
 }
-function drawPixelCanvasSprite(name,dir,frame,x,y){
+function canvasActorAction(e){
+  const a=e.actionTime>0 ? (e.actionType||'idle') : 'idle';
+  return PIXEL_ACTIONS.indexOf(a)>=0 ? a : 'idle';
+}
+function pixelActorSourceX(action,dir,frame){
+  const ai=PIXEL_ACTIONS.indexOf(action), di=PIXEL_DIRS.indexOf(dir||'s');
+  const actionIndex=ai<0 ? 0 : ai, dirIndex=di<0 ? PIXEL_DIRS.indexOf('s') : di;
+  return ((actionIndex*PIXEL_DIRS.length+dirIndex)*PIXEL_FRAMES+frame)*PIXEL_CELL;
+}
+function drawPixelCanvasSprite(name,dir,frame,x,y,action){
   if(!pixelActorsReady || !pixelActorsImg) return false;
-  const row=PIXEL_ACTORS.indexOf(name), di=PIXEL_DIRS.indexOf(dir||'s');
-  if(row<0 || di<0) return false;
-  ctx.drawImage(pixelActorsImg, (di*PIXEL_FRAMES+frame)*PIXEL_CELL, row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL, x-PIXEL_CELL/2, y-PIXEL_CELL*0.75, PIXEL_CELL, PIXEL_CELL);
+  const row=PIXEL_ACTORS.indexOf(name);
+  if(row<0) return false;
+  ctx.drawImage(pixelActorsImg, pixelActorSourceX(action||'idle',dir,frame), row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL, x-PIXEL_CELL/2, y-PIXEL_CELL*0.75, PIXEL_CELL, PIXEL_CELL);
   return true;
 }
 function drawPixelCanvasActor(e,isHero,time){
@@ -122,14 +131,14 @@ function drawPixelCanvasActor(e,isHero,time){
   const name=isHero?e.cls:e.kind;
   const s=(e.bornAnim>0)?(0.4+0.6*clamp(1-e.bornAnim/BORN_ANIM,0,1)):1;
   if(s!==1){ ctx.save(); ctx.translate(x,y); ctx.scale(s,s); ctx.translate(-x,-y); }
-  const ok=drawPixelCanvasSprite(name,e.faceDir||'s',canvasActorFrame(e,time),x,y);
+  const ok=drawPixelCanvasSprite(name,e.faceDir||'s',canvasActorFrame(e,time),x,y,canvasActorAction(e));
   if(s!==1) ctx.restore();
   if(ok) drawHpBar(x, isHero?y-25:y-23, isHero?(e.cls==='tank'?22:18):20, e.hp, e.maxHp, isHero?'#ffd34d':'#7bd96b');
   return ok;
 }
 function drawPixelCanvasEgg(e,time){
   const frame=Math.floor(time*4+e.col)%PIXEL_FRAMES;
-  const ok=drawPixelCanvasSprite('egg_'+e.kind,'s',frame,cx(e.col),cy(e.row)+8);
+  const ok=drawPixelCanvasSprite('egg_'+e.kind,'s',frame,cx(e.col),cy(e.row)+8,'idle');
   if(ok){
     const p=clamp(1-e.hatchCd/EGG_HATCH,0,1), x=cx(e.col), y=cy(e.row);
     px(x-7,y-12,14,2,'#2a1538'); px(x-7,y-12,Math.round(14*p),2,KINDS[e.kind].col);

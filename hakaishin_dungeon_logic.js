@@ -46,6 +46,13 @@ function dirFromDelta(dx,dy,fallback){
 function faceToward(e,tx,ty){
   e.faceDir=dirFromDelta(tx-(e.px===undefined?cx(e.col):e.px), ty-(e.py===undefined?cy(e.row):e.py), e.faceDir);
 }
+function spawnFaceDir(col,row){
+  for(const d of [[1,0],[-1,0],[0,1],[0,-1]]){
+    const nc=col+d[0], nr=row+d[1];
+    if(inBounds(nc,nr) && OPEN.has(grid[nr][nc].t)) return dirFromDelta(d[0],d[1],'s');
+  }
+  return 's';
+}
 function setAction(e,type,tx,ty,duration){
   const d=duration||ATK_ANIM;
   faceToward(e,tx,ty);
@@ -57,7 +64,7 @@ function setAction(e,type,tx,ty,duration){
 function spawnMonster(kind,col,row){
   if(monsters.length>=MONSTER_CAP) return;
   const k=KINDS[kind];
-  monsters.push({id:++idc, kind, col, row, px:cx(col), py:cy(row), bob:rnd(0,6.28), faceDir:'s',
+  monsters.push({id:++idc, kind, col, row, px:cx(col), py:cy(row), bob:rnd(0,6.28), faceDir:spawnFaceDir(col,row),
     homeCol:col, homeRow:row,
     hp:k.hp, maxHp:k.hp, atk:k.atk, range:k.range, moveCd:rnd(0,k.moveCd), atkCd:0, eggCd:EGG_CHECK*rnd(0.7,1.3),
     eatCd:EAT_CHECK*rnd(0.6,1.2),
@@ -360,6 +367,7 @@ function update(dt){
 
     const heroTarget=lowestHeroInRange(m);
     if(heroTarget){
+      faceToward(m,heroTarget.px,heroTarget.py);
       if(m.atkCd<=0){
         const tgt=heroTarget;
         tgt.hp-=m.atk; popDmg(tgt.px, tgt.py, '-'+m.atk, m.kind==='spitter'?'#b6ff7a':'#ff8a8a');
@@ -371,6 +379,7 @@ function update(dt){
     }
 
     const aggroHero=nearestHeroWithin(m, K.aggro);
+    if(aggroHero) faceToward(m,aggroHero.px,aggroHero.py);
     if(!aggroHero && m.eatCd<=0){
       m.eatCd=EAT_CHECK*rnd(0.85,1.25);
       if(tryEatLower(m)) continue;
@@ -390,14 +399,19 @@ function update(dt){
 
     // 僧侶：周囲の勇者を回復（移動や交戦に関係なく発動）
     if(C.heal && h.healCd<=0){
-      const amt=Math.round(6+h.wave*1.5); let did=false;
-      for(const o of heroes){ if(o.hp<o.maxHp && cheb(o,h)<=C.healRange){ o.hp=Math.min(o.maxHp,o.hp+amt); slash(o.px,o.py-2,'#9effa0'); popDmg(o.px,o.py-10,'+'+amt,'#9effa0'); did=true; } }
+      const amt=Math.round(6+h.wave*1.5); let did=false, healTarget=null;
+      for(const o of heroes){ if(o!==h && o.hp<o.maxHp && cheb(o,h)<=C.healRange && !healTarget) healTarget=o; }
+      if(!healTarget && h.hp<h.maxHp) healTarget=h;
+      if(healTarget){ healTarget.hp=Math.min(healTarget.maxHp,healTarget.hp+amt); slash(healTarget.px,healTarget.py-2,'#9effa0'); popDmg(healTarget.px,healTarget.py-10,'+'+amt,'#9effa0'); did=true; }
       h.healCd = did ? C.healCd : 300;
-      if(did) setAction(h,'cast',h.px,h.py-16,ATK_ANIM);
+      if(did) setAction(h,'heal',healTarget.px,healTarget.py,ATK_ANIM);
     }
 
     // 攻撃（間合い内の魔物を狙う。間合いは職業で異なる）
     const monsterTarget=lowestMonsterInRange(h);
+    if(monsterTarget){
+      faceToward(h,monsterTarget.px,monsterTarget.py);
+    }
     if(monsterTarget && h.atkCd<=0){
       const tgt=monsterTarget;
       tgt.hp-=h.atk; popDmg(tgt.px,tgt.py,'-'+h.atk,'#fff');

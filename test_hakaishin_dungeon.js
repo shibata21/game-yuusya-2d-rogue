@@ -5,6 +5,7 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
+const { PNG } = require('pngjs');
 
 const htmlPath = process.argv[2] || path.join(__dirname, 'hakaishin_dungeon.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
@@ -17,6 +18,26 @@ const pixelMeta = JSON.parse(fs.readFileSync(path.join(repoDir, 'assets/pixel/sp
 function pngSize(file) {
   const b = fs.readFileSync(path.join(repoDir, file));
   return { width: b.readUInt32BE(16), height: b.readUInt32BE(20) };
+}
+function png(file) { return PNG.sync.read(fs.readFileSync(path.join(repoDir, file))); }
+function crop(img, x0, y0, w, h) {
+  const out = new PNG({ width: w, height: h });
+  PNG.bitblt(img, out, x0, y0, w, h, 0, 0);
+  return out;
+}
+function imageDiffRatio(a, b) {
+  let union = 0, diff = 0;
+  for (let i = 0; i < a.data.length; i += 4) {
+    if (a.data[i + 3] > 0 || b.data[i + 3] > 0) union++;
+    if (Math.abs(a.data[i] - b.data[i]) + Math.abs(a.data[i + 1] - b.data[i + 1]) + Math.abs(a.data[i + 2] - b.data[i + 2]) + Math.abs(a.data[i + 3] - b.data[i + 3]) > 32) diff++;
+  }
+  return union ? diff / union : 0;
+}
+function actorCrop(name, action, dir, frame) {
+  const img = png('assets/pixel/actors.png');
+  const row = Object.keys(pixelMeta.actors).indexOf(name);
+  const ai = pixelMeta.actions.indexOf(action), di = pixelMeta.directions.indexOf(dir);
+  return crop(img, ((ai * pixelMeta.directions.length + di) * pixelMeta.frames + frame) * pixelMeta.cell, row * pixelMeta.cell, pixelMeta.cell, pixelMeta.cell);
 }
 
 function loadGameScripts(htmlText, sourcePath) {
@@ -45,13 +66,17 @@ const hook = `
   get nutrients(){return nutrients}, set nutrients(v){nutrients=v},
   get waveCountdown(){return waveCountdown}, set waveCountdown(v){waveCountdown=v},
   get gameState(){return gameState}, set gameState(v){gameState=v},
+  get pixelPixiReady(){return pixelPixiReady}, set pixelPixiReady(v){pixelPixiReady=v},
+  get pixiReady(){return pixiReady}, set pixiReady(v){pixiReady=v},
+  get pixiRoot(){return pixiRoot}, set pixiRoot(v){pixiRoot=v},
   update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
   beginMove, updateVisualPosition, setAction, actorPose, dirFromDelta, faceToward,
+  drawPixiLayer, pixelActorX, pixelActorSourceX, actorAction, canvasActorAction,
   spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,
   countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
   VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME,
-  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H, PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ASSET_VERSION, pixelAssetUrl,
+  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H, PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ASSET_VERSION, pixelAssetUrl,
   cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD
 }; }
 `;
@@ -118,19 +143,33 @@ ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_du
 ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
 ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
 ok('内部Canvasは48pxタイル用の解像度を持つ', G.TILE === 48 && G.PIXEL_CELL === 48 && G.W === 528 && G.H === 768 && /width="528" height="768"/.test(html), 'tile=' + G.TILE + ' pixel=' + G.PIXEL_CELL);
-ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v3-48-8dir-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v3-48-8dir-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
+ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v4-48-8dir-action-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v4-48-8dir-action-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
 ok('ピクセル素材PNGが配置されている', ['assets/pixel/actors.png','assets/pixel/tiles.png','assets/pixel/effects.png'].every(f => fs.existsSync(path.join(repoDir, f))));
 ok('スプライト定義は全魔物と全勇者を含む', Object.keys(G.KINDS).every(k => pixelMeta.actors[k]) && Object.keys(G.HERO_CLASSES).every(k => pixelMeta.actors[k]));
 ok('スプライト定義は主要タイルとエフェクトを含む', ['earth','tunnel','bedrock','surface','core','moss_evo','ember_evo'].every(k => pixelMeta.tiles[k]) && ['slash','shot','bite','birth','puff'].every(k => pixelMeta.effects[k]));
 {
   const a = pngSize('assets/pixel/actors.png'), t = pngSize('assets/pixel/tiles.png'), e = pngSize('assets/pixel/effects.png');
-  ok('PNGサイズは48px・8方向スプライト定義と一致する', pixelMeta.cell === 48 && JSON.stringify(pixelMeta.directions) === JSON.stringify(G.PIXEL_DIRS) && a.width === pixelMeta.cell * pixelMeta.frames * pixelMeta.directions.length && a.height === Object.keys(pixelMeta.actors).length * pixelMeta.cell && t.width === Object.keys(pixelMeta.tiles).length * pixelMeta.cell && t.height === pixelMeta.cell && e.width === pixelMeta.cell * pixelMeta.frames && e.height === Object.keys(pixelMeta.effects).length * pixelMeta.cell, JSON.stringify({ a, t, e, cell: pixelMeta.cell, dirs: pixelMeta.directions }));
+  ok('PNGサイズは48px・8方向・アクション別スプライト定義と一致する', pixelMeta.cell === 48 && JSON.stringify(pixelMeta.directions) === JSON.stringify(G.PIXEL_DIRS) && JSON.stringify(pixelMeta.actions) === JSON.stringify(G.PIXEL_ACTIONS) && a.width === pixelMeta.cell * pixelMeta.frames * pixelMeta.directions.length * pixelMeta.actions.length && a.height === Object.keys(pixelMeta.actors).length * pixelMeta.cell && t.width === Object.keys(pixelMeta.tiles).length * pixelMeta.cell && t.height === pixelMeta.cell && e.width === pixelMeta.cell * pixelMeta.frames && e.height === Object.keys(pixelMeta.effects).length * pixelMeta.cell, JSON.stringify({ a, t, e, cell: pixelMeta.cell, dirs: pixelMeta.directions, actions: pixelMeta.actions }));
 }
-ok('JS側のスプライト順序はsprites.jsonと一致する', JSON.stringify(G.PIXEL_DIRS) === JSON.stringify(pixelMeta.directions) && JSON.stringify(G.PIXEL_ACTORS) === JSON.stringify(Object.keys(pixelMeta.actors)) && JSON.stringify(G.PIXEL_TILES) === JSON.stringify(Object.keys(pixelMeta.tiles)) && JSON.stringify(G.PIXEL_EFFECTS) === JSON.stringify(Object.keys(pixelMeta.effects)));
-ok('Pixiはロード完了後に8方向全フレームを検証する', /PIXEL_FRAMES\*PIXEL_DIRS\.length/.test(pixiLayerJs) && /for\(let d=0; d<PIXEL_DIRS\.length; d\+\+\)/.test(pixiLayerJs) && /validatePixelPixiBase/.test(pixiLayerJs) && /scaleMode='nearest'/.test(pixiLayerJs), 'pixi strict validation missing');
+ok('JS側のスプライト順序はsprites.jsonと一致する', JSON.stringify(G.PIXEL_DIRS) === JSON.stringify(pixelMeta.directions) && JSON.stringify(G.PIXEL_ACTIONS) === JSON.stringify(pixelMeta.actions) && JSON.stringify(G.PIXEL_ACTORS) === JSON.stringify(Object.keys(pixelMeta.actors)) && JSON.stringify(G.PIXEL_TILES) === JSON.stringify(Object.keys(pixelMeta.tiles)) && JSON.stringify(G.PIXEL_EFFECTS) === JSON.stringify(Object.keys(pixelMeta.effects)));
+ok('Pixiはロード完了後に全アクション・8方向フレームを検証する', /PIXEL_ACTIONS\.length/.test(pixiLayerJs) && /for\(let a=0; a<PIXEL_ACTIONS\.length; a\+\+\)/.test(pixiLayerJs) && /validatePixelPixiBase/.test(pixiLayerJs) && /scaleMode='nearest'/.test(pixiLayerJs), 'pixi strict validation missing');
 ok('ステージは48px内部Canvasを等倍表示できる幅を持つ', /max-width:532px/.test(css) && /TILE\+0\.5/.test(canvasLayerJs));
 ok('素材パイプラインのnpmスクリプトがある', /"assets:build": "node tools\/build_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')) && /"assets:check": "node tools\/check_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')));
 ok('素材パイプラインは円囲みを生成しない', !/\bring\s*\(/.test(fs.readFileSync(path.join(repoDir, 'tools/build_pixel_assets.js'), 'utf8')) && !/function\s+ring\b/.test(fs.readFileSync(path.join(repoDir, 'tools/pixel_asset_common.js'), 'utf8')) && /validateNoCircleSyntax/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')));
+ok('素材検査は方向差分と勇者アクション差分を見る', /validateActorDirectionDiff/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')) && /validateHeroActionDiff/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')) && /validateSimpleVeins/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')));
+{
+  const monsterOk = ['slime','carniv','spitter','golem','flame','infernal'].every(n => imageDiffRatio(actorCrop(n, 'idle', 's', 1), actorCrop(n, 'idle', 'n', 1)) > 0.13);
+  const heroOk = imageDiffRatio(actorCrop('warrior', 'idle', 'e', 1), actorCrop('warrior', 'attack', 'e', 2)) > 0.18 &&
+    imageDiffRatio(actorCrop('mage', 'idle', 'e', 1), actorCrop('mage', 'cast', 'e', 2)) > 0.18 &&
+    imageDiffRatio(actorCrop('priest', 'idle', 'e', 1), actorCrop('priest', 'heal', 'e', 2)) > 0.18;
+  ok('生成済み素材は方向と職業別アクションが実際に違う', monsterOk && heroOk);
+}
+{
+  const oldPixiReady = G.pixiReady, oldPixel = G.pixelPixiReady, oldRoot = G.pixiRoot;
+  G.pixiReady = true; G.pixelPixiReady = false; G.pixiRoot = { removeChildren: () => { throw new Error('呼ばれない想定'); } };
+  ok('Pixi画像が未準備なら旧ベクター描画へ進まずCanvasへ戻す', G.drawPixiLayer(0) === false);
+  G.pixiReady = oldPixiReady; G.pixelPixiReady = oldPixel; G.pixiRoot = oldRoot;
+}
 try {
   freshPlay();
   ['slime','carniv','evolved','spitter','golem','flame','superslime','tarantula','titan','infernal'].forEach((k, i) => G.spawnMonster(k, 2 + (i % 8), 3 + Math.floor(i / 8)));
@@ -174,7 +213,8 @@ ok('上位種は卵で増える種として定義される', ['superslime','evol
   const e = { col: 1, row: 1, px: G.cx(1), py: G.cy(1) };
   G.setAction(e, 'attack', G.cx(2), G.cy(1), 200);
   const p = G.actorPose(e);
-  ok('攻撃アクションは対象座標と時間と向きを保持する', e.actionType === 'attack' && e.actionTX === G.cx(2) && e.actionTime === 200 && e.faceDir === 'e' && p.x === 0, 'type=' + e.actionType + ' face=' + e.faceDir);
+  ok('攻撃アクションは対象座標と時間と向きを保持する', e.actionType === 'attack' && e.actionTX === G.cx(2) && e.actionTime === 200 && e.faceDir === 'e' && p.x === 0 && G.actorAction(e) === 'attack', 'type=' + e.actionType + ' face=' + e.faceDir);
+  ok('描画用アトラス座標はアクションと向きを反映する', G.pixelActorX('attack', 'e', 2) === ((G.PIXEL_ACTIONS.indexOf('attack') * G.PIXEL_DIRS.length + G.PIXEL_DIRS.indexOf('e')) * G.PIXEL_FRAMES + 2) * G.PIXEL_CELL);
 })();
 
 section('T2 鉱脈採掘と熟成');
@@ -246,6 +286,14 @@ section('T3 増殖と卵');
   G.heroes.push(mkHero('warrior', 5, 6, { atkCd: 0, actCd: 999999 }));
   G.update(500);
   ok('卵は勇者の攻撃対象にならない', G.eggs.length === 1, 'eggs=' + G.eggs.length);
+})();
+(function () {
+  freshPlay(); carveAll();
+  const priest = mkHero('priest', 5, 5, { healCd: 0 });
+  const warrior = mkHero('warrior', 6, 5, { hp: 20, maxHp: 80 });
+  G.heroes.push(priest, warrior);
+  G.update(100);
+  ok('僧侶の回復は専用アクションで対象方向を向く', priest.actionType === 'heal' && priest.faceDir === 'e' && warrior.hp > 20, 'action=' + priest.actionType + ' face=' + priest.faceDir + ' hp=' + warrior.hp);
 })();
 (function () {
   freshPlay(); carveAll();

@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { PNG } = require("pngjs");
 const {
-  CELL, FRAMES, DIRECTIONS, OUT_DIR, ACTORS, TILES, EFFECTS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, ACTORS, TILES, EFFECTS,
   readPng, spritePath,
 } = require("./pixel_asset_common");
 
@@ -26,6 +26,26 @@ function nonEmpty(img, file) {
   for (let i = 3; i < img.data.length; i += 4) if (img.data[i] > 0) count++;
   if (count === 0) fail("透明だけの画像です: " + file);
   return count;
+}
+function alphaBounds(img) {
+  let minX = img.width, minY = img.height, maxX = -1, maxY = -1, count = 0;
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+    if (img.data[(y * img.width + x) * 4 + 3] > 0) {
+      count++; minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+    }
+  }
+  return { minX, minY, maxX, maxY, count };
+}
+function colorDiff(a, ai, b, bi) {
+  return Math.abs(a[ai] - b[bi]) + Math.abs(a[ai + 1] - b[bi + 1]) + Math.abs(a[ai + 2] - b[bi + 2]) + Math.abs(a[ai + 3] - b[bi + 3]);
+}
+function diffRatio(a, b) {
+  let union = 0, diff = 0;
+  for (let i = 0; i < a.data.length; i += 4) {
+    if (a.data[i + 3] > 0 || b.data[i + 3] > 0) union++;
+    if (colorDiff(a.data, i, b.data, i) > 32) diff++;
+  }
+  return union ? diff / union : 0;
 }
 
 function whiteEdgeCount(img) {
@@ -58,7 +78,7 @@ function validatePng(file, w, h, allowWhiteEdge) {
 
 function validateSource() {
   for (const name of TILES) validatePng(spritePath("tiles", name), CELL, CELL, false);
-  for (const name of ACTORS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("actors", name, f, dir), CELL, CELL, false);
+  for (const name of ACTORS) for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("actors", name, f, dir, action), CELL, CELL, false);
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("effects", name, f), CELL, CELL, true);
   ok("個別PNGフレームを検査しました");
 }
@@ -69,6 +89,7 @@ function validateMeta() {
   const meta = JSON.parse(fs.readFileSync(file, "utf8"));
   if (meta.cell !== CELL || meta.frames !== FRAMES) fail("sprites.json のセル仕様が不正です");
   if (JSON.stringify(meta.directions) !== JSON.stringify(DIRECTIONS)) fail("directions の順序が不正です");
+  if (JSON.stringify(meta.actions) !== JSON.stringify(ACTIONS)) fail("actions の順序が不正です");
   if (JSON.stringify(Object.keys(meta.actors)) !== JSON.stringify(ACTORS)) fail("actors の順序が不正です");
   if (JSON.stringify(Object.keys(meta.tiles)) !== JSON.stringify(TILES)) fail("tiles の順序が不正です");
   if (JSON.stringify(Object.keys(meta.effects)) !== JSON.stringify(EFFECTS)) fail("effects の順序が不正です");
@@ -76,15 +97,15 @@ function validateMeta() {
 }
 
 function validateAtlas() {
-  const actors = validatePng(path.join(OUT_DIR, "actors.png"), CELL * FRAMES * DIRECTIONS.length, CELL * ACTORS.length, false);
+  const actors = validatePng(path.join(OUT_DIR, "actors.png"), CELL * FRAMES * DIRECTIONS.length * ACTIONS.length, CELL * ACTORS.length, false);
   const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL, false);
   const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length, true);
   for (let row = 0; row < ACTORS.length; row++) {
-    for (let di = 0; di < DIRECTIONS.length; di++) {
+    for (let ai = 0; ai < ACTIONS.length; ai++) for (let di = 0; di < DIRECTIONS.length; di++) {
       for (let f = 0; f < FRAMES; f++) {
         const frame = new PNG({ width: CELL, height: CELL });
-        PNG.bitblt(actors, frame, (di * FRAMES + f) * CELL, row * CELL, CELL, CELL, 0, 0);
-        nonEmpty(frame, "actors.png:" + ACTORS[row] + ":" + DIRECTIONS[di] + ":" + f);
+        PNG.bitblt(actors, frame, ((ai * DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL, CELL, CELL, 0, 0);
+        nonEmpty(frame, "actors.png:" + ACTORS[row] + ":" + ACTIONS[ai] + ":" + DIRECTIONS[di] + ":" + f);
       }
     }
   }
@@ -113,8 +134,10 @@ async function validateGeneratedDiff() {
     const source = new PNG({ width: img.width, height: img.height });
     if (file === "actors.png") {
       ACTORS.forEach((name, row) => {
-        DIRECTIONS.forEach((dir, di) => {
-          for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("actors", name, f, dir)), source, 0, 0, CELL, CELL, (di * FRAMES + f) * CELL, row * CELL);
+        ACTIONS.forEach((action, ai) => {
+          DIRECTIONS.forEach((dir, di) => {
+          for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("actors", name, f, dir, action)), source, 0, 0, CELL, CELL, ((ai * DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL);
+          });
         });
       });
     } else if (file === "tiles.png") {
@@ -131,6 +154,48 @@ async function validateGeneratedDiff() {
   ok("アトラスの再生成一致を検査しました");
 }
 
+function actorFrame(name, action, dir, frame = 2) {
+  return readPng(spritePath("actors", name, frame, dir, action));
+}
+function validateActorDirectionDiff() {
+  const names = ACTORS.filter((n) => !n.startsWith("egg_"));
+  for (const name of names) {
+    const pairs = [["e", "w"], ["s", "n"], ["se", "nw"]];
+    for (const pair of pairs) {
+      const d = diffRatio(actorFrame(name, "idle", pair[0], 1), actorFrame(name, "idle", pair[1], 1));
+      if (d < 0.13) fail(name + " の方向差分が小さすぎます: " + pair.join("/") + " " + d.toFixed(3));
+    }
+  }
+  ok("アクターの8方向差分を検査しました");
+}
+function validateHeroActionDiff() {
+  const heroActions = { warrior: "attack", tank: "dig", mage: "cast", priest: "heal" };
+  for (const name of Object.keys(heroActions)) {
+    const action = heroActions[name];
+    const d = diffRatio(actorFrame(name, "idle", "e", 1), actorFrame(name, action, "e", 2));
+    if (d < 0.18) fail(name + " の " + action + " アクション差分が小さすぎます: " + d.toFixed(3));
+  }
+  ok("勇者の職業別アクション差分を検査しました");
+}
+function validateSimpleVeins() {
+  const veins = ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"];
+  const earth = readPng(spritePath("tiles", "earth"));
+  for (const name of veins) {
+    const img = readPng(spritePath("tiles", name));
+    let motif = 0, outside = 0;
+    for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+      const i = (y * img.width + x) * 4;
+      if (colorDiff(img.data, i, earth.data, i) > 48) {
+        motif++;
+        if (x < 10 || x > 38 || y < 8 || y > 40) outside++;
+      }
+    }
+    if (motif > (name.endsWith("_evo") ? 360 : 290)) fail(name + " の鉱脈模様が複雑すぎます: " + motif);
+    if (outside > 45) fail(name + " の鉱脈模様が広がりすぎています: " + outside);
+  }
+  ok("鉱脈のシンプルな中央モチーフを検査しました");
+}
+
 function validateNoCircleSyntax() {
   const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
   const common = fs.readFileSync(path.join("tools", "pixel_asset_common.js"), "utf8");
@@ -143,6 +208,9 @@ function validateNoCircleSyntax() {
   validateMeta();
   validateAtlas();
   validateNoCircleSyntax();
+  validateActorDirectionDiff();
+  validateHeroActionDiff();
+  validateSimpleVeins();
   await validateGeneratedDiff();
   if (failed) process.exit(1);
   console.log("ピクセル素材検査が完了しました。");

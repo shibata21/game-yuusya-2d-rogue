@@ -7,8 +7,9 @@ const { PNG } = require("pngjs");
 const CELL = 48;
 const FRAMES = 4;
 const DIRECTIONS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
+const ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat"];
 const OUT_DIR = path.join("assets", "pixel");
-const SOURCE_DIR = path.join(OUT_DIR, "source", "v3");
+const SOURCE_DIR = path.join(OUT_DIR, "source", "v4");
 
 const ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",
@@ -123,13 +124,14 @@ function copyInto(dst, src, dx, dy) {
   }
 }
 
-function spritePath(group, name, frame = null, dir = null) {
+function spritePath(group, name, frame = null, dir = null, action = null) {
+  const actionPart = action === null ? "" : "_" + action;
   const dirPart = dir === null ? "" : "_" + dir;
-  const suffix = frame === null ? ".png" : dirPart + "_" + frame + ".png";
+  const suffix = frame === null ? ".png" : actionPart + dirPart + "_" + frame + ".png";
   return path.join(SOURCE_DIR, group, name + suffix);
 }
 
 module.exports = {
-  CELL, FRAMES, DIRECTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 };
