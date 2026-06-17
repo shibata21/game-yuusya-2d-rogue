@@ -12,7 +12,7 @@
     padding:env(safe-area-inset-top) 8px env(safe-area-inset-bottom);
     overflow-x:hidden; letter-spacing:0.02em;
   }
-  #app{ width:100%; max-width:392px; margin:0 auto; display:flex; flex-direction:column; gap:8px; padding:10px 0 16px;}
+  #app{ width:100%; max-width:532px; margin:0 auto; display:flex; flex-direction:column; gap:8px; padding:10px 0 16px;}
 
   .crown{ text-align:center; line-height:1.1; padding:2px 0;}
   .crown .tag{ font-size:11px; color:var(--amber-dim); letter-spacing:0.18em;}

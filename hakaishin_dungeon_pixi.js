@@ -161,7 +161,8 @@ function drawPixelPixiEffect(f){
 
 function drawPixiActor(e,isHero,time){
   const pose=actorPose(e), c=new PIXI.Container();
-  c.x=e.px+pose.x; c.y=e.py+pose.y; c.scale.set(pose.scale||1); c.rotation=pose.rot||0;
+  const scale=pose.scale||1, face=e.faceX<0?-1:1;
+  c.x=e.px+pose.x; c.y=e.py+pose.y; c.scale.set(scale*face, scale); c.rotation=pose.rot||0;
   pixiRoot.addChild(c);
   if(drawPixelPixiActor(c,e,isHero,time)) return;
   const shadow=pg(); addEllipse(shadow,0,9,isHero?11:12,3,'#09050d',0.45); c.addChild(shadow);

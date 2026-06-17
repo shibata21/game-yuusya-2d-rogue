@@ -118,7 +118,7 @@ ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_du
 ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
 ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
 ok('内部Canvasは48pxタイル用の解像度を持つ', G.TILE === 48 && G.PIXEL_CELL === 48 && G.W === 528 && G.H === 768 && /width="528" height="768"/.test(html), 'tile=' + G.TILE + ' pixel=' + G.PIXEL_CELL);
-ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v2-48-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v2-48-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
+ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v2-48-2' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v2-48-2') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
 ok('ピクセル素材PNGが配置されている', ['assets/pixel/actors.png','assets/pixel/tiles.png','assets/pixel/effects.png'].every(f => fs.existsSync(path.join(repoDir, f))));
 ok('スプライト定義は全魔物と全勇者を含む', Object.keys(G.KINDS).every(k => pixelMeta.actors[k]) && Object.keys(G.HERO_CLASSES).every(k => pixelMeta.actors[k]));
 ok('スプライト定義は主要タイルとエフェクトを含む', ['earth','tunnel','bedrock','surface','core','moss_evo','ember_evo'].every(k => pixelMeta.tiles[k]) && ['slash','shot','bite','birth','puff'].every(k => pixelMeta.effects[k]));
@@ -128,6 +128,7 @@ ok('スプライト定義は主要タイルとエフェクトを含む', ['earth
 }
 ok('JS側のスプライト順序はsprites.jsonと一致する', JSON.stringify(G.PIXEL_ACTORS) === JSON.stringify(Object.keys(pixelMeta.actors)) && JSON.stringify(G.PIXEL_TILES) === JSON.stringify(Object.keys(pixelMeta.tiles)) && JSON.stringify(G.PIXEL_EFFECTS) === JSON.stringify(Object.keys(pixelMeta.effects)));
 ok('Pixiはロード完了後に全フレームを検証する', /await initPixelPixiAssets\(\)/.test(pixiLayerJs) && /validatePixelPixiFrames/.test(pixiLayerJs) && /validatePixelPixiBase/.test(pixiLayerJs) && /scaleMode='nearest'/.test(pixiLayerJs), 'pixi strict validation missing');
+ok('ステージは48px内部Canvasを等倍表示できる幅を持つ', /max-width:532px/.test(css) && /TILE\+0\.5/.test(canvasLayerJs));
 ok('素材パイプラインのnpmスクリプトがある', /"assets:build": "node tools\/build_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')) && /"assets:check": "node tools\/check_pixel_assets\.js"/.test(fs.readFileSync(path.join(repoDir, 'package.json'), 'utf8')));
 try {
   freshPlay();
@@ -159,9 +160,11 @@ ok('上位種は卵で増える種として定義される', ['superslime','evol
   const startX = e.px, goalX = G.cx(2);
   G.beginMove(e, 2, 1, 200);
   G.updateVisualPosition(e, 100);
-  ok('移動中の描画座標はマス間を補間する', e.col === 2 && e.row === 1 && e.px > startX && e.px < goalX, 'px=' + e.px);
+  ok('移動中の描画座標はマス間を補間し、横向きを進行方向へ向ける', e.col === 2 && e.row === 1 && e.px > startX && e.px < goalX && e.faceX === 1, 'px=' + e.px + ' face=' + e.faceX);
   G.updateVisualPosition(e, 100);
   ok('移動補間は終了時に目的マスへ到達する', e.px === goalX && e.py === G.cy(1) && e.moveAnim === 0, 'px=' + e.px + ' py=' + e.py);
+  G.beginMove(e, 1, 1, 200);
+  ok('左へ移動すると左向きになる', e.faceX === -1, 'face=' + e.faceX);
 })();
 (function () {
   const e = { col: 1, row: 1, px: G.cx(1), py: G.cy(1) };

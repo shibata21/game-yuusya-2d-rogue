@@ -92,7 +92,7 @@ function drawPixelTile(x,y,t,c,r){
   if(!pixelTilesReady || !pixelTilesImg) return false;
   const key=pixelTileKey(t), idx=PIXEL_TILES.indexOf(key);
   if(idx<0) return false;
-  ctx.drawImage(pixelTilesImg, idx*PIXEL_CELL, 0, PIXEL_CELL, PIXEL_CELL, x, y, TILE, TILE);
+  ctx.drawImage(pixelTilesImg, idx*PIXEL_CELL, 0, PIXEL_CELL, PIXEL_CELL, x, y, TILE+0.5, TILE+0.5);
   return true;
 }
 function drawDigCrack(x,y,t){

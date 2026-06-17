@@ -32,6 +32,14 @@ function noise(img, seed, colors, count) {
     rect(img, x, y, 1 + (i % 3), 1 + ((i + 1) % 2), c);
   }
 }
+function crack(img, points, col, width = 2, alpha = 255) {
+  for (let i = 1; i < points.length; i++) line(img, points[i - 1][0], points[i - 1][1], points[i][0], points[i][1], col, width, alpha);
+}
+function oreChip(img, x, y, r, dark, mid, light) {
+  diamond(img, x, y, r + 2, dark);
+  diamond(img, x, y, r, mid);
+  diamond(img, x - Math.max(1, Math.floor(r / 3)), y - Math.max(1, Math.floor(r / 3)), Math.max(1, Math.floor(r / 2)), light);
+}
 
 function drawTile(name) {
   const img = image();
@@ -70,24 +78,37 @@ function drawTile(name) {
       stone: ["#33466b", "#6f86c4", "#bcd0ff"],
       ember: ["#8c3b0c", "#ffae26", "#ffe39a"],
     }[base];
-    const glow = evo ? 150 : 80;
+    const glow = evo ? 115 : 55;
     ring(img, 24, 24, 18, 13, 2, vein[1], glow);
     if (base === "moss") {
-      for (const p of [[14,18],[23,14],[31,20],[18,29],[29,31],[24,24]]) ellipse(img, p[0], p[1], evo ? 5 : 4, evo ? 4 : 3, vein[1]);
-      ellipse(img, 24, 24, 3, 3, vein[2]);
+      crack(img, [[7,31],[15,28],[21,22],[29,24],[39,18]], "#233418", 3);
+      for (const p of [[12,29],[18,24],[24,20],[31,24],[36,18],[24,31]]) ellipse(img, p[0], p[1], evo ? 5 : 4, evo ? 4 : 3, vein[1]);
+      for (const p of [[17,21],[28,23],[35,17]]) ellipse(img, p[0], p[1], 2, 2, vein[2]);
     } else if (base === "meat") {
-      for (const x of [15, 24, 33]) { line(img, x - 5, 16, x, 32, vein[1], evo ? 4 : 3); line(img, x + 5, 16, x, 32, vein[2], 2); }
+      crack(img, [[8,17],[17,22],[24,19],[33,27],[40,24]], "#3b0b0c", 4);
+      for (const x of [14, 23, 32]) {
+        line(img, x - 4, 16, x + 3, 32, vein[1], evo ? 5 : 4);
+        line(img, x + 2, 15, x + 8, 30, vein[2], 2);
+        tri(img, x - 3, 31, x + 1, 38, x + 4, 31, "#fff1dc", 230);
+      }
     } else if (base === "venom") {
-      ellipse(img, 19, 20, 5, 7, vein[1]); ellipse(img, 30, 25, 6, 8, vein[1]); ellipse(img, 24, 32, 3, 3, vein[2]);
-      for (const p of [[15,31],[34,17],[25,17]]) ellipse(img, p[0], p[1], 2, 2, vein[2]);
+      crack(img, [[9,34],[18,27],[21,18],[30,20],[39,13]], "#28113a", 3);
+      ellipse(img, 18, 22, 5, 8, vein[1]); ellipse(img, 30, 27, 7, 9, vein[1]); ellipse(img, 25, 35, 4, 4, vein[2]);
+      for (const p of [[14,31],[35,17],[25,16],[37,29]]) ellipse(img, p[0], p[1], 2, 2, vein[2]);
     } else if (base === "stone") {
-      diamond(img, 18, 23, 8, vein[1]); diamond(img, 30, 26, 7, vein[1]); diamond(img, 25, 16, 5, vein[2]);
+      crack(img, [[8,15],[17,22],[27,17],[39,28]], "#202d46", 3);
+      oreChip(img, 17, 24, 7, "#172238", vein[1], vein[2]);
+      oreChip(img, 30, 27, 6, "#172238", vein[1], vein[2]);
+      oreChip(img, 25, 16, 5, "#172238", vein[1], vein[2]);
     } else if (base === "ember") {
-      tri(img, 15, 32, 21, 13, 27, 32, vein[1]); tri(img, 25, 34, 33, 15, 38, 34, vein[1]); tri(img, 21, 32, 25, 20, 30, 32, vein[2]);
+      crack(img, [[8,32],[16,24],[22,29],[31,18],[40,25]], "#4a1906", 3);
+      tri(img, 13, 33, 20, 12, 28, 33, vein[1]); tri(img, 24, 35, 33, 14, 40, 35, vein[1]);
+      tri(img, 20, 33, 25, 20, 31, 33, vein[2]); ellipse(img, 25, 30, 10, 3, "#4a1906", 170);
     }
     if (evo) {
-      ring(img, 24, 24, 21, 16, 2, vein[2], 170);
+      ring(img, 24, 24, 21, 16, 2, vein[2], 135);
       diamond(img, 12, 12, 3, vein[2]); diamond(img, 36, 12, 3, vein[2]); diamond(img, 24, 38, 3, vein[2]);
+      crack(img, [[9,9],[16,14],[24,10],[33,14],[41,10]], vein[2], 2, 180);
     }
   }
   return img;
@@ -103,16 +124,18 @@ function drawMonster(img, name, frame) {
   const bounce = [0, -1, 0, 1][frame];
   shadow(img, 24, 39, name === "golem" || name === "titan" ? 17 : 14);
   if (name === "slime" || name === "superslime") {
-    outlineEllipse(img, 24, 28 + bounce, 15, 11, p[0]);
-    ellipse(img, 24, 29 + bounce, 14, 10, p[1]); ellipse(img, 24, 24 + bounce, 11, 9, p[2]);
-    rect(img, 15, 21 + bounce, 18, 3, p[3]); eye(img, 18 + sway, 25 + bounce); eye(img, 27 + sway, 25 + bounce);
-    if (name === "superslime") { ring(img, 24, 25 + bounce, 18, 15, 2, p[2], 130); diamond(img, 24, 13 + bounce, 3, p[3]); }
+    outlineEllipse(img, 23, 28 + bounce, 16, 11, p[0]);
+    ellipse(img, 23, 29 + bounce, 15, 10, p[1]); ellipse(img, 27, 24 + bounce, 12, 9, p[2]);
+    tri(img, 33, 21 + bounce, 43, 26 + bounce, 33, 31 + bounce, p[2]);
+    rect(img, 17, 21 + bounce, 20, 3, p[3]); eye(img, 26 + sway, 25 + bounce); eye(img, 34 + sway, 25 + bounce);
+    if (name === "superslime") { ring(img, 25, 25 + bounce, 19, 15, 2, p[2], 130); diamond(img, 30, 12 + bounce, 3, p[3]); }
   } else if (name === "carniv" || name === "evolved") {
-    rect(img, 9, 29 + bounce, 30, 7, p[0]); rect(img, 10, 18 + bounce, 28, 15, p[1]); rect(img, 13, 14 + bounce, 22, 6, p[2]);
-    rect(img, 7, 16 + bounce, 5, 10, p[0]); rect(img, 36, 16 + bounce, 5, 10, p[0]);
-    for (const x of [16, 23, 31]) tri(img, x - 3, 31 + bounce, x, 39 + bounce, x + 3, 31 + bounce, "#fff7ee");
-    eye(img, 16 + sway, 23 + bounce, "#ffcf4d"); eye(img, 29 + sway, 23 + bounce, "#ffcf4d");
-    if (name === "evolved") { ring(img, 24, 23 + bounce, 21, 16, 2, p[2], 120); rect(img, 20, 12 + bounce, 8, 3, p[3]); }
+    rect(img, 8, 30 + bounce, 27, 7, p[0]); rect(img, 9, 18 + bounce, 26, 15, p[1]); rect(img, 13, 14 + bounce, 20, 6, p[2]);
+    tri(img, 32, 18 + bounce, 45, 23 + bounce, 32, 31 + bounce, p[1]); tri(img, 36, 21 + bounce, 45, 24 + bounce, 36, 28 + bounce, p[0]);
+    rect(img, 7, 16 + bounce, 5, 10, p[0]); rect(img, 31, 14 + bounce, 4, 8, p[0]);
+    for (const x of [16, 24, 35]) tri(img, x - 3, 31 + bounce, x, 40 + bounce, x + 3, 31 + bounce, "#fff7ee");
+    eye(img, 27 + sway, 22 + bounce, "#ffcf4d"); eye(img, 36 + sway, 24 + bounce, "#ffcf4d");
+    if (name === "evolved") { ring(img, 25, 23 + bounce, 22, 16, 2, p[2], 120); rect(img, 22, 11 + bounce, 10, 3, p[3]); }
   } else if (name === "spitter" || name === "tarantula") {
     outlineEllipse(img, 22, 27 + bounce, 13, 11, p[0]); ellipse(img, 22, 28 + bounce, 12, 10, p[1]); ellipse(img, 22, 22 + bounce, 10, 8, p[2]);
     rect(img, 31, 23 + bounce, 9, 5, p[2]); ellipse(img, 41, 26 + bounce, 3, 3, p[3], 220);
@@ -120,16 +143,18 @@ function drawMonster(img, name, frame) {
     eye(img, 18 + sway, 23 + bounce, "#dfffe0"); eye(img, 25 + sway, 23 + bounce, "#dfffe0");
     if (name === "tarantula") { diamond(img, 22, 14 + bounce, 4, p[3]); ring(img, 22, 26 + bounce, 18, 14, 2, p[2], 120); }
   } else if (name === "golem" || name === "titan") {
-    rect(img, 10, 16 + bounce, 28, 22, p[0]); rect(img, 13, 13 + bounce, 22, 6, p[2]); rect(img, 12, 18 + bounce, 24, 17, p[1]);
-    rect(img, 5, 22 + bounce, 7, 14, p[1]); rect(img, 36, 22 + bounce, 7, 14, p[1]); rect(img, 21, 18 + bounce, 6, 18, p[0]);
-    eye(img, 17 + sway, 23 + bounce, p[3]); eye(img, 29 + sway, 23 + bounce, p[3]);
-    if (name === "titan") { diamond(img, 24, 10 + bounce, 5, p[3]); ring(img, 24, 25 + bounce, 20, 18, 2, p[2], 110); }
+    rect(img, 9, 17 + bounce, 27, 21, p[0]); rect(img, 13, 13 + bounce, 22, 6, p[2]); rect(img, 12, 19 + bounce, 24, 17, p[1]);
+    rect(img, 5, 23 + bounce, 7, 14, p[1]); rect(img, 34, 21 + bounce, 8, 15, p[1]); rect(img, 21, 18 + bounce, 6, 18, p[0]);
+    tri(img, 34, 20 + bounce, 43, 24 + bounce, 34, 29 + bounce, p[2]);
+    eye(img, 28 + sway, 23 + bounce, p[3]); eye(img, 36 + sway, 24 + bounce, p[3]);
+    if (name === "titan") { diamond(img, 27, 10 + bounce, 5, p[3]); ring(img, 25, 25 + bounce, 21, 18, 2, p[2], 110); }
   } else if (name === "flame" || name === "infernal") {
     ellipse(img, 24, 25 + bounce, 18, 18, p[2], 75);
-    rect(img, 14, 25 + bounce, 20, 13, p[0]); rect(img, 16, 21 + bounce, 16, 10, p[1]);
-    tri(img, 17 + sway, 22 + bounce, 22, 8 + bounce, 27, 22 + bounce, p[2]); tri(img, 23, 20 + bounce, 28, 5 + bounce, 34, 22 + bounce, p[3]);
-    eye(img, 18 + sway, 27 + bounce, p[3]); eye(img, 28 + sway, 27 + bounce, p[3]);
-    if (name === "infernal") { ring(img, 24, 24 + bounce, 20, 20, 2, p[2], 120); diamond(img, 24, 12 + bounce, 3, p[3]); }
+    rect(img, 13, 25 + bounce, 21, 13, p[0]); rect(img, 16, 21 + bounce, 16, 10, p[1]);
+    tri(img, 17 + sway, 22 + bounce, 22, 8 + bounce, 27, 22 + bounce, p[2]); tri(img, 24, 20 + bounce, 31, 5 + bounce, 37, 22 + bounce, p[3]);
+    tri(img, 32, 24 + bounce, 43, 28 + bounce, 32, 33 + bounce, p[2]);
+    eye(img, 25 + sway, 27 + bounce, p[3]); eye(img, 34 + sway, 28 + bounce, p[3]);
+    if (name === "infernal") { ring(img, 25, 24 + bounce, 21, 20, 2, p[2], 120); diamond(img, 29, 12 + bounce, 3, p[3]); }
   }
 }
 
@@ -139,24 +164,26 @@ function drawHero(img, name, frame) {
   const bounce = [0, -1, 0, 1][frame];
   shadow(img, 24, 40, name === "tank" ? 16 : 13);
   if (name === "warrior") {
-    line(img, 35, 14 + bounce, 37, 35 + bounce, "#f1f5f9", 3); rect(img, 8, 22 + bounce, 7, 16, "#4a2f10"); rect(img, 10, 23 + bounce, 4, 13, p[2]);
+    line(img, 36, 12 + bounce, 39, 35 + bounce, "#f1f5f9", 3); line(img, 39, 12 + bounce, 42, 18 + bounce, "#fff7d0", 2);
+    rect(img, 8, 22 + bounce, 7, 16, "#4a2f10"); rect(img, 10, 23 + bounce, 4, 13, p[2]); rect(img, 12, 25 + bounce, 2, 8, "#fff7", 160);
     rect(img, 18, 30 + bounce, 5, 9, p[1]); rect(img, 27, 30 - bounce, 5, 9, p[1]);
     rect(img, 16, 19 + bounce, 17, 16, p[0]); rect(img, 18, 20 + bounce, 13, 13, p[2]); rect(img, 17, 10 + bounce, 15, 11, p[0]); rect(img, 19, 11 + bounce, 11, 9, p[2]);
-    rect(img, 21 + step, 14 + bounce, 6, 2, "#101722"); rect(img, 23, 6 + bounce, 3, 6, "#e0556b");
+    rect(img, 24 + step, 14 + bounce, 6, 2, "#101722"); rect(img, 23, 6 + bounce, 3, 6, "#e0556b"); rect(img, 15, 21 + bounce, 3, 16, "#7a1f2d");
   } else if (name === "tank") {
     rect(img, 16, 31 + bounce, 6, 8, p[1]); rect(img, 28, 31 - bounce, 6, 8, p[1]);
-    rect(img, 14, 18 + bounce, 22, 18, p[0]); rect(img, 16, 19 + bounce, 18, 15, p[2]); rect(img, 17, 8 + bounce, 16, 12, p[0]); rect(img, 19, 9 + bounce, 12, 10, p[2]);
-    rect(img, 5, 15 + bounce, 10, 25, "#2f3949"); rect(img, 7, 17 + bounce, 6, 20, p[2]); rect(img, 36, 23 + bounce, 5, 15, "#566070");
-    rect(img, 20, 14 + bounce, 9, 2, "#0b1018");
+    rect(img, 14, 18 + bounce, 22, 18, p[0]); rect(img, 16, 19 + bounce, 18, 15, p[2]); rect(img, 17, 8 + bounce, 17, 12, p[0]); rect(img, 19, 9 + bounce, 13, 10, p[2]);
+    tri(img, 17, 9 + bounce, 13, 5 + bounce, 21, 9 + bounce, "#dce4ef"); tri(img, 31, 9 + bounce, 37, 5 + bounce, 32, 14 + bounce, "#dce4ef");
+    rect(img, 5, 15 + bounce, 10, 25, "#2f3949"); rect(img, 7, 17 + bounce, 6, 20, p[2]); rect(img, 36, 23 + bounce, 5, 15, "#566070"); rect(img, 39, 22 + bounce, 4, 4, "#cfd6df");
+    rect(img, 23, 14 + bounce, 9, 2, "#0b1018");
   } else if (name === "mage") {
     rect(img, 17, 25 + bounce, 15, 15, p[0]); rect(img, 19, 25 + bounce, 11, 13, p[2]);
     rect(img, 18, 14 + bounce, 12, 11, p[0]); rect(img, 20, 16 + bounce, 8, 9, p[2]); tri(img, 14, 15 + bounce, 24, 5 + bounce, 35, 15 + bounce, p[1]);
-    line(img, 36, 13 + bounce, 35, 38 + bounce, "#6b4a2f", 2); ellipse(img, 36, 13 + bounce, 6, 6, p[3], 180); diamond(img, 36, 13 + bounce, 2, "#fff7ff");
+    line(img, 36, 13 + bounce, 35, 38 + bounce, "#6b4a2f", 2); ellipse(img, 36, 13 + bounce, 7, 7, p[3], 180); diamond(img, 36, 13 + bounce, 3, "#fff7ff"); ring(img, 36, 13 + bounce, 10, 10, 1, p[2], 130);
   } else if (name === "priest") {
     ring(img, 24, 12 + bounce, 7, 3, 2, p[3], 190); ellipse(img, 24, 25 + bounce, 18, 18, p[3], 45);
     rect(img, 17, 25 + bounce, 15, 15, p[1]); rect(img, 19, 25 + bounce, 11, 13, p[2]);
     rect(img, 18, 14 + bounce, 12, 11, p[1]); rect(img, 20, 16 + bounce, 8, 9, p[2]); rect(img, 23, 22 + bounce, 3, 15, "#e8c860"); rect(img, 19, 28 + bounce, 11, 3, "#e8c860");
-    line(img, 36, 13 + bounce, 35, 38 + bounce, "#cbb78a", 2); rect(img, 32, 13 + bounce, 8, 3, "#e8c860");
+    line(img, 36, 13 + bounce, 35, 38 + bounce, "#cbb78a", 2); rect(img, 32, 13 + bounce, 8, 3, "#e8c860"); diamond(img, 36, 11 + bounce, 3, "#fff0a8", 210);
   }
 }
 
