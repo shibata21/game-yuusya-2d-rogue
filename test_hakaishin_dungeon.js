@@ -144,7 +144,7 @@ ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_du
 ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
 ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
 ok('内部Canvasは48pxタイル用の解像度を持つ', G.TILE === 48 && G.PIXEL_CELL === 48 && G.W === 528 && G.H === 768 && /width="528" height="768"/.test(html), 'tile=' + G.TILE + ' pixel=' + G.PIXEL_CELL);
-ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v6-tdd-elite-palette-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v6-tdd-elite-palette-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
+ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v7-external-tiles-los-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v7-external-tiles-los-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
 ok('ピクセル素材PNGが配置されている', ['assets/pixel/actors.png','assets/pixel/tiles.png','assets/pixel/effects.png'].every(f => fs.existsSync(path.join(repoDir, f))));
 ok('スプライト定義は全魔物と全勇者を含む', Object.keys(G.KINDS).every(k => pixelMeta.actors[k]) && Object.keys(G.HERO_CLASSES).every(k => pixelMeta.actors[k]));
 ok('スプライト定義は主要タイルとエフェクトを含む', ['earth','tunnel','bedrock','surface','core','moss_evo','ember_evo'].every(k => pixelMeta.tiles[k]) && ['slash','shot','bite','birth','puff'].every(k => pixelMeta.effects[k]));
@@ -159,6 +159,7 @@ ok('素材パイプラインのnpmスクリプトがある', /"assets:build": "n
 ok('素材パイプラインは円囲みを生成しない', !/\bring\s*\(/.test(fs.readFileSync(path.join(repoDir, 'tools/build_pixel_assets.js'), 'utf8')) && !/function\s+ring\b/.test(fs.readFileSync(path.join(repoDir, 'tools/pixel_asset_common.js'), 'utf8')) && /validateNoCircleSyntax/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')));
 ok('素材検査は方向差分と勇者アクション差分を見る', /validateActorDirectionDiff/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')) && /validateHeroActionDiff/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')) && /validateSimpleVeins/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')));
 ok('キャラクター素材は外部CC0参照を検査する', /validateExternalActorSources/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')) && fs.existsSync(path.join(repoDir, 'assets/pixel/third_party_assets.json')) && fs.existsSync(path.join(repoDir, 'assets/pixel/THIRD_PARTY_ASSETS.md')));
+ok('タイル素材も外部CC0参照を検査する', /validateExternalTileSources/.test(fs.readFileSync(path.join(repoDir, 'tools/check_pixel_assets.js'), 'utf8')) && /"tiles"\s*:/.test(fs.readFileSync(path.join(repoDir, 'assets/pixel/third_party_assets.json'), 'utf8')));
 ok('キャラクター生成器は旧式の図形本体生成を使わない', !/function\s+drawMonster\b/.test(fs.readFileSync(path.join(repoDir, 'tools/build_pixel_assets.js'), 'utf8')) && !/function\s+drawHero\b/.test(fs.readFileSync(path.join(repoDir, 'tools/build_pixel_assets.js'), 'utf8')) && /readExternal/.test(fs.readFileSync(path.join(repoDir, 'tools/build_pixel_assets.js'), 'utf8')));
 ok('旧世代の生成キャラクターソースは残さない', !['v2','v3','v4'].some(v => fs.existsSync(path.join(repoDir, 'assets/pixel/source', v, 'actors'))));
 {
@@ -197,7 +198,7 @@ try {
 ok('鉱脈テーブルは5種類ある', ['moss','meat','venom','stone','ember'].every(k => !!G.VEIN[k]));
 ok('襲来待ち時間が短縮されている', G.FIRST_GRACE === 27000 && G.WAVE_INTERVAL === 29000 && G.HERO_STAGGER === 2200 && G.DIG_CD === 780);
 ok('栄養経済は1マス1消費向けの値', G.DIG_COST === 1 && G.START_NUT === 25 && Math.abs(G.monsterIncomeRate() - 0.045) < 0.0001);
-ok('スライムは以前より少し強く増殖も少し速い', G.KINDS.slime.hp === 10 && G.KINDS.slime.atk === 2 && G.KINDS.slime.breedEvery === 20000);
+ok('スライムは以前より少し強く増殖もさらに速い', G.KINDS.slime.hp === 10 && G.KINDS.slime.atk === 2 && G.KINDS.slime.breedEvery === 14000);
 ok('上位種は卵で増える種として定義される', ['superslime','evolved','tarantula','titan','infernal'].every(k => G.isElite(k) && G.KINDS[k].breedEvery === 0));
 (function () {
   const e = { col: 1, row: 1, px: G.cx(1), py: G.cy(1) };
@@ -329,6 +330,12 @@ section('T4 戦闘・ウェーブ・長時間');
   ok('開けた通路では視線が通る', G.hasLOS(2, 5, 8, 5) === true);
   G.grid[5][5].t = 'earth'; G.grid[5][5].sub = null;
   ok('壁があると遠距離の視線は通らない', G.hasLOS(2, 5, 8, 5) === false);
+  carveAll();
+  ok('開けた斜め通路では視線が通る', G.hasLOS(2, 2, 5, 5) === true);
+  G.grid[3][2].t = 'earth'; G.grid[3][2].sub = null;
+  ok('斜めの壁角越しには遠距離の視線が通らない', G.hasLOS(2, 2, 5, 5) === false);
+  G.grid[3][2].t = 'tunnel'; G.grid[2][3].t = 'earth'; G.grid[2][3].sub = null;
+  ok('逆側の壁角越しにも遠距離の視線が通らない', G.hasLOS(2, 2, 5, 5) === false);
 })();
 (function () {
   const atks = [1, 6, 12, 20, 60, 300];

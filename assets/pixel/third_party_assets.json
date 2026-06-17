@@ -29,5 +29,22 @@
     "egg_tarantula": ["dcss:releases/Nov-2015/gui/spells/monster/fire_breath.png"],
     "egg_titan": ["dcss:releases/Nov-2015/mon/statues/statue_base.png"],
     "egg_infernal": ["dcss:releases/Nov-2015/gui/spells/fire/fireball.png"]
+  },
+  "tiles": {
+    "earth": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "tunnel": ["dcss:releases/Nov-2015/dngn/floor/grey_dirt5.png"],
+    "bedrock": ["dcss:releases/Nov-2015/dngn/wall/stone_dark0.png"],
+    "surface": ["dcss:releases/Nov-2015/dngn/floor/mosaic4.png"],
+    "core": ["dcss:releases/Nov-2015/dngn/floor/crystal_floor0.png"],
+    "moss": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "meat": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "venom": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "stone": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "ember": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "moss_evo": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "meat_evo": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "venom_evo": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "stone_evo": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],
+    "ember_evo": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"]
   }
 }

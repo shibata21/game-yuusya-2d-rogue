@@ -48,6 +48,13 @@ function diffRatio(a, b) {
   }
   return union ? diff / union : 0;
 }
+function uniqueOpaqueColors(img) {
+  const colors = new Set();
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i + 3] > 0) colors.add(img.data[i] + "," + img.data[i + 1] + "," + img.data[i + 2] + "," + img.data[i + 3]);
+  }
+  return colors.size;
+}
 
 function whiteEdgeCount(img) {
   let count = 0;
@@ -251,6 +258,29 @@ function validateExternalActorSources() {
   }
   ok("キャラクター外部CC0素材の参照を検査しました");
 }
+function validateExternalTileSources() {
+  exists(THIRD_PARTY_FILE);
+  const meta = JSON.parse(fs.readFileSync(THIRD_PARTY_FILE, "utf8"));
+  const source = meta.sources && meta.sources.dcss;
+  if (!source || source.license !== "CC0-1.0") fail("DCSSタイル素材ソースのCC0ライセンス記録がありません");
+  if (!source.licenseFile) fail("DCSSタイル素材ソースのライセンス本文パスがありません");
+  else exists(source.licenseFile);
+  for (const name of TILES) {
+    const refs = meta.tiles && meta.tiles[name];
+    if (!Array.isArray(refs) || refs.length === 0) fail(name + " の外部タイル素材参照がありません");
+    for (const ref of refs || []) {
+      if (!ref.startsWith("dcss:")) fail(name + " の外部タイル素材参照が不正です: " + ref);
+      const file = path.join(source.localRoot, ref.replace(/^dcss:/, ""));
+      exists(file);
+    }
+    const img = readPng(spritePath("tiles", name));
+    const colors = uniqueOpaqueColors(img);
+    if (colors < 10) fail(name + " のタイル色数が少なすぎます: " + colors);
+  }
+  const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
+  if (!/const\s+tileSources\s*=/.test(build) || !/externalTile\(/.test(build)) fail("タイル外部素材生成の定義が見つかりません");
+  ok("タイル外部CC0素材の参照を検査しました");
+}
 function validateNoLegacyActorSources() {
   for (const version of ["v2", "v3", "v4"]) {
     const dir = path.join(OUT_DIR, "source", version, "actors");
@@ -266,6 +296,7 @@ function validateNoLegacyActorSources() {
   validateAtlas();
   validateNoCircleSyntax();
   validateExternalActorSources();
+  validateExternalTileSources();
   validateNoLegacyActorSources();
   validateActorDirectionDiff();
   validateHeroActionDiff();

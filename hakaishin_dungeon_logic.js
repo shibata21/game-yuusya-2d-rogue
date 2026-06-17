@@ -283,15 +283,20 @@ function updateVisualPosition(e,dt){
   }
 }
 function moveToward(m,t){ const nb=openNeighbors(m.col,m.row); if(!nb.length)return; let b=nb[0],bd=cheb(b,t); for(const n of nb){const d=cheb(n,t); if(d<bd){bd=d;b=n;}} beginMove(m,b.col,b.row); }
-// 視線判定：2マス間に壁（土・岩盤）があれば遮られる＝遠距離攻撃は壁を貫通しない
+// 視線判定：2マス間に壁（土・岩盤）があれば遮られる。斜めの壁角抜けも禁止する。
 function hasLOS(c0,r0,c1,r1){
   let dx=Math.abs(c1-c0), dy=Math.abs(r1-r0), sx=c0<c1?1:-1, sy=r0<r1?1:-1, err=dx-dy, c=c0, r=r0;
   while(true){
     if(!(c===c0&&r===r0) && !(c===c1&&r===r1)){ if(!OPEN.has(grid[r][c].t)) return false; }
     if(c===c1 && r===r1) break;
     const e2=2*err;
+    const pc=c, pr=r;
     if(e2>-dy){ err-=dy; c+=sx; }
     if(e2<dx){ err+=dx; r+=sy; }
+    if(c!==pc && r!==pr){
+      if(!inBounds(c,pr) || !inBounds(pc,r)) return false;
+      if(!OPEN.has(grid[pr][c].t) || !OPEN.has(grid[r][pc].t)) return false;
+    }
   }
   return true;
 }

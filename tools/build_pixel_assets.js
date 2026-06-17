@@ -34,6 +34,13 @@ const actorSources = {
   egg_titan: "mon/statues/statue_base.png",
   egg_infernal: "gui/spells/fire/fireball.png",
 };
+const tileSources = {
+  earth: "dngn/floor/dirt_full.png",
+  tunnel: "dngn/floor/grey_dirt5.png",
+  bedrock: "dngn/wall/stone_dark0.png",
+  surface: "dngn/floor/mosaic4.png",
+  core: "dngn/floor/crystal_floor0.png",
+};
 const eliteBase = {
   superslime: "slime",
   evolved: "carniv",
@@ -84,6 +91,15 @@ function readExternal(rel) {
   const file = externalPath(rel);
   if (!fs.existsSync(file)) throw new Error("外部素材がありません: " + file);
   return PNG.sync.read(trimPngBuffer(fs.readFileSync(file)));
+}
+function externalTile(name) {
+  let out = scaleNearest(readExternal(tileSources[name]), CELL, CELL);
+  if (name === "earth") out = tint(shade(out, 0.72, -8), "#5a3822", 0.22);
+  else if (name === "tunnel") out = tint(shade(out, 0.86, -6), "#1f1830", 0.18);
+  else if (name === "bedrock") out = tint(shade(out, 0.42, -28), "#100b17", 0.36);
+  else if (name === "surface") out = tint(shade(out, 0.62, -18), "#2b2035", 0.26);
+  else if (name === "core") out = tint(shade(out, 0.82, -4), "#402060", 0.24);
+  return out;
 }
 function alphaBounds(img) {
   let minX = img.width, minY = img.height, maxX = -1, maxY = -1;
@@ -248,25 +264,14 @@ function drawExternalActor(name, frame, dir, action) {
 }
 
 function drawTile(name) {
-  const img = image();
   const evo = name.endsWith("_evo"), base = name.replace("_evo", "");
-  if (base === "earth") {
-    rect(img, 0, 0, CELL, CELL, "#5a3822"); rect(img, 0, 0, CELL, 4, "#7a5131"); rect(img, 0, CELL - 5, CELL, 5, "#2c1a12");
-    noise(img, 3, ["#6d4729", "#432615", "#8a6039"], 72);
-  } else if (base === "tunnel") {
-    rect(img, 0, 0, CELL, CELL, "#24192d"); rect(img, 0, 0, CELL, 6, "#140d1e"); rect(img, 0, CELL - 6, CELL, 6, "#130d1b");
-    rect(img, 0, 0, 4, CELL, "#161020"); rect(img, CELL - 4, 0, 4, CELL, "#161020");
-    noise(img, 9, ["#2e2038", "#1b1224", "#3a2b46"], 38);
-  } else if (base === "bedrock") {
-    rect(img, 0, 0, CELL, CELL, "#120d18");
-    for (let i = 0; i < 7; i++) diamond(img, 8 + i * 7, 9 + ((i * 13) % 28), 4 + (i % 3), i % 2 ? "#221a2e" : "#0a0710");
-  } else if (base === "surface") {
-    rect(img, 0, 0, CELL, CELL, "#17101f"); rect(img, 5, 0, CELL - 10, CELL, "#281c32"); rect(img, 7, 0, CELL - 14, 8, "#443356"); rect(img, 22, 8, 4, 40, "#0b0711");
-  } else if (base === "core") {
-    rect(img, 0, 0, CELL, CELL, "#24192d"); diamond(img, 24, 25, 19, "#160a22"); diamond(img, 24, 23, 14, "#3b1d50"); diamond(img, 24, 23, 8, "#b026ff"); diamond(img, 24, 23, 4, "#f5e6ff");
-  } else {
-    rect(img, 0, 0, CELL, CELL, "#5a3822"); rect(img, 0, 0, CELL, 4, "#7a5131"); rect(img, 0, CELL - 5, CELL, 5, "#2c1a12");
-    noise(img, 3, ["#6d4729", "#432615", "#8a6039"], 72);
+  const img = tileSources[base] ? externalTile(base) : externalTile("earth");
+  if (base === "core") {
+    diamond(img, 24, 24, 12, "#542b77", 210);
+    diamond(img, 24, 24, 7, "#b026ff", 230);
+    diamond(img, 22, 21, 3, "#f5e6ff", 240);
+  }
+  if (!tileSources[base]) {
     const vein = { moss:["#2e7d35","#6fcf6f","#bdf7bd","diamond"], meat:["#7b1515","#e63a2c","#ffb39e","meat"], venom:["#4e1d7d","#a64dff","#e0bcff","venom"], stone:["#33466b","#6f86c4","#bcd0ff","stone"], ember:["#8c3b0c","#ffae26","#ffe39a","ember"] }[base];
     const cx = 24, cy = 24;
     if (vein[3] === "diamond") { diamond(img, cx, cy, 10, vein[0]); diamond(img, cx, cy, 7, vein[1]); diamond(img, cx - 2, cy - 3, 3, vein[2]); }
