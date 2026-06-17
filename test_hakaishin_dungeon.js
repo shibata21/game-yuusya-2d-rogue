@@ -70,6 +70,7 @@ const hook = `
   get pixiReady(){return pixiReady}, set pixiReady(v){pixiReady=v},
   get pixiRoot(){return pixiRoot}, set pixiRoot(v){pixiRoot=v},
   update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
+  updateVeinTouchEvolution, veinTouchNeed,
   beginMove, updateVisualPosition, setAction, actorPose, dirFromDelta, faceToward,
   drawPixiLayer, pixelActorX, pixelActorSourceX, actorAction, canvasActorAction,
   spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,
@@ -196,7 +197,7 @@ try {
 ok('鉱脈テーブルは5種類ある', ['moss','meat','venom','stone','ember'].every(k => !!G.VEIN[k]));
 ok('襲来待ち時間が短縮されている', G.FIRST_GRACE === 27000 && G.WAVE_INTERVAL === 29000 && G.HERO_STAGGER === 2200 && G.DIG_CD === 780);
 ok('栄養経済は1マス1消費向けの値', G.DIG_COST === 1 && G.START_NUT === 25 && Math.abs(G.monsterIncomeRate() - 0.045) < 0.0001);
-ok('スライムは以前より少し強い', G.KINDS.slime.hp === 10 && G.KINDS.slime.atk === 2);
+ok('スライムは以前より少し強く増殖も少し速い', G.KINDS.slime.hp === 10 && G.KINDS.slime.atk === 2 && G.KINDS.slime.breedEvery === 20000);
 ok('上位種は卵で増える種として定義される', ['superslime','evolved','tarantula','titan','infernal'].every(k => G.isElite(k) && G.KINDS[k].breedEvery === 0));
 (function () {
   const e = { col: 1, row: 1, px: G.cx(1), py: G.cy(1) };
@@ -218,6 +219,7 @@ ok('上位種は卵で増える種として定義される', ['superslime','evol
   const p = G.actorPose(e);
   ok('攻撃アクションは対象座標と時間と向きを保持する', e.actionType === 'attack' && e.actionTX === G.cx(2) && e.actionTime === 200 && e.faceDir === 'e' && p.x === 0 && G.actorAction(e) === 'attack', 'type=' + e.actionType + ' face=' + e.faceDir);
   ok('描画用アトラス座標はアクションと向きを反映する', G.pixelActorX('attack', 'e', 2) === ((G.PIXEL_ACTIONS.indexOf('attack') * G.PIXEL_DIRS.length + G.PIXEL_DIRS.indexOf('e')) * G.PIXEL_FRAMES + 2) * G.PIXEL_CELL);
+  ok('モンスターのピクセル描画はタイル中央アンカーを使う', /isHero\?0\.75:0\.5/.test(canvasLayerJs) && /s\.anchor\.set\(0\.5,isHero\?0\.75:0\.5\)/.test(pixiLayerJs));
 })();
 
 section('T2 鉱脈採掘と熟成');
@@ -238,14 +240,18 @@ section('T2 鉱脈採掘と熟成');
 (function () {
   freshPlay(); G.nutrients = 100;
   const c = 4, r = 3;
-  G.grid[r][c].t = 'earth'; G.grid[r][c].sub = 'moss'; G.grid[r][c].evo = false; G.grid[r][c].evoChecked = false; G.grid[r][c].age = G.EVO_TIME;
-  G.grid[r][c + 1].t = 'tunnel';
-  const oldRandom = Math.random; Math.random = () => 0;
+  G.grid[r][c].t = 'earth'; G.grid[r][c].sub = 'moss'; G.grid[r][c].evo = false; G.grid[r][c].evoChecked = false; G.grid[r][c].age = G.EVO_TIME * 2; G.grid[r][c].evoTouch = 0; G.grid[r][c].evoTouching = {};
+  for (const p of [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]]) G.grid[p[1]][p[0]].t = 'tunnel';
   G.update(100);
-  Math.random = oldRandom;
-  ok('熟成した鉱脈は低確率で上位鉱脈になる', G.grid[r][c].evo === true);
+  ok('時間だけでは鉱脈は進化しない', G.grid[r][c].evo === false && (G.grid[r][c].evoTouch || 0) === 0, 'touch=' + G.grid[r][c].evoTouch);
+  [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]].forEach((p) => G.spawnMonster('slime', p[0], p[1]));
+  G.update(100);
+  ok('一定数の魔物が触れると上位鉱脈になる', G.grid[r][c].evo === true && G.grid[r][c].evoTouch >= G.veinTouchNeed('moss'), 'touch=' + G.grid[r][c].evoTouch);
   G.tryDig(c, r);
   ok('上位鉱脈を掘ると上位種が出る', G.monsters.some(m => m.kind === 'superslime'), G.monsters.map(m => m.kind).join(','));
+})();
+(function () {
+  ok('後半鉱脈ほど進化に必要な接触数が多い', G.veinTouchNeed('moss') < G.veinTouchNeed('meat') && G.veinTouchNeed('meat') < G.veinTouchNeed('venom') && G.veinTouchNeed('venom') < G.veinTouchNeed('stone') && G.veinTouchNeed('stone') < G.veinTouchNeed('ember'));
 })();
 (function () {
   freshPlay();

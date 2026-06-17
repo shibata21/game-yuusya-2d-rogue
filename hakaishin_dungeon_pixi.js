@@ -134,7 +134,7 @@ function drawPixelPixiActor(c,e,isHero,time){
   const tex=pixelTexture('actors', pixelActorX(actorAction(e), e.faceDir||'s', actorFrame(e,time)), row*PIXEL_CELL, PIXEL_CELL, PIXEL_CELL);
   if(!tex) return false;
   const s=new PIXI.Sprite(tex);
-  s.anchor.set(0.5,0.75);
+  s.anchor.set(0.5,isHero?0.75:0.5);
   c.addChild(s);
   return true;
 }

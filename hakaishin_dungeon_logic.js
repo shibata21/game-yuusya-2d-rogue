@@ -14,7 +14,7 @@ function tryDig(col,row){
   nutrients-=cost;
   if(tile.sub){
     const vein=tile.sub, rich=tile.evo, kind=rich?VEIN[vein].evoKind:VEIN[vein].kind;
-    tile.t='tunnel'; tile.sub=null; tile.evo=false; tile.age=0; tile.evoChecked=false;
+    tile.t='tunnel'; tile.sub=null; tile.evo=false; tile.age=0; tile.evoChecked=false; tile.evoTouch=0; tile.evoTouching={};
     spawnMonster(kind,col,row);
     const mo=monsters[monsters.length-1];
     if(mo && mo.col===col && mo.row===row){ mo.bornAnim=BORN_ANIM; effects.push({type:'birth', x:cx(col), y:cy(row), life:380, max:380, color:KINDS[mo.kind].col}); }
@@ -119,6 +119,29 @@ function updateEliteEggBreeding(dt){
       const spot=eggSpot(a,b);
       if(spot) spawnEgg(a.kind,spot.col,spot.row);
       break;
+    }
+  }
+}
+function veinTouchNeed(type){
+  return (VEIN[type]&&VEIN[type].touchNeed)||8;
+}
+function updateVeinTouchEvolution(){
+  for(let r=1;r<ROWS-1;r++) for(let c=1;c<COLS-1;c++){
+    const t=grid[r][c];
+    if(t.t!=='earth' || !t.sub || t.evo) continue;
+    const touching={};
+    for(const m of monsters){
+      if(cheb(m,{col:c,row:r})<=1){
+        touching[m.id]=true;
+        if(!t.evoTouching || !t.evoTouching[m.id]) t.evoTouch=(t.evoTouch||0)+1;
+      }
+    }
+    t.evoTouching=touching;
+    if((t.evoTouch||0)>=veinTouchNeed(t.sub)){
+      t.evo=true;
+      t.evoChecked=true;
+      effects.push({type:'evolveVein', x:cx(c), y:cy(r), life:760, max:760, color:VEIN[t.sub].color});
+      toast(c,r,VEIN[t.sub].evoName,'#ffe08a');
     }
   }
 }
@@ -319,20 +342,8 @@ function update(dt){
     }
   }
 
-  // 鉱脈の熟成：放っておくと低確率で上位種鉱脈になる
-  for(let r=1;r<ROWS-1;r++) for(let c=1;c<COLS-1;c++){
-    const t=grid[r][c];
-    if(t.t!=='earth' || !t.sub || t.evoChecked) continue;
-    t.age=(t.age||0)+dt;
-    if(t.age>=EVO_TIME){
-      t.evoChecked=true;
-      if(Math.random()<VEIN[t.sub].evoChance){
-        t.evo=true;
-        effects.push({type:'evolveVein', x:cx(c), y:cy(r), life:760, max:760, color:VEIN[t.sub].color});
-        toast(c,r,VEIN[t.sub].evoName,'#ffe08a');
-      }
-    }
-  }
+  // 鉱脈の進化：時間ではなく、隣接した魔物の接触回数で上位種鉱脈になる
+  updateVeinTouchEvolution();
 
   updateEggs(dt);
   updateEliteEggBreeding(dt);

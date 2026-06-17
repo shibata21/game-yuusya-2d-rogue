@@ -99,7 +99,7 @@ describe("破壊神ダンジョン Vitest", () => {
       cwd: repoDir,
       encoding: "utf8",
     });
-    expect(out).toContain("結果: 61 passed, 0 failed");
+    expect(out).toMatch(/結果: \d+ passed, 0 failed/);
   }, 30000);
 
   it("ゲーム本体は公開名前空間から生成・検査できる", () => {

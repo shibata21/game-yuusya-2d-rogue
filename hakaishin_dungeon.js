@@ -60,6 +60,7 @@ function createGameApi(){
     get waveCountdown(){return waveCountdown}, set waveCountdown(v){waveCountdown=v},
     get gameState(){return gameState}, set gameState(v){gameState=v},
     update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
+    updateVeinTouchEvolution, veinTouchNeed,
     beginMove, updateVisualPosition, setAction, actorPose, dirFromDelta, faceToward,
     drawPixiLayer, pixelActorX, pixelActorSourceX, actorAction, canvasActorAction,
     spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,

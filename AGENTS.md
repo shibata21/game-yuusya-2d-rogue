@@ -41,7 +41,7 @@ node test_hakaishin_dungeon.js hakaishin_dungeon.html
 ## どこに何があるか（`hakaishin_dungeon.js` 内）
 - **調整用定数（冒頭）**：`MONSTER_CAP` / `BREED_LIMIT` / `MAX_HEROES` / `WAVE_INTERVAL` / `FIRST_GRACE` / `HERO_STAGGER` / `DIG_COST` / `START_NUT` / `CORE_MAX` / `VEIN_CAP` / `EGG_HATCH`・`EGG_CHECK`・`EGG_CHANCE`・`EGG_KIND_CAP` / `EAT_CHECK`・`EAT_CHANCE_STEP` / `EFFECT_CAP` / `DIG_BREAK`・`DIG_CD` / `EVO_TIME`（鉱脈の熟成時間）/ `BORN_ANIM`。
 - **`KINDS`** — 魔物テーブル（hp/atk/range/rank/breedEvery/breedCap…）。通常種＋上位種（`eliteOf`＝元スプライト, `tint`＝色替えフィルタ）。
-- **`VEIN`** — 鉱脈の種別 → `kind`（通常種）・`evoKind`（上位種）・`evoChance`・色・解禁ウェーブ。
+- **`VEIN`** — 鉱脈の種別 → `kind`（通常種）・`evoKind`（上位種）・`touchNeed`・色・解禁ウェーブ。
 - **`HERO_CLASSES`** — 戦士/盾/魔法/僧侶。勇者のHP・攻撃スケーリングは `spawnHero()`、1ウェーブの人数は `startWave()`。
 - **`update(dt)`** — メインループ：ウェーブ発生／鉱脈の熟成／下位種増殖／卵の孵化／上位種の卵繁殖／捕食・魔物AI・戦闘／勇者AI・経路・壁掘り／コアへのダメージ。
 - **`draw()`** — Canvas描画。各スプライト関数と `drawEffect`。
@@ -49,7 +49,7 @@ node test_hakaishin_dungeon.js hakaishin_dungeon.html
 
 ## 現在のゲーム仕様（要点）
 - 土をタップで採掘（固定の `DIG_COST=1` 消費）。開始栄養は `START_NUT=25`。色付きの鉱脈を掘ると対応する魔物が1体出て、跡は通路になる。
-- 鉱脈は `EVO_TIME` 放置で熟成判定され、低確率で上位鉱脈になる。上位鉱脈を掘ると上位種が1体出る。
+- 鉱脈は隣接した魔物の接触回数が `touchNeed` に達すると上位鉱脈になる。後半の強い鉱脈ほど必要接触数が多い。上位鉱脈を掘ると上位種が1体出る。
 - 自然湧き・盤面養分・個体進化はない。栄養は採掘用のグローバル資源で、時間経過と勇者撃破報酬で増える。
 - 下位種は遅めに直接増殖する。上位種は直接増殖せず、同種上位2体が接触している時に低確率で卵を作り、卵は時間経過で孵化する。
 - 魔物は自分より序列（`rank`）が低い隣接魔物を一定確率で捕食する。序列差が大きいほど捕食されやすく、捕食した個体はHPを回復する。
