@@ -19,6 +19,9 @@
 - `node --check hakaishin_dungeon_logic.js`
 - `node --check hakaishin_dungeon_canvas.js`
 - `node --check hakaishin_dungeon_pixi.js`
+- `node --check tools/build_pixel_assets.js`
+- `node --check tools/check_pixel_assets.js`
+- `npm test`
 - `node test_hakaishin_dungeon.js hakaishin_dungeon.html`
 
 ## 注意

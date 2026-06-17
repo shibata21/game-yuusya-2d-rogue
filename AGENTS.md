@@ -6,11 +6,12 @@
 - `hakaishin_dungeon.html` — ゲーム本体のHTML。CSS / JS を読み込む。ビルド不要、ブラウザで開けば動く。
 - `hakaishin_dungeon.css` — 画面レイアウトと見た目。
 - `hakaishin_dungeon.js` — ゲームロジックとCanvas描画。
-- `test_hakaishin_dungeon.js` — Node 製テスト。HTML からゲーム用 `<script>` を辿り、DOM/Canvas をスタブ化し、`__GAME__` フック経由でロジックを検証する。
+- `test/hakaishin_dungeon.test.js` — Vitest 製テスト。HTML からゲーム用 `<script>` を辿り、DOM/Canvas をスタブ化し、公開名前空間と旧テスト互換ランナー経由でロジックを検証する。
+- `test_hakaishin_dungeon.js` — 旧Node製テスト互換ランナー。AGENTS互換のため残し、Vitestからも全体回帰として呼び出す。
 
 ## 実行・検証
 ビルド工程はなし。プレイは HTML をブラウザで開くだけ。
-変更を入れたら、必ず以下2つを実行し「エラー0・全テスト通過」を確認すること：
+変更を入れたら、必ず以下を実行し「エラー0・全テスト通過」を確認すること：
 
 ```bash
 # ゲーム側の構文チェック
@@ -19,7 +20,10 @@ node --check hakaishin_dungeon.js
 # テスト側の構文チェック
 node --check test_hakaishin_dungeon.js
 
-# テスト実行（例: "33 passed, 0 failed" のように全通過すること）
+# Vitest実行
+npm test
+
+# 旧互換テスト実行（例: "61 passed, 0 failed" のように全通過すること）
 node test_hakaishin_dungeon.js hakaishin_dungeon.html
 ```
 

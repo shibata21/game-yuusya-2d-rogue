@@ -245,7 +245,6 @@ function drawMonster(m,time){
   if(K.eliteOf){
     // 進化種：元スプライトを「色だけ変えて」描く（形・大きさは元のまま）
     ctx.filter=K.tint||'none'; drawBaseSprite(K.eliteOf,x,y,time); ctx.filter='none';
-    drawEliteMark(x,y,K.col,time);
     if(K.eliteOf==='golem'){ bw=22; by=y-13; } else if(K.eliteOf==='flame'){ bw=20; by=y-18; } else if(K.eliteOf==='spitter'){ by=y-11; }
   } else {
     switch(m.kind){
@@ -277,14 +276,6 @@ function drawGroundShadow(x,y,w,a){
 }
 function drawRuneGlow(x,y,r,col,a){
   ctx.globalAlpha=a; ctx.fillStyle=col; ctx.beginPath(); ctx.arc(x,y,r,0,6.28); ctx.fill(); ctx.globalAlpha=1;
-}
-function drawEliteMark(x,y,col,time){
-  const pulse=0.45+0.35*Math.sin(time*6+x);
-  ctx.globalAlpha=0.35+pulse*0.35; ctx.strokeStyle=col; ctx.lineWidth=1;
-  ctx.beginPath(); ctx.arc(x,y-4,13+pulse*2,0,6.28); ctx.stroke();
-  ctx.globalAlpha=0.85; ctx.fillStyle=col;
-  drawDiamond(x-8,y-10,2); drawDiamond(x+8,y-10,2); drawDiamond(x,y-15,2);
-  ctx.globalAlpha=1;
 }
 function drawSlime(x,y){
   drawGroundShadow(x,y,10,0.42);

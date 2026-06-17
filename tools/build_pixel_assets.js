@@ -14,16 +14,16 @@ const heroNames = ["warrior", "tank", "mage", "priest"];
 const dirVec = { e:[1,0], se:[1,1], s:[0,1], sw:[-1,1], w:[-1,0], nw:[-1,-1], n:[0,-1], ne:[1,-1] };
 
 const actorSources = {
-  slime: "mon/amorphous/jelly.png",
+  slime: "mon/amorphous/azure_jelly.png",
   superslime: "mon/amorphous/azure_jelly.png",
   carniv: "mon/animals/worm.png",
-  evolved: "mon/demons/abomination_large3.png",
+  evolved: "mon/animals/worm.png",
   spitter: "mon/animals/scorpion.png",
-  tarantula: "mon/animals/wolf_spider.png",
+  tarantula: "mon/animals/scorpion.png",
   golem: "mon/nonliving/iron_golem.png",
-  titan: "mon/statues/orange_crystal_statue.png",
+  titan: "mon/nonliving/iron_golem.png",
   flame: "mon/nonliving/fire_elemental.png",
-  infernal: "mon/demons/balrug.png",
+  infernal: "mon/nonliving/fire_elemental.png",
   warrior: "player/base/human_m.png",
   tank: "player/base/human_m.png",
   mage: "player/base/human_f.png",
@@ -33,6 +33,20 @@ const actorSources = {
   egg_tarantula: "gui/spells/monster/fire_breath.png",
   egg_titan: "mon/statues/statue_base.png",
   egg_infernal: "gui/spells/fire/fireball.png",
+};
+const eliteBase = {
+  superslime: "slime",
+  evolved: "carniv",
+  tarantula: "spitter",
+  titan: "golem",
+  infernal: "flame",
+};
+const elitePalette = {
+  superslime: "#e84a4a",
+  evolved: "#9b2f4f",
+  tarantula: "#ff6b5a",
+  titan: "#d9b27a",
+  infernal: "#5ab0ff",
 };
 const heroLayers = {
   warrior: ["player/body/dragonarm_blue.png", "player/hand1/long_sword_slant.png"],
@@ -152,6 +166,22 @@ function tint(src, color, amount) {
   }
   return out;
 }
+function paletteShift(src, color, amount) {
+  const c = rgba(color);
+  const out = new PNG({ width: src.width, height: src.height });
+  for (let i = 0; i < src.data.length; i += 4) {
+    const lum = src.data[i] * 0.299 + src.data[i + 1] * 0.587 + src.data[i + 2] * 0.114;
+    const shade = Math.max(0.35, Math.min(1.35, lum / 150));
+    const tr = Math.min(255, c.r * shade);
+    const tg = Math.min(255, c.g * shade);
+    const tb = Math.min(255, c.b * shade);
+    out.data[i] = Math.round(src.data[i] * (1 - amount) + tr * amount);
+    out.data[i + 1] = Math.round(src.data[i + 1] * (1 - amount) + tg * amount);
+    out.data[i + 2] = Math.round(src.data[i + 2] * (1 - amount) + tb * amount);
+    out.data[i + 3] = src.data[i + 3];
+  }
+  return out;
+}
 function clearCellEdge(img) {
   for (let x = 0; x < img.width; x++) {
     img.data[(x) * 4 + 3] = 0;
@@ -163,9 +193,8 @@ function clearCellEdge(img) {
   }
 }
 function actorBase(name) {
-  let base = normalize(readExternal(actorSources[name]), name === "titan" || name === "golem" ? 38 : 34, name === "titan" || name === "golem" ? 38 : 34);
-  if (name === "evolved") base = tint(base, "#d85a7a", 0.18);
-  if (name === "infernal") base = tint(base, "#4ab7ff", 0.18);
+  if (eliteBase[name]) return paletteShift(actorBase(eliteBase[name]), elitePalette[name], name === "superslime" ? 0.82 : 0.62);
+  let base = normalize(readExternal(actorSources[name]), name === "golem" ? 38 : 34, name === "golem" ? 38 : 34);
   return base;
 }
 function heroBase(name) {

@@ -51,6 +51,42 @@ function resetGame(){
 function startGame(){ resetGame(); gameState='playing'; el.startOverlay.classList.add('hidden'); el.deadOverlay.classList.add('hidden'); }
 function gameOver(){ gameState='dead'; el.deadWave.textContent=wave; el.deadKills.textContent=kills; el.deadScore.textContent=score; el.deadOverlay.classList.remove('hidden'); }
 
+function createGameApi(){
+  return {
+    get monsters(){return monsters}, get heroes(){return heroes}, get eggs(){return eggs}, get grid(){return grid}, get effects(){return effects}, get spawnQueue(){return spawnQueue},
+    get wave(){return wave}, set wave(v){wave=v},
+    get coreHP(){return coreHP}, set coreHP(v){coreHP=v},
+    get nutrients(){return nutrients}, set nutrients(v){nutrients=v},
+    get waveCountdown(){return waveCountdown}, set waveCountdown(v){waveCountdown=v},
+    get gameState(){return gameState}, set gameState(v){gameState=v},
+    update, draw, updateHUD, resetGame, tryDig, startWave, tauntEarly,
+    beginMove, updateVisualPosition, setAction, actorPose, dirFromDelta, faceToward,
+    drawPixiLayer, pixelActorX, pixelActorSourceX, actorAction, canvasActorAction,
+    spawnMonster, spawnHero, spawnInTunnel, spawnEgg, pickHeroClass, heroStep, openNeighbors, hasLOS,
+    countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
+    VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
+    EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME,
+    MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
+    PIXEL_ASSET_VERSION, pixelAssetUrl, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD
+  };
+}
+function exposeGameNamespace(){
+  if(typeof globalThis==='undefined') return;
+  const core={
+    VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
+    EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME,
+    MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
+    PIXEL_ASSET_VERSION, pixelAssetUrl
+  };
+  globalThis.HakaishinDungeon={
+    Core:core,
+    createGame:createGameApi,
+    get current(){ return createGameApi(); }
+  };
+}
+
 canvas.addEventListener('pointerdown', e=>{
   e.preventDefault();
   const rect=canvas.getBoundingClientRect();
@@ -64,4 +100,5 @@ el.tauntBtn.addEventListener('click', tauntEarly);
 
 if(typeof initPixiLayer==='function') initPixiLayer();
 resetGame();
+exposeGameNamespace();
 requestAnimationFrame(frame);

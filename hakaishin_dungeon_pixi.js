@@ -178,8 +178,7 @@ function drawPixiActor(e,isHero,time){
   if(isHero) drawPixiHero(c,e,time); else drawPixiMonster(c,e,time);
 }
 function drawPixiMonster(c,m,time){
-  const k=KINDS[m.kind], g=pg(), col=k.col, elite=!!k.eliteOf, pulse=0.55+0.35*Math.sin(time*6+m.id);
-  if(elite){ addCircle(g,0,-4,15,col,0.18+pulse*0.18); g.circle(0,-4,15+pulse*2).stroke({color:pc(col), alpha:0.55, width:1}); }
+  const k=KINDS[m.kind], g=pg(), col=k.col, pulse=0.55+0.35*Math.sin(time*6+m.id);
   const base=k.eliteOf||m.kind;
   if(base==='slime'){
     addEllipse(g,0,2,10,8,'#1f6f2b'); addEllipse(g,0,-2,8,7,col); addRect(g,-5,-7,10,3,'#9bff9f');

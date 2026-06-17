@@ -6,7 +6,7 @@
   "scripts": {
     "assets:build": "node tools/build_pixel_assets.js",
     "assets:check": "node tools/check_pixel_assets.js",
-    "test": "node test_hakaishin_dungeon.js hakaishin_dungeon.html"
+    "test": "node node_modules/vitest/vitest.mjs run"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   "homepage": "https://github.com/shibata21/game-yuusya-2d-rogue#readme",
   "devDependencies": {
     "pixelmatch": "^7.2.0",
-    "pngjs": "^7.0.0"
+    "pngjs": "^7.0.0",
+    "vitest": "^4.1.9"
   }
 }

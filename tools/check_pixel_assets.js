@@ -178,6 +178,32 @@ function validateHeroActionDiff() {
   }
   ok("勇者の職業別アクション差分を検査しました");
 }
+function paletteStats(base, elite) {
+  let union = 0, alphaDiff = 0, colorDiff = 0, redDominant = 0, opaque = 0;
+  for (let i = 0; i < base.data.length; i += 4) {
+    const ba = base.data[i + 3], ea = elite.data[i + 3];
+    if (ba > 0 || ea > 0) union++;
+    if (ba !== ea) alphaDiff++;
+    if (Math.abs(base.data[i] - elite.data[i]) + Math.abs(base.data[i + 1] - elite.data[i + 1]) + Math.abs(base.data[i + 2] - elite.data[i + 2]) > 32) colorDiff++;
+    if (ea > 0) {
+      opaque++;
+      if (elite.data[i] > elite.data[i + 1] && elite.data[i] > elite.data[i + 2]) redDominant++;
+    }
+  }
+  return { alphaDiff, colorRatio: union ? colorDiff / union : 0, redRatio: opaque ? redDominant / opaque : 0 };
+}
+function validateElitePaletteVariants() {
+  const pairs = [["slime", "superslime"], ["carniv", "evolved"], ["spitter", "tarantula"], ["golem", "titan"], ["flame", "infernal"]];
+  for (const pair of pairs) {
+    for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) {
+      const stats = paletteStats(actorFrame(pair[0], action, dir, f), actorFrame(pair[1], action, dir, f));
+      if (stats.alphaDiff !== 0) fail(pair.join("/") + " は形状が一致しません: " + action + "/" + dir + "/" + f + " alphaDiff=" + stats.alphaDiff);
+      if (stats.colorRatio < 0.08) fail(pair.join("/") + " の色差分が小さすぎます: " + action + "/" + dir + "/" + f + " " + stats.colorRatio.toFixed(3));
+      if (pair[1] === "superslime" && stats.redRatio < 0.65) fail("superslime が赤優勢ではありません: " + action + "/" + dir + "/" + f + " " + stats.redRatio.toFixed(3));
+    }
+  }
+  ok("進化モンスターの色違い化を検査しました");
+}
 function validateSimpleVeins() {
   const veins = ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"];
   const earth = readPng(spritePath("tiles", "earth"));
@@ -243,6 +269,7 @@ function validateNoLegacyActorSources() {
   validateNoLegacyActorSources();
   validateActorDirectionDiff();
   validateHeroActionDiff();
+  validateElitePaletteVariants();
   validateSimpleVeins();
   await validateGeneratedDiff();
   if (failed) process.exit(1);

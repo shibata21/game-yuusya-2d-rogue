@@ -143,7 +143,7 @@ ok('ゲーム用JSは複数ファイルに分割されている', ['hakaishin_du
 ok('Pixiレイヤーは透明な前面キャンバスとして定義される', /\.pixi-layer/.test(css) && /background:transparent/.test(css) && /pointer-events:none/.test(css), 'pixi-layer css missing');
 ok('Pixiキャンバスに専用クラスを付ける', /className='pixi-layer'/.test(pixiLayerJs) && /background='transparent'/.test(pixiLayerJs), 'pixi class missing');
 ok('内部Canvasは48pxタイル用の解像度を持つ', G.TILE === 48 && G.PIXEL_CELL === 48 && G.W === 528 && G.H === 768 && /width="528" height="768"/.test(html), 'tile=' + G.TILE + ' pixel=' + G.PIXEL_CELL);
-ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v5-external-cc0-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v5-external-cc0-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
+ok('素材URLはバージョン文字列付きで読む', G.PIXEL_ASSET_VERSION === 'v6-tdd-elite-palette-1' && G.pixelAssetUrl('tiles.png').endsWith('tiles.png?v=v6-tdd-elite-palette-1') && /pixelAssetUrl\('tiles\.png'\)/.test(canvasLayerJs) && /pixelAssetUrl\(name\)/.test(pixiLayerJs), G.pixelAssetUrl('tiles.png'));
 ok('ピクセル素材PNGが配置されている', ['assets/pixel/actors.png','assets/pixel/tiles.png','assets/pixel/effects.png'].every(f => fs.existsSync(path.join(repoDir, f))));
 ok('スプライト定義は全魔物と全勇者を含む', Object.keys(G.KINDS).every(k => pixelMeta.actors[k]) && Object.keys(G.HERO_CLASSES).every(k => pixelMeta.actors[k]));
 ok('スプライト定義は主要タイルとエフェクトを含む', ['earth','tunnel','bedrock','surface','core','moss_evo','ember_evo'].every(k => pixelMeta.tiles[k]) && ['slash','shot','bite','birth','puff'].every(k => pixelMeta.effects[k]));
