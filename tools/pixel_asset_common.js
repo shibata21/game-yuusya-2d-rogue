@@ -9,7 +9,7 @@ const FRAMES = 4;
 const DIRECTIONS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
 const ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat"];
 const OUT_DIR = path.join("assets", "pixel");
-const SOURCE_DIR = path.join(OUT_DIR, "source", "v4");
+const SOURCE_DIR = path.join(OUT_DIR, "source", "v5");
 
 const ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",

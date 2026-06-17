@@ -58,7 +58,7 @@ const HERO_CLASSES={
 
 /* 画像素材。sprites.json と同じ並びを JS 側にも持ち、ローカルHTML直開きで fetch なしに使う */
 const PIXEL_ASSET_PATH='assets/pixel/';
-const PIXEL_ASSET_VERSION='v4-48-8dir-action-1';
+const PIXEL_ASSET_VERSION='v5-external-cc0-1';
 const PIXEL_CELL=48, PIXEL_FRAMES=4;
 const PIXEL_DIRS=['e','se','s','sw','w','nw','n','ne'];
 const PIXEL_ACTIONS=['idle','attack','cast','dig','heal','eat'];

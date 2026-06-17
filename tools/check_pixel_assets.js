@@ -7,6 +7,7 @@ const {
   CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, ACTORS, TILES, EFFECTS,
   readPng, spritePath,
 } = require("./pixel_asset_common");
+const THIRD_PARTY_FILE = path.join(OUT_DIR, "third_party_assets.json");
 
 let failed = false;
 function fail(msg) {
@@ -202,12 +203,44 @@ function validateNoCircleSyntax() {
   if (/\bring\s*\(/.test(build) || /function\s+ring\b/.test(common)) fail("円形囲み用の ring が残っています");
   ok("円形囲みヘルパーが残っていないことを検査しました");
 }
+function validateExternalActorSources() {
+  exists(THIRD_PARTY_FILE);
+  const meta = JSON.parse(fs.readFileSync(THIRD_PARTY_FILE, "utf8"));
+  const source = meta.sources && meta.sources.dcss;
+  if (!source || source.license !== "CC0-1.0") fail("DCSS素材ソースのCC0ライセンス記録がありません");
+  if (!source.licenseFile) fail("DCSS素材ソースのライセンス本文パスがありません");
+  else exists(source.licenseFile);
+  for (const name of ACTORS) {
+    const refs = meta.actors && meta.actors[name];
+    if (!Array.isArray(refs) || refs.length === 0) fail(name + " の外部素材参照がありません");
+    for (const ref of refs || []) {
+      if (!ref.startsWith("dcss:")) fail(name + " の外部素材参照が不正です: " + ref);
+      const file = path.join(source.localRoot, ref.replace(/^dcss:/, ""));
+      exists(file);
+    }
+  }
+  const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
+  if (/function\s+drawMonster\b/.test(build) || /function\s+drawHero\b/.test(build) || /function\s+bodyBox\b/.test(build) || /function\s+eye\b/.test(build)) {
+    fail("旧式の図形キャラクター生成関数が残っています");
+  }
+  ok("キャラクター外部CC0素材の参照を検査しました");
+}
+function validateNoLegacyActorSources() {
+  for (const version of ["v2", "v3", "v4"]) {
+    const dir = path.join(OUT_DIR, "source", version, "actors");
+    if (fs.existsSync(dir)) fail("旧世代の生成キャラクターソースが残っています: " + dir);
+  }
+  if (fs.existsSync(path.join(OUT_DIR, "source", "actors-source.png"))) fail("旧生成キャラクターシートが残っています");
+  ok("旧世代の生成キャラクターソースがないことを検査しました");
+}
 
 (async () => {
   validateSource();
   validateMeta();
   validateAtlas();
   validateNoCircleSyntax();
+  validateExternalActorSources();
+  validateNoLegacyActorSources();
   validateActorDirectionDiff();
   validateHeroActionDiff();
   validateSimpleVeins();

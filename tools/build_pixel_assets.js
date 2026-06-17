@@ -2,29 +2,50 @@
 
 const fs = require("fs");
 const path = require("path");
+const { PNG } = require("pngjs");
 const {
   CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
-  ensureDir, image, writePng, readPng, rect, diamond, line, tri, copyInto, spritePath,
+  ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
-const actorColors = {
-  slime: ["#07140a", "#1e6b2d", "#42b85a", "#8ff39a"],
-  carniv: ["#21070a", "#7f2419", "#d55531", "#ff9865"],
-  evolved: ["#17050d", "#5b1430", "#b92f5c", "#ff8ab0"],
-  spitter: ["#140b20", "#4a216c", "#8d45c7", "#d4a0ff"],
-  golem: ["#101722", "#2f3d5d", "#7188c7", "#c5d8ff"],
-  flame: ["#1c0508", "#932214", "#ff6a22", "#ffd15a"],
-  superslime: ["#061323", "#1c5a86", "#59baff", "#d4f2ff"],
-  tarantula: ["#16070a", "#61211d", "#d14b3d", "#ffc0a8"],
-  titan: ["#17110b", "#5c4630", "#c69a64", "#ffe3ac"],
-  infernal: ["#06111d", "#124d7a", "#41b9ff", "#c9f4ff"],
-  warrior: ["#10131b", "#485161", "#c8d2df", "#fff5cf"],
-  tank: ["#10131b", "#303743", "#7a8290", "#dce4ef"],
-  mage: ["#130e2a", "#362a83", "#7567df", "#d7ccff"],
-  priest: ["#2a241a", "#8e8060", "#efe6cf", "#fff0a8"],
-};
-const dirVec = { e:[1,0], se:[1,1], s:[0,1], sw:[-1,1], w:[-1,0], nw:[-1,-1], n:[0,-1], ne:[1,-1] };
+const EXTERNAL_ROOT = path.join("assets", "external", "cc0", "dcss");
+const RELEASE = path.join("releases", "Nov-2015");
 const heroNames = ["warrior", "tank", "mage", "priest"];
+const dirVec = { e:[1,0], se:[1,1], s:[0,1], sw:[-1,1], w:[-1,0], nw:[-1,-1], n:[0,-1], ne:[1,-1] };
+
+const actorSources = {
+  slime: "mon/amorphous/jelly.png",
+  superslime: "mon/amorphous/azure_jelly.png",
+  carniv: "mon/animals/worm.png",
+  evolved: "mon/demons/abomination_large3.png",
+  spitter: "mon/animals/scorpion.png",
+  tarantula: "mon/animals/wolf_spider.png",
+  golem: "mon/nonliving/iron_golem.png",
+  titan: "mon/statues/orange_crystal_statue.png",
+  flame: "mon/nonliving/fire_elemental.png",
+  infernal: "mon/demons/balrug.png",
+  warrior: "player/base/human_m.png",
+  tank: "player/base/human_m.png",
+  mage: "player/base/human_f.png",
+  priest: "mon/deep_elf_priest.png",
+  egg_superslime: "item/food/lump_of_royal_jelly.png",
+  egg_evolved: "gui/spells/summoning/summon_demon.png",
+  egg_tarantula: "gui/spells/monster/fire_breath.png",
+  egg_titan: "mon/statues/statue_base.png",
+  egg_infernal: "gui/spells/fire/fireball.png",
+};
+const heroLayers = {
+  warrior: ["player/body/dragonarm_blue.png", "player/hand1/long_sword_slant.png"],
+  tank: ["player/body/dragonarm_shadow.png", "player/hand2/doll_only/shield_middle_gray.png"],
+  mage: ["player/body/dragonarm_magenta.png", "player/head/wizard_purple.png", "player/hand1/staff_mage.png"],
+  priest: ["player/body/dragonarm_white.png", "player/head/wizard_white.png", "player/hand1/staff_fancy.png"],
+};
+const overlays = {
+  warrior: "player/hand1/heavy_sword.png",
+  tank: "player/hand2/doll_only/shield_round_white.png",
+  mage: "gui/spells/fire/flame_tongue.png",
+  priest: "gui/spells/fire/fireball.png",
+};
 
 function noise(img, seed, colors, count) {
   for (let i = 0; i < count; i++) {
@@ -32,34 +53,169 @@ function noise(img, seed, colors, count) {
     rect(img, x, y, 1 + (i % 3), 1 + ((i + 1) % 2), colors[(i + seed) % colors.length]);
   }
 }
-function shadow(img, x, y, w, a = 145) {
-  rect(img, x - w, y - 2, w * 2, 4, "#050309", a);
-  rect(img, x - Math.floor(w * 0.65), y - 3, Math.floor(w * 1.3), 2, "#050309", Math.max(0, a - 40));
-}
-function eye(img, x, y, col = "#fff7c7") { rect(img, x, y, 4, 4, "#08060a"); rect(img, x + 1, y, 1, 1, col); }
-function bodyBox(img, x, y, w, h, dark, mid, light) {
-  rect(img, x - 2, y - 2, w + 4, h + 4, dark);
-  rect(img, x, y, w, h, mid);
-  rect(img, x + 2, y, Math.max(2, w - 4), 3, light);
-}
-function dirInfo(dir) {
-  const [dx, dy] = dirVec[dir];
-  return { dx, dy, back: dy < 0, front: dy > 0, side: dx !== 0 };
-}
-function aimPoint(x, y, dir, len) {
-  const [dx, dy] = dirVec[dir];
-  return [x + dx * len, y + dy * len];
-}
-function actionPhase(action, frame) {
-  if (action === "idle") return [0, 1, 0, -1][frame];
-  return [0, 1, 3, 1][frame];
-}
 function shardGlow(img, cx, cy, r, col, alpha) {
   const pts = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
-  pts.forEach((p, i) => {
-    const x = cx + p[0] * r, y = cy + p[1] * r;
-    diamond(img, x, y, i % 2 ? 2 : 3, col, alpha);
-  });
+  pts.forEach((p, i) => diamond(img, cx + p[0] * r, cy + p[1] * r, i % 2 ? 2 : 3, col, alpha));
+}
+
+function trimPngBuffer(buf) {
+  const sig = Buffer.from([0, 0, 0, 0, 73, 69, 78, 68]);
+  const i = buf.indexOf(sig);
+  return i >= 0 ? buf.subarray(0, i + 12) : buf;
+}
+function externalPath(rel) {
+  return path.join(EXTERNAL_ROOT, RELEASE, rel);
+}
+function readExternal(rel) {
+  const file = externalPath(rel);
+  if (!fs.existsSync(file)) throw new Error("外部素材がありません: " + file);
+  return PNG.sync.read(trimPngBuffer(fs.readFileSync(file)));
+}
+function alphaBounds(img) {
+  let minX = img.width, minY = img.height, maxX = -1, maxY = -1;
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+    if (img.data[(y * img.width + x) * 4 + 3] > 0) {
+      minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
+    }
+  }
+  if (maxX < minX) return { minX: 0, minY: 0, maxX: img.width - 1, maxY: img.height - 1 };
+  return { minX, minY, maxX, maxY };
+}
+function cropOpaque(img, pad = 1) {
+  const b = alphaBounds(img);
+  const minX = Math.max(0, b.minX - pad), minY = Math.max(0, b.minY - pad);
+  const maxX = Math.min(img.width - 1, b.maxX + pad), maxY = Math.min(img.height - 1, b.maxY + pad);
+  const out = new PNG({ width: maxX - minX + 1, height: maxY - minY + 1 });
+  PNG.bitblt(img, out, minX, minY, out.width, out.height, 0, 0);
+  return out;
+}
+function scaleNearest(src, w, h) {
+  const out = new PNG({ width: w, height: h });
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const sx = Math.min(src.width - 1, Math.floor(x * src.width / w));
+    const sy = Math.min(src.height - 1, Math.floor(y * src.height / h));
+    const si = (sy * src.width + sx) * 4, di = (y * w + x) * 4;
+    out.data[di] = src.data[si]; out.data[di + 1] = src.data[si + 1]; out.data[di + 2] = src.data[si + 2]; out.data[di + 3] = src.data[si + 3];
+  }
+  return out;
+}
+function normalize(src, w = 33, h = 33) {
+  return scaleNearest(cropOpaque(src), w, h);
+}
+function blitAlpha(dst, src, dx, dy, opts = {}) {
+  const opacity = opts.opacity === undefined ? 1 : opts.opacity;
+  for (let y = 0; y < src.height; y++) for (let x = 0; x < src.width; x++) {
+    const tx = Math.round(dx + x), ty = Math.round(dy + y);
+    if (tx < 0 || ty < 0 || tx >= dst.width || ty >= dst.height) continue;
+    const si = (y * src.width + x) * 4, a = Math.round(src.data[si + 3] * opacity);
+    if (a <= 0) continue;
+    setPx(dst, tx, ty, { r: src.data[si], g: src.data[si + 1], b: src.data[si + 2], a });
+  }
+}
+function mirrorX(src) {
+  const out = new PNG({ width: src.width, height: src.height });
+  for (let y = 0; y < src.height; y++) for (let x = 0; x < src.width; x++) {
+    const si = (y * src.width + x) * 4, di = (y * src.width + (src.width - 1 - x)) * 4;
+    out.data[di] = src.data[si]; out.data[di + 1] = src.data[si + 1]; out.data[di + 2] = src.data[si + 2]; out.data[di + 3] = src.data[si + 3];
+  }
+  return out;
+}
+function shade(src, mul, add = 0) {
+  const out = new PNG({ width: src.width, height: src.height });
+  for (let i = 0; i < src.data.length; i += 4) {
+    out.data[i] = Math.max(0, Math.min(255, Math.round(src.data[i] * mul + add)));
+    out.data[i + 1] = Math.max(0, Math.min(255, Math.round(src.data[i + 1] * mul + add)));
+    out.data[i + 2] = Math.max(0, Math.min(255, Math.round(src.data[i + 2] * mul + add)));
+    out.data[i + 3] = src.data[i + 3];
+  }
+  return out;
+}
+function rotate(src, angle) {
+  const out = new PNG({ width: src.width, height: src.height });
+  const cx = (src.width - 1) / 2, cy = (src.height - 1) / 2, c = Math.cos(-angle), s = Math.sin(-angle);
+  for (let y = 0; y < src.height; y++) for (let x = 0; x < src.width; x++) {
+    const rx = x - cx, ry = y - cy, sx = Math.round(rx * c - ry * s + cx), sy = Math.round(rx * s + ry * c + cy);
+    if (sx < 0 || sy < 0 || sx >= src.width || sy >= src.height) continue;
+    const si = (sy * src.width + sx) * 4, di = (y * src.width + x) * 4;
+    out.data[di] = src.data[si]; out.data[di + 1] = src.data[si + 1]; out.data[di + 2] = src.data[si + 2]; out.data[di + 3] = src.data[si + 3];
+  }
+  return out;
+}
+function tint(src, color, amount) {
+  const c = rgba(color);
+  const out = new PNG({ width: src.width, height: src.height });
+  for (let i = 0; i < src.data.length; i += 4) {
+    out.data[i] = Math.round(src.data[i] * (1 - amount) + c.r * amount);
+    out.data[i + 1] = Math.round(src.data[i + 1] * (1 - amount) + c.g * amount);
+    out.data[i + 2] = Math.round(src.data[i + 2] * (1 - amount) + c.b * amount);
+    out.data[i + 3] = src.data[i + 3];
+  }
+  return out;
+}
+function clearCellEdge(img) {
+  for (let x = 0; x < img.width; x++) {
+    img.data[(x) * 4 + 3] = 0;
+    img.data[((img.height - 1) * img.width + x) * 4 + 3] = 0;
+  }
+  for (let y = 0; y < img.height; y++) {
+    img.data[(y * img.width) * 4 + 3] = 0;
+    img.data[(y * img.width + img.width - 1) * 4 + 3] = 0;
+  }
+}
+function actorBase(name) {
+  let base = normalize(readExternal(actorSources[name]), name === "titan" || name === "golem" ? 38 : 34, name === "titan" || name === "golem" ? 38 : 34);
+  if (name === "evolved") base = tint(base, "#d85a7a", 0.18);
+  if (name === "infernal") base = tint(base, "#4ab7ff", 0.18);
+  return base;
+}
+function heroBase(name) {
+  const out = image();
+  const base = normalize(readExternal(actorSources[name]), 30, 30);
+  blitAlpha(out, base, 9, 12);
+  for (const rel of heroLayers[name]) {
+    const layer = normalize(readExternal(rel), rel.includes("hand") ? 31 : 30, rel.includes("hand") ? 31 : 30);
+    blitAlpha(out, layer, 9, rel.includes("head") ? 5 : 12);
+  }
+  return cropOpaque(out, 1);
+}
+function eggBase(name) {
+  return normalize(readExternal(actorSources[name]), 27, 27);
+}
+function directionalSprite(src, dir, action, frame, isHero) {
+  const [dx, dy] = dirVec[dir];
+  let out = src;
+  if (dx < 0) out = mirrorX(out);
+  if (dy < 0) out = shade(out, 0.62, isHero ? 12 : 0);
+  if (dy > 0) out = shade(out, 1.04);
+  const angle = dx * 0.10 + dy * 0.04;
+  if (angle) out = rotate(out, angle);
+  if (action !== "idle") {
+    const power = [0, 1, 3, 1][frame];
+    out = rotate(out, dx * 0.06 * power);
+    if (action === "cast" || action === "heal") out = shade(out, 1.05, 8 + frame * 4);
+  }
+  return out;
+}
+function drawExternalActor(name, frame, dir, action) {
+  const img = image();
+  const [dx, dy] = dirVec[dir];
+  const isHero = heroNames.includes(name);
+  const bob = action === "idle" ? [0, -1, 0, 1][frame] : [0, 1, 3, 1][frame];
+  let base = name.startsWith("egg_") ? eggBase(name) : (isHero ? heroBase(name) : actorBase(name));
+  base = directionalSprite(base, dir, action, frame, isHero);
+  const lunge = action !== "idle" ? [0, 2, 5, 2][frame] : 0;
+  const x = Math.round((CELL - base.width) / 2 + dx * lunge);
+  const y = Math.round(CELL - base.height - 7 + bob + dy * Math.min(2, lunge));
+  blitAlpha(img, base, x, y);
+  if (isHero && (action === "attack" || action === "dig" || action === "cast" || action === "heal")) {
+    const rel = overlays[name];
+    let ov = normalize(readExternal(rel), action === "cast" || action === "heal" ? 20 + frame * 2 : 28, action === "cast" || action === "heal" ? 20 + frame * 2 : 28);
+    if (dx < 0) ov = mirrorX(ov);
+    ov = rotate(ov, dx * [0, 0.25, 0.55, 0.25][frame]);
+    blitAlpha(img, ov, 21 + dx * (5 + frame * 2) - ov.width / 2, 15 + dy * 5 - ov.height / 2);
+  }
+  clearCellEdge(img);
+  return img;
 }
 
 function drawTile(name) {
@@ -82,13 +238,7 @@ function drawTile(name) {
   } else {
     rect(img, 0, 0, CELL, CELL, "#5a3822"); rect(img, 0, 0, CELL, 4, "#7a5131"); rect(img, 0, CELL - 5, CELL, 5, "#2c1a12");
     noise(img, 3, ["#6d4729", "#432615", "#8a6039"], 72);
-    const vein = {
-      moss: ["#2e7d35", "#6fcf6f", "#bdf7bd", "diamond"],
-      meat: ["#7b1515", "#e63a2c", "#ffb39e", "meat"],
-      venom: ["#4e1d7d", "#a64dff", "#e0bcff", "venom"],
-      stone: ["#33466b", "#6f86c4", "#bcd0ff", "stone"],
-      ember: ["#8c3b0c", "#ffae26", "#ffe39a", "ember"],
-    }[base];
+    const vein = { moss:["#2e7d35","#6fcf6f","#bdf7bd","diamond"], meat:["#7b1515","#e63a2c","#ffb39e","meat"], venom:["#4e1d7d","#a64dff","#e0bcff","venom"], stone:["#33466b","#6f86c4","#bcd0ff","stone"], ember:["#8c3b0c","#ffae26","#ffe39a","ember"] }[base];
     const cx = 24, cy = 24;
     if (vein[3] === "diamond") { diamond(img, cx, cy, 10, vein[0]); diamond(img, cx, cy, 7, vein[1]); diamond(img, cx - 2, cy - 3, 3, vein[2]); }
     else if (vein[3] === "meat") { rect(img, cx - 8, cy - 7, 16, 14, vein[0]); rect(img, cx - 6, cy - 5, 12, 10, vein[1]); line(img, cx - 4, cy - 5, cx + 4, cy + 5, vein[2], 2, 220); }
@@ -97,103 +247,6 @@ function drawTile(name) {
     else { tri(img, cx - 9, cy + 8, cx, cy - 12, cx + 9, cy + 8, vein[1]); tri(img, cx - 4, cy + 7, cx + 2, cy - 4, cx + 7, cy + 7, vein[2]); }
     if (evo) { diamond(img, 13, 12, 3, vein[2]); diamond(img, 35, 12, 3, vein[2]); diamond(img, 24, 36, 3, vein[2]); }
   }
-  return img;
-}
-
-function drawMonster(img, name, frame, dir, action) {
-  const p = actorColors[name] || actorColors.slime;
-  const { dx, dy, back, front } = dirInfo(dir);
-  const bob = actionPhase(action, frame), act = action === "attack" || action === "cast" || action === "eat" ? [0, 2, 6, 2][frame] : 0;
-  const sx = dx * (front ? 4 : back ? 2 : 7) + dx * act;
-  const yy = bob;
-  shadow(img, 24, 40, name === "golem" || name === "titan" ? 17 : 14);
-  const elite = ["superslime", "evolved", "tarantula", "titan", "infernal"].includes(name);
-  if (name === "slime" || name === "superslime") {
-    bodyBox(img, 10, 24 + yy, 25, 13, p[0], p[1], p[2]);
-    diamond(img, 25 + sx, 19 + dy * 4 + yy, elite ? 13 : 10, p[2]);
-    if (back) { rect(img, 13, 18 + yy, 22, 5, p[3]); rect(img, 22 + dx * 3, 13 + yy, 5, 5, p[3]); }
-    else { eye(img, 22 + sx, 22 + yy); eye(img, 31 + sx, 22 + yy); if (action === "eat") tri(img, 25 + sx, 27 + yy, 33 + sx, 27 + yy, 29 + sx, 34 + yy, "#fff7ee"); }
-    if (elite) { diamond(img, 19 - dx * 5, 15 + yy, 4, p[3]); diamond(img, 30 + dx * 5, 14 + yy, 4, p[3]); }
-  } else if (name === "carniv" || name === "evolved") {
-    bodyBox(img, 8, 20 + yy, 27, 14, p[0], p[1], p[2]);
-    tri(img, 28 + sx, 17 + dy * 3 + yy, 45 + sx, 24 + dy * 3 + yy, 28 + sx, 32 + yy, p[1]);
-    if (back) rect(img, 10, 16 + yy, 24, 5, p[3]);
-    else { eye(img, 24 + sx, 22 + yy, "#ffcf4d"); eye(img, 34 + sx, 24 + yy, "#ffcf4d"); for (const x of [18, 27, 36]) tri(img, x + sx / 3, 31 + yy, x + 3 + sx / 3, 39 + yy, x + 6 + sx / 3, 31 + yy, "#fff7ee"); }
-    if (name === "evolved") { diamond(img, 18 - dx * 4, 12 + yy, 4, p[3]); diamond(img, 31 + dx * 4, 12 + yy, 4, p[3]); }
-  } else if (name === "spitter" || name === "tarantula") {
-    bodyBox(img, 11, 21 + yy, 23, 15, p[0], p[1], p[2]);
-    rect(img, 29 + sx, 22 + dy * 2 + yy, 12 + act, 6, p[2]); diamond(img, 41 + sx + act, 25 + dy * 2 + yy, 4, p[3], 220);
-    for (const y of [25, 30, 35]) { line(img, 13, y + yy, 5 - act, y + 3 + yy, p[0], 2); line(img, 31, y + yy, 41 + act, y + 3 + yy, p[0], 2); }
-    if (!back) { eye(img, 19 + sx, 23 + yy, "#dfffe0"); eye(img, 27 + sx, 23 + yy, "#dfffe0"); } else rect(img, 16, 17 + yy, 18, 4, p[3]);
-    if (name === "tarantula") { diamond(img, 22 - dx * 4, 14 + yy, 4, p[3]); diamond(img, 30 + dx * 4, 14 + yy, 4, p[3]); }
-  } else if (name === "golem" || name === "titan") {
-    bodyBox(img, 10, 17 + yy, 27, 21, p[0], p[1], p[2]);
-    rect(img, 4 - act, 23 + yy, 8, 14, p[1]); rect(img, 35 + act, 21 + yy, 8, 15, p[1]);
-    tri(img, 34 + sx, 20 + dy * 2 + yy, 44 + sx + act, 24 + dy * 3 + yy, 34 + sx, 30 + yy, p[2]);
-    if (!back) { eye(img, 27 + sx, 23 + yy, p[3]); eye(img, 36 + sx, 24 + yy, p[3]); } else { rect(img, 17, 17 + yy, 17, 5, p[2]); rect(img, 14, 22 + yy, 19, 11, p[0]); rect(img, 18, 25 + yy, 11, 4, p[3]); }
-    if (name === "titan") { diamond(img, 19 - dx * 4, 11 + yy, 5, p[3]); diamond(img, 31 + dx * 4, 10 + yy, 5, p[3]); }
-  } else {
-    tri(img, 13, 39 + yy, 22, 8 + yy, 30, 39 + yy, p[2], 120);
-    bodyBox(img, 13, 25 + yy, 21, 13, p[0], p[1], p[2]);
-    tri(img, 18 + sx, 22 + yy, 25 + sx + act, 5 + yy, 32 + sx, 22 + yy, p[3]);
-    tri(img, 31 + sx, 24 + yy, 44 + sx + act, 28 + dy * 2 + yy, 31 + sx, 34 + yy, p[2]);
-    if (!back) { eye(img, 24 + sx, 27 + yy, p[3]); eye(img, 34 + sx, 28 + yy, p[3]); } else rect(img, 17, 21 + yy, 15, 4, p[3]);
-    if (name === "infernal") { diamond(img, 18 - dx * 5, 13 + yy, 4, p[3]); diamond(img, 32 + dx * 5, 13 + yy, 4, p[3]); }
-  }
-}
-
-function drawHero(img, name, frame, dir, action) {
-  const p = actorColors[name];
-  const { dx, dy, back } = dirInfo(dir);
-  const bob = action === "idle" ? [0, -1, 0, 1][frame] : [0, 1, 2, 0][frame];
-  const sx = dx * (back ? 2 : 6);
-  const thrust = ["attack", "dig"].includes(action) ? [0, 4, 10, 4][frame] : 0;
-  shadow(img, 24, 40, name === "tank" ? 16 : 13);
-  if (name === "warrior") {
-    const [tipX, tipY] = aimPoint(24 + sx * 0.7, 19 + bob, dir, 7 + thrust);
-    line(img, 24 + sx / 2, 18 + bob, tipX, tipY, "#f8fafc", 3); line(img, tipX - 2, tipY, tipX + 2, tipY, "#fff5cf", 2);
-    rect(img, 8 - sx / 3, 22 + bob, 7, 16, "#4a2f10"); rect(img, 10 - sx / 3, 23 + bob, 4, 13, p[2]);
-    bodyBox(img, 16, 19 + bob, 17, 16, p[0], p[2], p[3]);
-    rect(img, 17 + sx / 3, 10 + bob, 15, 11, p[0]); rect(img, 19 + sx / 3, 11 + bob, 11, 9, p[2]);
-    if (!back) rect(img, 24 + sx, 14 + bob, 7, 2, "#101722"); else { rect(img, 16, 10 + bob, 18, 10, "#151a23"); rect(img, 19, 10 + bob, 11, 3, "#fff5cf"); rect(img, 14, 20 + bob, 20, 7, "#384150"); }
-    rect(img, 18, 31 + bob, 5, 9, p[1]); rect(img, 28, 31 - bob, 5, 9, p[1]);
-  } else if (name === "tank") {
-    bodyBox(img, 14, 18 + bob, 22, 18, p[0], p[2], p[3]);
-    rect(img, 17 + sx / 3, 8 + bob, 17, 12, p[0]); rect(img, 19 + sx / 3, 9 + bob, 13, 10, p[2]);
-    rect(img, 4 + dx * thrust - sx / 3, 14 + bob, 12, 27, "#2f3949"); rect(img, 7 + dx * thrust - sx / 3, 17 + bob, 7, 21, p[2]);
-    rect(img, 36 + sx / 3, 22 + bob, 6 + (action === "attack" ? thrust / 2 : 0), 16, "#566070");
-    if (!back) rect(img, 23 + sx, 14 + bob, 9, 2, "#0b1018"); else { rect(img, 15, 8 + bob, 20, 14, "#151a23"); rect(img, 18, 12 + bob, 14, 5, "#dce4ef"); rect(img, 12, 20 + bob, 22, 12, "#303743"); }
-    rect(img, 16, 31 + bob, 6, 8, p[1]); rect(img, 29, 31 - bob, 6, 8, p[1]);
-  } else if (name === "mage") {
-    bodyBox(img, 17, 25 + bob, 15, 15, p[0], p[2], p[3]);
-    rect(img, 18 + sx / 3, 14 + bob, 12, 11, p[0]); rect(img, 20 + sx / 3, 16 + bob, 8, 9, p[2]);
-    tri(img, 14 + sx / 3, 15 + bob, 24 + sx / 3, 5 + bob, 35 + sx / 3, 15 + bob, p[1]);
-    const [orbX, orbY] = aimPoint(31 + sx * 0.35, 14 + bob, dir, action === "cast" ? 2 + frame * 2 : 0);
-    line(img, 36 + sx, 13 + bob, 35 + sx, 39 + bob, "#6b4a2f", 2);
-    diamond(img, orbX, orbY, action === "cast" ? 4 + frame : 5, p[3], 190); diamond(img, orbX, orbY, 2, "#fff7ff");
-    if (back) { rect(img, 15, 15 + bob, 20, 21, "#261d57"); rect(img, 18, 9 + bob, 14, 8, p[1]); diamond(img, 24, 8 + bob, 4, p[3]); }
-  } else {
-    bodyBox(img, 17, 25 + bob, 15, 15, p[1], p[2], p[3]);
-    rect(img, 18 + sx / 3, 14 + bob, 12, 11, p[1]); rect(img, 20 + sx / 3, 16 + bob, 8, 9, p[2]);
-    rect(img, 23, 22 + bob, 3, 15, "#e8c860"); rect(img, 19, 28 + bob, 11, 3, "#e8c860");
-    const halo = action === "heal" ? 9 + frame * 2 : 5;
-    diamond(img, 24 + sx / 3, 11 + bob, halo, p[3], action === "heal" ? 190 : 120);
-    const [staffX, staffY] = aimPoint(36 + sx, 14 + bob, dir, action === "heal" ? 5 + frame * 2 : 0);
-    line(img, staffX, staffY, 35 + sx, 39 + bob, "#cbb78a", 2); rect(img, staffX - 4, staffY, 8, 3, "#e8c860");
-    if (back) { rect(img, 15, 15 + bob, 20, 22, "#ede6d0"); rect(img, 20, 10 + bob, 9, 7, "#fff0a8"); rect(img, 18, 24 + bob, 13, 3, "#e8c860"); }
-  }
-}
-
-function drawEgg(img, name, frame) {
-  const kind = name.replace("egg_", ""), p = actorColors[kind] || actorColors.superslime;
-  const pulse = [0, -1, 0, 1][frame];
-  shadow(img, 24, 38, 10); diamond(img, 24, 26 + pulse, 15, p[0]); diamond(img, 24, 25 + pulse, 12, p[2]); diamond(img, 21, 19 + pulse, 4, p[3], 180); diamond(img, 28, 28 + pulse, 3, p[1]);
-}
-function drawActor(name, frame, dir, action) {
-  const img = image();
-  if (name.startsWith("egg_")) drawEgg(img, name, frame);
-  else if (heroNames.includes(name)) drawHero(img, name, frame, dir, action);
-  else drawMonster(img, name, frame, dir, action);
   return img;
 }
 function drawEffect(name, frame) {
@@ -206,11 +259,10 @@ function drawEffect(name, frame) {
   else if (name === "puff") { for (let i = 0; i < 8; i++) diamond(img, 24 + Math.cos(i) * (4 + frame * 4), 24 + Math.sin(i * 2) * (3 + frame * 4), 4 + frame, "#cfd8e3", 180 - frame * 35); }
   return img;
 }
-
 function writeSourceFrames() {
   for (const dir of ["actors", "tiles", "effects"]) ensureDir(path.join(SOURCE_DIR, dir));
   for (const name of TILES) writePng(spritePath("tiles", name), drawTile(name));
-  for (const name of ACTORS) for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) writePng(spritePath("actors", name, f, dir, action), drawActor(name, f, dir, action));
+  for (const name of ACTORS) for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) writePng(spritePath("actors", name, f, dir, action), drawExternalActor(name, f, dir, action));
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) writePng(spritePath("effects", name, f), drawEffect(name, f));
 }
 function actorFrameX(actionIndex, dirIndex, frame) {
@@ -243,4 +295,4 @@ function writeMeta() {
 writeSourceFrames();
 writeAtlas();
 writeMeta();
-console.log("48px 8方向・アクション別ピクセル素材を生成しました。");
+console.log("CC0外部素材から48px 8方向・アクション別ピクセル素材を生成しました。");
