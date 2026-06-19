@@ -1,21 +1,21 @@
 # AGENTS.md
 
-破壊神ダンジョン — HTML5 地下防衛ゲーム（日本語UI・モバイル向け）。地中を掘って鉱脈から魔物を出し、少数精鋭の魔物と卵繁殖で最下層の魔王コアを勇者の襲来から守る。
+破壊神ダンジョン — Godot CLI / Web export運用の地下防衛ゲーム（日本語UI・モバイル向け）。地中を掘って鉱脈から魔物を出し、少数精鋭の魔物と卵繁殖で最下層の魔王コアを勇者の襲来から守る。
 
 ## ファイル構成
-- `hakaishin_dungeon.html` — ゲーム本体のHTML。CSS / JS を読み込む。ビルド不要、ブラウザで開けば動く。
+- `hakaishin_dungeon.html` — 旧HTML版。移行後は仕様参照と互換確認用として扱う。
 - `hakaishin_dungeon.css` — 画面レイアウトと見た目。
 - `hakaishin_dungeon.js` — ゲームロジックとCanvas描画。
-- `godot/` — Godot 4.6.3 Standard / GDScript 版。CLI運用の移行先。
+- `godot/` — Godot 4.6.3 Standard / GDScript 版。正規実装。
 - `godot/project.godot` — Godotプロジェクト設定。
 - `godot/scenes/Main.tscn` — Godot版のメインシーン。
 - `godot/scripts/` — Godot版の状態・ルール・描画・UIスクリプト。
 - `godot/test/` — GUT製のGodot版仕様テスト。
-- `test/hakaishin_dungeon.test.js` — Vitest 製テスト。HTML からゲーム用 `<script>` を辿り、DOM/Canvas をスタブ化し、公開名前空間と旧テスト互換ランナー経由でロジックを検証する。
-- `test_hakaishin_dungeon.js` — 旧Node製テスト互換ランナー。AGENTS互換のため残し、Vitestからも全体回帰として呼び出す。
+- `test/hakaishin_dungeon.test.js` — 旧HTML版のVitest製互換テスト。新規仕様テストは原則GUTへ追加する。
+- `test_hakaishin_dungeon.js` — 旧Node製テスト互換ランナー。移行中の回帰確認として残す。
 
 ## 実行・検証
-HTML版のビルド工程はなし。Godot版は `godot/` を Godot 4.6.3 Standard で開くかCLIで実行する。
+正規実装はGodot版。`godot/` を Godot 4.6.3 Standard で開くかCLIで実行する。
 変更を入れたら、必ず以下を実行し「エラー0・全テスト通過」を確認すること：
 
 ```bash
@@ -38,7 +38,7 @@ godot -d -s --headless --path godot addons/gut/gut_cmdln.gd -gdir=res://test -ge
 godot --headless --path godot --export-release Web ../dist/index.html
 ```
 
-機能を追加したら、テストファイルに対応セクションを足し、新しい内部関数・値はテスト先頭の `__GAME__` フックに公開する。
+機能を追加したら、Godot版は `godot/test/` のGUTテストへ対応セクションを足す。旧HTML版を触る場合のみ、必要に応じて `__GAME__` フックも更新する。
 変更を入れて検証が通ったら、ユーザーから別指示がない限り、その変更を毎回 Git commit する。コミット前に `git status --short` で対象ファイルを確認し、関係ない変更を混ぜない。
 ローカルで開発したコミットは GitHub との差分が残らないように、ユーザーから別指示がない限り `git push origin master` まで実行する。push 前後に `git status -sb` を確認し、完了時は `## master...origin/master` のように ahead/behind 表示がない状態にする。
 

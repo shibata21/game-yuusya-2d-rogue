@@ -168,6 +168,16 @@ func update_heroes(dt: float) -> void:
 		h.act_cd -= dt
 		h.core_cd -= dt
 		h.heal_cd -= dt
+		if c.get("heal", false) and h.heal_cd <= 0.0:
+			var heal_target = hero_heal_target(h, c)
+			if heal_target != null:
+				var amount := roundi(6 + h.wave * 1.5)
+				heal_target.hp = min(heal_target.max_hp, heal_target.hp + amount)
+				h.heal_cd = c.heal_cd
+				set_action(h, "heal", heal_target.px, heal_target.py)
+				state.effects.append({"type": "slash", "x": heal_target.px, "y": heal_target.py - 2.0, "life": 220.0, "max": 220.0})
+			else:
+				h.heal_cd = 300.0
 		var target: Variant = lowest_monster_in_range(h)
 		if target != null and h.atk_cd <= 0.0:
 			target.hp -= h.atk
@@ -184,6 +194,7 @@ func update_heroes(dt: float) -> void:
 				state.core_hp -= h.atk
 				h.core_cd = 1100.0
 				set_action(h, "attack", state.cx(GameState.CORE_COL), state.cy(GameState.CORE_ROW))
+				state.effects.append({"type": "corehit", "x": state.cx(GameState.CORE_COL), "y": state.cy(GameState.CORE_ROW), "life": 260.0, "max": 260.0})
 			continue
 		if h.act_cd <= 0.0:
 			var step: Variant = hero_step(h)
@@ -246,6 +257,15 @@ func occupied(col: int, row: int) -> bool:
 			return true
 	for e in state.eggs:
 		if e.col == col and e.row == row:
+			return true
+	return false
+
+func actor_occupied(col: int, row: int) -> bool:
+	for m in state.monsters:
+		if m.col == col and m.row == row:
+			return true
+	for h in state.heroes:
+		if h.col == col and h.row == row:
 			return true
 	return false
 
@@ -400,6 +420,17 @@ func has_adjacent_monster(h: Dictionary) -> bool:
 			return true
 	return false
 
+func hero_heal_target(h: Dictionary, c: Dictionary):
+	var best = null
+	for o in state.heroes:
+		if o == h or o.hp >= o.max_hp or state.cheb(o, h) > c.heal_range:
+			continue
+		if best == null or o.hp < best.hp:
+			best = o
+	if best == null and h.hp < h.max_hp:
+		best = h
+	return best
+
 func kill_monster(m: Dictionary) -> void:
 	state.monsters.erase(m)
 	state.effects.append({"type": "puff", "x": m.px, "y": m.py, "life": 300.0, "max": 300.0})
@@ -488,7 +519,7 @@ func update_eggs(dt: float) -> void:
 		e.hatch_cd -= dt
 		if e.hatch_cd > 0.0:
 			continue
-		if state.monsters.size() < GameState.MONSTER_CAP and not occupied(e.col, e.row):
+		if state.monsters.size() < GameState.MONSTER_CAP and not actor_occupied(e.col, e.row):
 			spawn_monster(e.kind, e.col, e.row)
 		state.eggs.remove_at(i)
 
@@ -538,6 +569,7 @@ func try_eat_lower(m: Dictionary) -> bool:
 		return false
 	var prey: Dictionary = found.prey
 	set_action(m, "eat", prey.px, prey.py)
+	state.effects.append({"type": "bite", "sx": m.px, "sy": m.py, "tx": prey.px, "ty": prey.py, "life": 260.0, "max": 260.0})
 	kill_monster(prey)
 	m.hp = min(m.max_hp, m.hp + max(3, roundi(prey.max_hp * 0.18)))
 	return true
