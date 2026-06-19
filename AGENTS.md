@@ -29,6 +29,7 @@ node test_hakaishin_dungeon.js hakaishin_dungeon.html
 
 機能を追加したら、テストファイルに対応セクションを足し、新しい内部関数・値はテスト先頭の `__GAME__` フックに公開する。
 変更を入れて検証が通ったら、ユーザーから別指示がない限り、その変更を毎回 Git commit する。コミット前に `git status --short` で対象ファイルを確認し、関係ない変更を混ぜない。
+ローカルで開発したコミットは GitHub との差分が残らないように、ユーザーから別指示がない限り `git push origin master` まで実行する。push 前後に `git status -sb` を確認し、完了時は `## master...origin/master` のように ahead/behind 表示がない状態にする。
 
 ## 規約
 - UI文言・コードコメントはすべて日本語。利用者とのやり取りも日本語。
