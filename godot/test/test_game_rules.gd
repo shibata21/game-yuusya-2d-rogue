@@ -181,6 +181,80 @@ func test_ranged_attack_is_blocked_by_wall_los() -> void:
 	rules.update(100.0)
 	assert_eq(state.heroes[0].hp, 60)
 
+func test_melee_attack_does_not_hit_non_adjacent_target() -> void:
+	carve_all()
+	rules.spawn_monster("slime", 2, 5)
+	state.heroes.append(make_hero("warrior", 4, 5, {"hp": 60, "atk_cd": 999999.0}))
+	state.monsters[0].atk_cd = 0.0
+	rules.update(100.0)
+	assert_eq(state.heroes[0].hp, 60)
+
+func test_entities_do_not_attack_targets_that_are_still_moving() -> void:
+	carve_all()
+	rules.spawn_monster("slime", 5, 5)
+	var hero := make_hero("warrior", 5, 6, {"hp": 60, "move_anim": GameState.MOVE_ANIM, "move_max": GameState.MOVE_ANIM, "move_from_x": state.cx(5), "move_from_y": state.cy(7), "move_to_x": state.cx(5), "move_to_y": state.cy(6)})
+	state.heroes.append(hero)
+	state.monsters[0].atk_cd = 0.0
+	rules.update(100.0)
+	assert_eq(hero.hp, 60)
+
+func test_hero_keeps_moving_when_adjacent_monster_is_not_attackable() -> void:
+	carve_all()
+	rules.spawn_monster("slime", GameState.CORE_COL + 1, GameState.CORE_ROW - 3)
+	state.monsters[0].move_anim = GameState.MOVE_ANIM
+	state.monsters[0].move_max = GameState.MOVE_ANIM
+	state.monsters[0].move_from_x = state.cx(GameState.CORE_COL + 2)
+	state.monsters[0].move_from_y = state.cy(GameState.CORE_ROW - 3)
+	state.monsters[0].move_to_x = state.cx(GameState.CORE_COL + 1)
+	state.monsters[0].move_to_y = state.cy(GameState.CORE_ROW - 3)
+	var hero := make_hero("warrior", GameState.CORE_COL, GameState.CORE_ROW - 3, {"act_cd": 0.0})
+	state.heroes.append(hero)
+	rules.update(100.0)
+	assert_eq(hero.col, GameState.CORE_COL)
+	assert_eq(hero.row, GameState.CORE_ROW - 2)
+	assert_gt(hero.move_anim, 0.0)
+
+func test_hero_attacks_once_and_does_not_move_in_same_tick() -> void:
+	carve_all()
+	rules.spawn_monster("slime", 5, 6)
+	var hero := make_hero("warrior", 5, 5, {"atk": 1, "atk_cd": 0.0, "act_cd": 0.0})
+	state.heroes.append(hero)
+	rules.update(100.0)
+	assert_eq(hero.col, 5)
+	assert_eq(hero.row, 5)
+	assert_eq(state.monsters[0].hp, GameState.KINDS.slime.hp - 1)
+
+func test_hero_can_continue_to_core_when_no_adjacent_monster() -> void:
+	carve_all()
+	var hero := make_hero("warrior", GameState.CORE_COL, GameState.CORE_ROW - 3, {"act_cd": 0.0})
+	state.heroes.append(hero)
+	rules.update(100.0)
+	assert_eq(hero.col, GameState.CORE_COL)
+	assert_eq(hero.row, GameState.CORE_ROW - 2)
+	assert_gt(hero.move_anim, 0.0)
+
+func test_hero_reaches_and_attacks_core_on_open_path() -> void:
+	carve_all()
+	var hero := make_hero("warrior", GameState.CORE_COL, 1, {"act_cd": 0.0, "atk": 7, "core_cd": 0.0})
+	state.heroes.append(hero)
+	var before := state.core_hp
+	for i in range(80):
+		rules.update(250.0)
+		if state.core_hp < before:
+			break
+	assert_eq(hero.col, GameState.CORE_COL)
+	assert_eq(hero.row, GameState.CORE_ROW)
+	assert_lt(state.core_hp, before)
+
+func test_monster_does_not_move_into_occupied_hero_tile() -> void:
+	carve_all()
+	rules.spawn_monster("slime", 5, 5)
+	var hero := make_hero("warrior", 5, 6, {"act_cd": 999999.0, "atk_cd": 999999.0})
+	state.heroes.append(hero)
+	state.monsters[0].move_cd = 0.0
+	rules.update(100.0)
+	assert_false(state.monsters[0].col == hero.col and state.monsters[0].row == hero.row)
+
 func test_hero_wall_dig_is_not_one_hit() -> void:
 	for r in GameState.ROWS:
 		for c in GameState.COLS:

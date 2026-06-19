@@ -102,6 +102,8 @@ func update(dt: float) -> void:
 
 func update_lower_breeding(dt: float) -> void:
 	for m in state.monsters:
+		if is_moving(m):
+			continue
 		var k: Dictionary = GameState.KINDS[m.kind]
 		if k.breed_every <= 0.0 or m.breed_left <= 0:
 			continue
@@ -118,7 +120,7 @@ func update_lower_breeding(dt: float) -> void:
 		if local >= k.breed_cap:
 			m.breed_cd = k.breed_every * 0.6
 			continue
-		var nb := open_neighbors(m.col, m.row)
+		var nb := open_free_neighbors(m.col, m.row)
 		if nb.is_empty():
 			m.breed_cd = k.breed_every * 0.5
 			continue
@@ -135,6 +137,11 @@ func update_monsters(dt: float) -> void:
 		m.atk_cd -= dt
 		m.move_cd -= dt
 		m.eat_cd -= dt
+		update_visual_position(m, dt)
+		m.action_time = max(0.0, m.action_time - dt)
+		m.born_anim = max(0.0, m.born_anim - dt)
+		if is_moving(m):
+			continue
 		var target: Variant = lowest_hero_in_range(m)
 		if target != null:
 			if m.atk_cd <= 0.0:
@@ -155,9 +162,6 @@ func update_monsters(dt: float) -> void:
 			else:
 				wander_home(m)
 			m.move_cd = k.move_cd + state.rng.randf_range(-80.0, 120.0)
-		update_visual_position(m, dt)
-		m.action_time = max(0.0, m.action_time - dt)
-		m.born_anim = max(0.0, m.born_anim - dt)
 
 func update_heroes(dt: float) -> void:
 	for h in state.heroes.duplicate():
@@ -168,6 +172,10 @@ func update_heroes(dt: float) -> void:
 		h.act_cd -= dt
 		h.core_cd -= dt
 		h.heal_cd -= dt
+		update_visual_position(h, dt)
+		h.action_time = max(0.0, h.action_time - dt)
+		if is_moving(h):
+			continue
 		if c.get("heal", false) and h.heal_cd <= 0.0:
 			var heal_target = hero_heal_target(h, c)
 			if heal_target != null:
@@ -179,14 +187,13 @@ func update_heroes(dt: float) -> void:
 			else:
 				h.heal_cd = 300.0
 		var target: Variant = lowest_monster_in_range(h)
-		if target != null and h.atk_cd <= 0.0:
-			target.hp -= h.atk
-			h.atk_cd = c.atk_cd
-			set_action(h, "cast" if h.range >= 2 else "attack", target.px, target.py)
-			if target.hp <= 0:
-				kill_monster(target)
-		if has_adjacent_monster(h):
-			h.blocked_ms += dt
+		if target != null:
+			if h.atk_cd <= 0.0:
+				target.hp -= h.atk
+				h.atk_cd = c.atk_cd
+				set_action(h, "cast" if h.range >= 2 else "attack", target.px, target.py)
+				if target.hp <= 0:
+					kill_monster(target)
 			continue
 		h.blocked_ms = 0.0
 		if h.col == GameState.CORE_COL and h.row == GameState.CORE_ROW:
@@ -212,8 +219,6 @@ func update_heroes(dt: float) -> void:
 					h.act_cd = h.move_cd
 			else:
 				h.act_cd = 400.0
-		update_visual_position(h, dt)
-		h.action_time = max(0.0, h.action_time - dt)
 
 func start_wave() -> void:
 	state.wave += 1
@@ -246,6 +251,13 @@ func open_neighbors(col: int, row: int) -> Array:
 		var nr: int = row + d[1]
 		if state.in_bounds(nc, nr) and GameState.OPEN.has(state.grid[nr][nc].t):
 			out.append({"col": nc, "row": nr})
+	return out
+
+func open_free_neighbors(col: int, row: int) -> Array:
+	var out := []
+	for n in open_neighbors(col, row):
+		if not occupied(n.col, n.row):
+			out.append(n)
 	return out
 
 func occupied(col: int, row: int) -> bool:
@@ -328,8 +340,11 @@ func update_visual_position(e: Dictionary, dt: float) -> void:
 		e.px = state.cx(e.col)
 		e.py = state.cy(e.row)
 
+func is_moving(e: Dictionary) -> bool:
+	return e.get("move_anim", 0.0) > 0.0
+
 func move_entity_toward(e: Dictionary, t: Dictionary) -> void:
-	var nb := open_neighbors(e.col, e.row)
+	var nb := open_free_neighbors(e.col, e.row)
 	if nb.is_empty():
 		return
 	var best: Dictionary = nb[0]
@@ -345,7 +360,7 @@ func wander_home(m: Dictionary) -> void:
 	if state.cheb(m, {"col": m.home_col, "row": m.home_row}) > 3:
 		move_entity_toward(m, {"col": m.home_col, "row": m.home_row})
 		return
-	var nb := open_neighbors(m.col, m.row)
+	var nb := open_free_neighbors(m.col, m.row)
 	if not nb.is_empty() and state.rng.randf() < 0.82:
 		var n: Dictionary = nb[state.rng.randi_range(0, nb.size() - 1)]
 		begin_move(m, n.col, n.row)
@@ -383,6 +398,8 @@ func has_los(c0: int, r0: int, c1: int, r1: int) -> bool:
 func lowest_hero_in_range(m: Dictionary):
 	var best = null
 	for h in state.heroes:
+		if is_moving(h):
+			continue
 		if state.cheb(h, m) > m.range:
 			continue
 		if m.range > 1 and not has_los(m.col, m.row, h.col, h.row):
@@ -394,6 +411,8 @@ func lowest_hero_in_range(m: Dictionary):
 func lowest_monster_in_range(h: Dictionary):
 	var best = null
 	for m in state.monsters:
+		if is_moving(m):
+			continue
 		if state.cheb(m, h) > h.range:
 			continue
 		if h.range > 1 and not has_los(h.col, h.row, m.col, m.row):
@@ -406,6 +425,8 @@ func nearest_hero_within(m: Dictionary, search_range: int):
 	var best = null
 	var best_d := 999
 	for h in state.heroes:
+		if is_moving(h):
+			continue
 		var d := state.cheb(h, m)
 		if d < best_d:
 			best = h
@@ -413,12 +434,6 @@ func nearest_hero_within(m: Dictionary, search_range: int):
 	if best != null and best_d <= search_range:
 		return best
 	return null
-
-func has_adjacent_monster(h: Dictionary) -> bool:
-	for m in state.monsters:
-		if state.cheb(m, h) <= 1:
-			return true
-	return false
 
 func hero_heal_target(h: Dictionary, c: Dictionary):
 	var best = null
@@ -477,6 +492,8 @@ func hero_step(h: Dictionary):
 				continue
 			var t: String = state.grid[nr][nc].t
 			if t == "bedrock":
+				continue
+			if GameState.OPEN.has(t) and not (nc == GameState.CORE_COL and nr == GameState.CORE_ROW) and occupied(nc, nr):
 				continue
 			var ni := nr * GameState.COLS + nc
 			var nd = dist[u] + (10.0 if t == "earth" else 1.0)
