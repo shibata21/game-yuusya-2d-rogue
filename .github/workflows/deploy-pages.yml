@@ -1,0 +1,78 @@
+name: Deploy Godot Web to Pages
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  export:
+    name: Export Godot Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Install Godot 4.6.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          GODOT_VERSION="4.6.3"
+          GODOT_RELEASE="${GODOT_VERSION}-stable"
+          GODOT_BIN="Godot_v${GODOT_RELEASE}_linux.x86_64"
+          GODOT_URL="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/${GODOT_BIN}.zip"
+          TEMPLATE_URL="https://github.com/godotengine/godot/releases/download/${GODOT_RELEASE}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          TEMPLATE_DIR="${HOME}/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+
+          mkdir -p /tmp/godot "${TEMPLATE_DIR}"
+          curl -L "${GODOT_URL}" -o /tmp/godot/godot.zip
+          unzip -q /tmp/godot/godot.zip -d /tmp/godot
+          chmod +x "/tmp/godot/${GODOT_BIN}"
+
+          curl -L "${TEMPLATE_URL}" -o /tmp/godot/export_templates.tpz
+          unzip -q /tmp/godot/export_templates.tpz -d /tmp/godot/templates
+          cp /tmp/godot/templates/templates/web_nothreads_release.zip "${TEMPLATE_DIR}/web_nothreads_release.zip"
+          cp /tmp/godot/templates/templates/web_nothreads_debug.zip "${TEMPLATE_DIR}/web_nothreads_debug.zip"
+
+          "/tmp/godot/${GODOT_BIN}" --version
+
+      - name: Import Godot project
+        run: /tmp/godot/Godot_v4.6.3-stable_linux.x86_64 --headless --path godot --import
+
+      - name: Run GUT tests
+        run: /tmp/godot/Godot_v4.6.3-stable_linux.x86_64 -d -s --headless --path godot addons/gut/gut_cmdln.gd -gdir=res://test -gexit
+
+      - name: Export Web build
+        run: |
+          mkdir -p dist
+          /tmp/godot/Godot_v4.6.3-stable_linux.x86_64 --headless --path godot --export-release Web ../dist/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: export
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy Pages artifact
+        id: deployment
+        uses: actions/deploy-pages@v4
