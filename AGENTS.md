@@ -6,11 +6,16 @@
 - `hakaishin_dungeon.html` — ゲーム本体のHTML。CSS / JS を読み込む。ビルド不要、ブラウザで開けば動く。
 - `hakaishin_dungeon.css` — 画面レイアウトと見た目。
 - `hakaishin_dungeon.js` — ゲームロジックとCanvas描画。
+- `godot/` — Godot 4.6.3 Standard / GDScript 版。CLI運用の移行先。
+- `godot/project.godot` — Godotプロジェクト設定。
+- `godot/scenes/Main.tscn` — Godot版のメインシーン。
+- `godot/scripts/` — Godot版の状態・ルール・描画・UIスクリプト。
+- `godot/test/` — GUT製のGodot版仕様テスト。
 - `test/hakaishin_dungeon.test.js` — Vitest 製テスト。HTML からゲーム用 `<script>` を辿り、DOM/Canvas をスタブ化し、公開名前空間と旧テスト互換ランナー経由でロジックを検証する。
 - `test_hakaishin_dungeon.js` — 旧Node製テスト互換ランナー。AGENTS互換のため残し、Vitestからも全体回帰として呼び出す。
 
 ## 実行・検証
-ビルド工程はなし。プレイは HTML をブラウザで開くだけ。
+HTML版のビルド工程はなし。Godot版は `godot/` を Godot 4.6.3 Standard で開くかCLIで実行する。
 変更を入れたら、必ず以下を実行し「エラー0・全テスト通過」を確認すること：
 
 ```bash
@@ -25,6 +30,12 @@ npm test
 
 # 旧互換テスト実行（例: "61 passed, 0 failed" のように全通過すること）
 node test_hakaishin_dungeon.js hakaishin_dungeon.html
+
+# Godot CLI確認（Godot 4.6.3 Standard）
+godot --version
+godot --headless --path godot --import
+godot -d -s --headless --path godot addons/gut/gut_cmdln.gd -gdir=res://test -gexit
+godot --headless --path godot --export-release Web ../dist/index.html
 ```
 
 機能を追加したら、テストファイルに対応セクションを足し、新しい内部関数・値はテスト先頭の `__GAME__` フックに公開する。
@@ -37,6 +48,8 @@ node test_hakaishin_dungeon.js hakaishin_dungeon.html
 - `localStorage` / `sessionStorage` は使わない。
 - ファイルが大きいので編集はピンポイントで行う。
 - バランス調整はデータ駆動。ロジック内に数値を散らさず、`<script>` 冒頭の定数ブロックと各テーブルの値を変える。
+- Godot版の初回移行では既存の数値バランス、種別名、48pxセル、11x16盤面、4フレーム、8方向、6アクション素材仕様を維持する。
+- Godot版はC#を使わずGDScriptに統一する。テストはGUTを使い、`GameRules.update(ms)` を直接呼べる形を維持する。
 - 版権に注意：実在ゲームの名称・固有表現を入れない（オリジナルを維持）。
 
 ## どこに何があるか（`hakaishin_dungeon.js` 内）

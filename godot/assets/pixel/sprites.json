@@ -1,0 +1,459 @@
+{
+  "cell": 48,
+  "frames": 4,
+  "directions": [
+    "e",
+    "se",
+    "s",
+    "sw",
+    "w",
+    "nw",
+    "n",
+    "ne"
+  ],
+  "actions": [
+    "idle",
+    "attack",
+    "cast",
+    "dig",
+    "heal",
+    "eat"
+  ],
+  "actors": {
+    "slime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "carniv": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "evolved": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "spitter": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "golem": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 192,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "flame": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 240,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "superslime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 288,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "tarantula": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 336,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "titan": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 384,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 432,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "warrior": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 480,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "tank": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 528,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "mage": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 576,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "priest": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 624,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_superslime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 672,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_evolved": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 720,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_tarantula": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 768,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_titan": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 816,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 864,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    }
+  },
+  "tiles": {
+    "earth": {
+      "sheet": "tiles",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "tunnel": {
+      "sheet": "tiles",
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "bedrock": {
+      "sheet": "tiles",
+      "x": 96,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "surface": {
+      "sheet": "tiles",
+      "x": 144,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "core": {
+      "sheet": "tiles",
+      "x": 192,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "moss": {
+      "sheet": "tiles",
+      "x": 240,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "meat": {
+      "sheet": "tiles",
+      "x": 288,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "venom": {
+      "sheet": "tiles",
+      "x": 336,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "stone": {
+      "sheet": "tiles",
+      "x": 384,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "ember": {
+      "sheet": "tiles",
+      "x": 432,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "moss_evo": {
+      "sheet": "tiles",
+      "x": 480,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "meat_evo": {
+      "sheet": "tiles",
+      "x": 528,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "venom_evo": {
+      "sheet": "tiles",
+      "x": 576,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "stone_evo": {
+      "sheet": "tiles",
+      "x": 624,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    },
+    "ember_evo": {
+      "sheet": "tiles",
+      "x": 672,
+      "y": 0,
+      "w": 48,
+      "h": 48
+    }
+  },
+  "effects": {
+    "slash": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "shot": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 48,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "bite": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 96,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "birth": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 144,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "puff": {
+      "sheet": "effects",
+      "x": 0,
+      "y": 192,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "anchor": [
+        24,
+        24
+      ]
+    }
+  }
+}
