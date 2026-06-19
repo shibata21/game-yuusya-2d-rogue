@@ -36,6 +36,18 @@ func test_initial_board_shape() -> void:
 	assert_eq(state.grid[GameState.CORE_ROW][GameState.CORE_COL].t, "core")
 	assert_eq(state.nutrients, float(GameState.START_NUT))
 
+func test_hud_uses_embedded_japanese_font() -> void:
+	var hud := HudView.new()
+	add_child_autofree(hud)
+	hud.setup(state)
+	assert_not_null(hud.ui_font)
+	assert_eq(hud.core_label.get_theme_font("font"), hud.ui_font)
+	assert_eq(hud.core_label.text, "魔王コア 150/150")
+	state.game_state = "dead"
+	hud.update_view()
+	assert_false(hud.start_panel.visible)
+	assert_true(hud.dead_panel.visible)
+
 func test_dig_vein_spawns_monster_and_costs_nutrient() -> void:
 	state.grid[3][GameState.ENTRANCE_COL] = {"t": "earth", "sub": "moss", "shade": 0.0, "evo": false}
 	state.grid[2][GameState.ENTRANCE_COL] = {"t": "tunnel", "sub": null, "shade": 0.0}

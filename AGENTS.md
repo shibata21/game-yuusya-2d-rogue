@@ -10,32 +10,30 @@
 - `godot/project.godot` — Godotプロジェクト設定。
 - `godot/scenes/Main.tscn` — Godot版のメインシーン。
 - `godot/scripts/` — Godot版の状態・ルール・描画・UIスクリプト。
+- `godot/assets/fonts/` — Godot Web版の日本語UI用フォント。Web環境のシステムフォントには依存しない。
 - `godot/test/` — GUT製のGodot版仕様テスト。
 - `test/hakaishin_dungeon.test.js` — 旧HTML版のVitest製互換テスト。新規仕様テストは原則GUTへ追加する。
 - `test_hakaishin_dungeon.js` — 旧Node製テスト互換ランナー。移行中の回帰確認として残す。
 
 ## 実行・検証
 正規実装はGodot版。`godot/` を Godot 4.6.3 Standard で開くかCLIで実行する。
-変更を入れたら、必ず以下を実行し「エラー0・全テスト通過」を確認すること：
+変更を入れたら、正規実装であるGodot版について必ず以下を実行し「エラー0・全テスト通過」を確認すること：
 
 ```bash
-# ゲーム側の構文チェック
-node --check hakaishin_dungeon.js
-
-# テスト側の構文チェック
-node --check test_hakaishin_dungeon.js
-
-# Vitest実行
-npm test
-
-# 旧互換テスト実行（例: "61 passed, 0 failed" のように全通過すること）
-node test_hakaishin_dungeon.js hakaishin_dungeon.html
-
 # Godot CLI確認（Godot 4.6.3 Standard）
 godot --version
 godot --headless --path godot --import
 godot -d -s --headless --path godot addons/gut/gut_cmdln.gd -gdir=res://test -gexit
 godot --headless --path godot --export-release Web ../dist/index.html
+```
+
+旧HTML版を触った場合のみ、互換確認として以下も実行する：
+
+```bash
+node --check hakaishin_dungeon.js
+node --check test_hakaishin_dungeon.js
+npm test
+node test_hakaishin_dungeon.js hakaishin_dungeon.html
 ```
 
 機能を追加したら、Godot版は `godot/test/` のGUTテストへ対応セクションを足す。旧HTML版を触る場合のみ、必要に応じて `__GAME__` フックも更新する。

@@ -14,9 +14,11 @@ var score_label: Label
 var timer_label: Label
 var start_panel: PanelContainer
 var dead_panel: PanelContainer
+var ui_font: Font
 
 func setup(game_state: GameState) -> void:
 	state = game_state
+	ui_font = load("res://assets/fonts/NotoSansCJK-Regular.ttc")
 	anchor_left = 0
 	anchor_top = 0
 	anchor_right = 0
@@ -36,6 +38,7 @@ func build_ui() -> void:
 	wave_label = make_label()
 	mon_label = make_label()
 	score_label = make_label()
+	core_label.custom_minimum_size.x = 138
 	for label in [core_label, nut_label, wave_label, mon_label, score_label]:
 		top.add_child(label)
 
@@ -46,6 +49,7 @@ func build_ui() -> void:
 
 	var taunt := Button.new()
 	taunt.text = "すぐ襲来"
+	apply_font(taunt, 15)
 	taunt.position = Vector2(GameState.W - 128, GameState.H - 48)
 	taunt.size = Vector2(116, 36)
 	taunt.pressed.connect(func(): taunt_requested.emit())
@@ -59,9 +63,9 @@ func build_ui() -> void:
 
 func make_label() -> Label:
 	var label := Label.new()
+	apply_font(label, 15)
 	label.add_theme_color_override("font_color", Color("#f3e7c0"))
-	label.add_theme_font_size_override("font_size", 16)
-	label.custom_minimum_size = Vector2(96, 28)
+	label.custom_minimum_size = Vector2(82, 28)
 	return label
 
 func make_overlay(title: String, button_text: String, callback: Callable) -> PanelContainer:
@@ -75,21 +79,28 @@ func make_overlay(title: String, button_text: String, callback: Callable) -> Pan
 	var label := Label.new()
 	label.text = title
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 28)
+	apply_font(label, 28)
 	label.add_theme_color_override("font_color", Color("#f3e7c0"))
 	box.add_child(label)
 	var desc := Label.new()
 	desc.text = "土を掘り、鉱脈から魔物を出し、最下層の魔王コアを守れ。"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	apply_font(desc, 15)
 	desc.add_theme_color_override("font_color", Color("#d8c59a"))
 	box.add_child(desc)
 	var button := Button.new()
 	button.text = button_text
 	button.custom_minimum_size = Vector2(220, 42)
+	apply_font(button, 16)
 	button.pressed.connect(callback)
 	box.add_child(button)
 	return panel
+
+func apply_font(control: Control, font_size: int) -> void:
+	if ui_font != null:
+		control.add_theme_font_override("font", ui_font)
+	control.add_theme_font_size_override("font_size", font_size)
 
 func _process(_delta: float) -> void:
 	update_view()
@@ -105,4 +116,3 @@ func update_view() -> void:
 	timer_label.text = "次の襲来 %.1f秒" % max(0.0, state.wave_countdown / 1000.0)
 	start_panel.visible = state.game_state == "title"
 	dead_panel.visible = state.game_state == "dead"
-

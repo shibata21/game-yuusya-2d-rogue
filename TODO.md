@@ -37,9 +37,11 @@ HTML5/Canvas/PixiJS 版から Godot CLI 運用の Godot 版へ全面移行する
 - [x] M4: 魔物AI、下位種増殖、上位種卵生成、卵孵化、捕食、視線判定、戦闘を移植する。
 - [x] M5: 勇者AI、経路探索、壁掘り、コア攻撃、ウェーブ、敗北/再開UIを移植する。
 - [x] M6: 既存仕様テストをGUTへさらに移植し、HTML/JSテストを退役する。
-- [ ] M7: Web exportを生成し、モバイルブラウザで表示・入力・pixelated表示を確認する。
+- [x] M7: Web exportを生成し、モバイルブラウザで表示・入力・pixelated表示を確認する。
   - Web export生成は成功済み。
-  - 実ブラウザ確認はこのコンテナに利用可能なChromium/Firefoxがなく、Playwrightブラウザ取得もネットワークポリシーで拒否されたため未完了。OSの`chromium-browser`はsnapd前提で、snapdが起動できない環境だった。
+  - Google Chrome 149 + Playwrightで `375x667` モバイル幅と `900x900` デスクトップ幅をHTTP配信経由で確認済み。
+  - Canvas非blank、viewport内表示、`image-rendering: crisp-edges`、開始クリック、採掘タップ後の描画変化、ページエラー0を確認済み。
+  - 日本語HUD/開始UIの文字化けを同梱Noto Sans CJKで解消済み。敗北UIは同一HUDオーバーレイ経路をGUTで確認済み。
 
 ### Godot側の主要クラス
 
@@ -83,18 +85,24 @@ HTML5/Canvas/PixiJS 版から Godot CLI 運用の Godot 版へ全面移行する
 
 ## 検証
 
-- `npm run assets:build`
-- `npm run assets:check`
-- `node --check hakaishin_dungeon.js`
-- `node --check test_hakaishin_dungeon.js`
-- `node --check hakaishin_dungeon_core.js`
-- `node --check hakaishin_dungeon_logic.js`
-- `node --check hakaishin_dungeon_canvas.js`
-- `node --check hakaishin_dungeon_pixi.js`
-- `node --check tools/build_pixel_assets.js`
-- `node --check tools/check_pixel_assets.js`
-- `npm test`
-- `node test_hakaishin_dungeon.js hakaishin_dungeon.html`
+- 正規検証:
+  - `npm run assets:build`
+  - `npm run assets:check`
+  - `godot --version`
+  - `godot --headless --path godot --import`
+  - `godot -d -s --headless --path godot addons/gut/gut_cmdln.gd -gdir=res://test -gexit`
+  - `godot --headless --path godot --export-release Web ../dist/index.html`
+- 旧HTML版を触った場合のみの互換確認:
+  - `node --check hakaishin_dungeon.js`
+  - `node --check test_hakaishin_dungeon.js`
+  - `node --check hakaishin_dungeon_core.js`
+  - `node --check hakaishin_dungeon_logic.js`
+  - `node --check hakaishin_dungeon_canvas.js`
+  - `node --check hakaishin_dungeon_pixi.js`
+  - `node --check tools/build_pixel_assets.js`
+  - `node --check tools/check_pixel_assets.js`
+  - `npm test`
+  - `node test_hakaishin_dungeon.js hakaishin_dungeon.html`
 
 ## 注意
 
