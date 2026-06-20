@@ -26,6 +26,11 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("Phaser.Scale.FIT");
   });
 
+  it("ViteビルドはPages配下で読める相対baseを使う", () => {
+    const config = fs.readFileSync(path.join(repoDir, "vite.config.mjs"), "utf8");
+    expect(config).toContain('base: "./"');
+  });
+
   it("公開名前空間から独立したゲームを生成できる", async () => {
     const core = await import("../src/gameCore.js");
     core.exposeGameNamespace();

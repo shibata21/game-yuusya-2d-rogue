@@ -22,6 +22,7 @@ function copyPixelAssets() {
 }
 
 export default defineConfig({
+  base: "./",
   plugins: [copyPixelAssets()],
   build: {
     chunkSizeWarningLimit: 1600,
