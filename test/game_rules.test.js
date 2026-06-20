@@ -221,6 +221,14 @@ describe("ゲームルール", () => {
     expect(warrior.hp).toBeGreaterThan(20);
   });
 
+  it("勇者の近接攻撃は本体を突進させず武器だけを振る", () => {
+    const h = hero("warrior", 5, 5);
+    G.setAction(h, "attack", G.cx(6), G.cy(5), G.ATK_ANIM);
+    h.actionTime = G.ATK_ANIM / 2;
+    expect(G.actorPose(h).x).toBe(0);
+    expect(G.actorPose(h).y).toBe(0);
+  });
+
   it("序列上位の魔物は下位を捕食して回復する", () => {
     carveAll();
     G.setRandom(() => 0);

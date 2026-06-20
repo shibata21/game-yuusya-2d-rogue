@@ -59,6 +59,11 @@ function effectFrameIndex(type, life, max) {
   return row * PIXEL_FRAMES + frame;
 }
 
+function tintFromColor(color) {
+  if (typeof color !== "string" || !/^#[0-9a-fA-F]{6}$/.test(color)) return null;
+  return Number.parseInt(color.slice(1), 16);
+}
+
 class MainScene extends Phaser.Scene {
   constructor() {
     super("MainScene");
@@ -244,6 +249,9 @@ class MainScene extends Phaser.Scene {
       sprite.setFrame(effectFrameIndex(f.type, f.life, f.max));
       sprite.setPosition(x, y);
       sprite.setAlpha(Math.max(0, Math.min(1, f.life / f.max * 1.4)));
+      const tint = tintFromColor(f.color);
+      if (tint === null) sprite.clearTint();
+      else sprite.setTint(tint);
       sprite.setDepth(500 + i);
     }
   }

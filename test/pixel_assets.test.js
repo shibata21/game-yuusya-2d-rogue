@@ -133,8 +133,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v10-expanded-heroes");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v10-expanded-heroes");
+    expect(PIXEL_ASSET_VERSION).toBe("v11-armored-heroes");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v11-armored-heroes");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {

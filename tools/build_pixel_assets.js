@@ -373,10 +373,18 @@ function drawMonster(img, name, action, dir, frame) {
 
 function drawSword(img, cx, cy, dx, dy, frame, pal) {
   const fx = dx || (dy === 0 ? 1 : 0);
-  const reach = 12 + frame * 3;
-  line(img, cx + fx * 3, cy - 1 + dy * 3, cx + fx * reach, cy - 9 + dy * reach, pal.metal, 4, 235);
+  const px = dx === 0 ? -Math.sign(dy || 1) : 0;
+  const py = dx === 0 ? 0 : 1;
+  const sweep = [-7, -2, 6, 1][frame];
+  const reach = 13 + frame * 2;
+  const sx = cx + fx * 4 + px * sweep;
+  const sy = cy - 1 + dy * 3 + py * sweep;
+  const ex = cx + fx * reach + px * (sweep + 8);
+  const ey = cy - 10 + dy * reach + py * (sweep + 8);
+  line(img, sx, sy, ex, ey, pal.metal, 4, 245);
+  line(img, sx - px * 2, sy - py * 2, ex - px * 2, ey - py * 2, "#ffffff", 1, 170);
   line(img, cx + fx * 2, cy + dy * 2, cx + fx * 8, cy + 6 + dy * 6, pal.accent, 2, 220);
-  diamond(img, cx + fx * reach, cy - 9 + dy * reach, 2, pal.light, 210);
+  diamond(img, ex, ey, 2, pal.light, 220);
 }
 
 function drawSpear(img, cx, cy, dx, dy, frame, pal) {
@@ -433,53 +441,77 @@ function drawStaff(img, cx, cy, dx, dy, frame, pal, variant) {
   }
 }
 
+function drawArmoredBody(img, name, pal, cx, cy, dx, dy, action, frame, caster) {
+  const headX = cx + dx * 3;
+  const headY = cy - 11 + dy * 2;
+  const shine = name === "captain" ? "#fff3b8" : pal.light;
+  const plate = name === "captain" ? pal.metal : "#dfe7f2";
+  const trim = name === "captain" ? pal.accent : pal.mid;
+  const robe = pal.robe || caster;
+
+  oval(img, cx, cy + 17, 12, 4, "#0c0812", 80);
+  rect(img, cx - 6, cy + 9, 5, 11, pal.dark, 245);
+  rect(img, cx + 1, cy + 9, 5, 11, pal.dark, 245);
+  rect(img, cx - 6, cy + 14, 5, 5, plate, 210);
+  rect(img, cx + 1, cy + 14, 5, 5, plate, 210);
+
+  if (robe) {
+    tri(img, cx - 12, cy + 15, cx, cy - 6, cx + 12, cy + 15, pal.dark, 245);
+    tri(img, cx - 9, cy + 14, cx + dx * 2, cy - 4, cx + 9, cy + 14, pal.mid, 235);
+  } else {
+    oval(img, cx, cy + 4, 10, 12, pal.dark, 245);
+  }
+
+  diamond(img, cx, cy + 2, 11, "#1d2431", 250);
+  diamond(img, cx, cy + 1, 9, plate, 245);
+  tri(img, cx - 8, cy + 2, cx, cy - 7, cx, cy + 11, shine, 120);
+  line(img, cx - 7, cy + 4, cx + 7, cy + 4, trim, 2, 210);
+  line(img, cx, cy - 6, cx, cy + 12, trim, 1, 180);
+  diamond(img, cx, cy + 3, 3, pal.accent, name === "captain" || name === "sage" ? 220 : 130);
+
+  oval(img, cx - 10, cy - 1, 5, 7, plate, 235);
+  oval(img, cx + 10, cy - 1, 5, 7, plate, 235);
+  line(img, cx - 13, cy - 3, cx - 8, cy + 4, pal.dark, 2, 170);
+  line(img, cx + 8, cy + 4, cx + 13, cy - 3, pal.dark, 2, 170);
+  rect(img, cx - 11 - dx * 2, cy + 1, 5, 11, pal.dark, 235);
+  rect(img, cx + 6 + dx * 2, cy + 1, 5, 11, pal.dark, 235);
+  rect(img, cx - 10 - dx * 2, cy + 4, 4, 5, plate, 190);
+  rect(img, cx + 7 + dx * 2, cy + 4, 4, 5, plate, 190);
+
+  oval(img, headX, headY, 8, 8, pal.dark, 245);
+  oval(img, headX, headY - 1, 7, 7, plate, 245);
+  rect(img, headX - 7, headY - 3, 14, 5, plate, 245);
+  line(img, headX - 6, headY - 1, headX + 6, headY - 1, "#171b24", 2, 245);
+  if (dy >= 0 || dx !== 0) {
+    rect(img, headX - 4, headY - 1 + dy, 8, 2, "#07090e", 245);
+    rect(img, headX + dx * 4 - 1, headY + 2 + dy, 2, 2, pal.accent, 200);
+  } else {
+    line(img, headX - 5, headY - 5, headX + 5, headY - 6, shine, 2, 150);
+  }
+  if (name === "saint") {
+    oval(img, headX, headY - 2, 9, 9, pal.light, 95);
+    line(img, headX - 7, headY - 10, headX + 7, headY - 10, pal.accent, 2, 180);
+  } else if (caster) {
+    tri(img, headX - 8, headY - 6, headX, headY - 17, headX + 8, headY - 6, pal.dark, 225);
+    line(img, headX - 5, headY - 7, headX + 5, headY - 7, plate, 1, 170);
+    if (name === "sage") diamond(img, headX, headY - 16, 3, pal.accent, 190);
+  } else if (name === "captain") {
+    diamond(img, headX, headY - 8, 3, pal.accent, 230);
+  }
+  if (action === "idle") diamond(img, cx + ((frame % 2) ? 8 : -8), cy - 4, 1, shine, 90);
+}
+
 function drawHero(img, name, action, dir, frame) {
   const pal = heroPalettes[name] || heroPalettes.warrior;
   const [dx, dy] = dirVec[dir];
   const weapon = pal.weapon || "sword";
   const caster = ["priest", "saint", "mage", "supermage", "sage"].includes(name);
   const bob = action === "idle" ? [0, -1, 0, 1][frame] : [0, 1, 2, 1][frame];
-  const attackLunge = weapon === "spear" ? [0, 2, 7, 2][frame] : (weapon === "greatshield" ? [0, 1, 3, 1][frame] : [0, 1, 4, 1][frame]);
-  const lunge = action === "attack" ? attackLunge : (action === "dig" ? [0, 1, 3, 1][frame] : 0);
+  const lunge = action === "dig" ? [0, 1, 3, 1][frame] : 0;
   const lift = (action === "cast" || action === "heal") ? [0, -1, -3, -1][frame] : 0;
   const cx = 24 + dx * lunge;
   const cy = 23 + bob + lift + dy * Math.min(2, lunge);
-  oval(img, cx, cy + 17, 11, 4, "#0c0812", 80);
-  rect(img, cx - 5, cy + 10, 4, 10, pal.dark, 245);
-  rect(img, cx + 1, cy + 10, 4, 10, pal.dark, 245);
-  if (pal.robe) {
-    tri(img, cx - 11, cy + 15, cx, cy - 7, cx + 11, cy + 15, pal.dark, 245);
-    tri(img, cx - 8, cy + 14, cx + dx * 2, cy - 4, cx + 8, cy + 14, pal.mid, 235);
-    line(img, cx, cy - 4, cx, cy + 15, pal.light, 1, 170);
-  } else if (caster) {
-    oval(img, cx, cy + 4, 9, 12, pal.dark, 245);
-    tri(img, cx - 9, cy + 14, cx + dx * 2, cy - 4, cx + 9, cy + 14, pal.mid, 230);
-  } else {
-    oval(img, cx, cy + 4, 9, 12, pal.dark, 245);
-    oval(img, cx + dx * 3, cy + 1, 7, 10, pal.mid, 245);
-    rect(img, cx - 4, cy, 8, 9, pal.light, 95);
-  }
-  oval(img, cx + dx * 3, cy - 11 + dy * 2, 7, 7, pal.skin, 245);
-  rect(img, cx - 8 - dx * 2, cy + 1, 5, 12, pal.mid, 235);
-  rect(img, cx + 3 + dx * 2, cy + 1, 5, 12, pal.mid, 235);
-  if (caster) {
-    if (name === "saint") {
-      oval(img, cx + dx * 3, cy - 13 + dy * 2, 8, 8, pal.light, 160);
-      line(img, cx - 6, cy - 17, cx + 6, cy - 17, pal.accent, 2, 170);
-    } else {
-      tri(img, cx + dx * 3 - 7, cy - 14, cx + dx * 3, cy - 25, cx + dx * 3 + 7, cy - 14, pal.dark, 245);
-      if (name === "sage") diamond(img, cx + dx * 3, cy - 24, 3, pal.accent, 190);
-    }
-  } else {
-    rect(img, cx + dx * 3 - 6, cy - 17, 12, 5, pal.metal, 230);
-    if (name === "captain") diamond(img, cx + dx * 3, cy - 17, 3, pal.accent, 220);
-  }
-  if (dy >= 0 || dx !== 0) {
-    rect(img, cx + dx * 3 - 3, cy - 11 + dy, 2, 2, "#24140f", 240);
-    rect(img, cx + dx * 3 + 2, cy - 11 + dy, 2, 2, "#24140f", 240);
-  } else {
-    line(img, cx - 5, cy - 13, cx + 5, cy - 15, pal.light, 2, 140);
-  }
+  drawArmoredBody(img, name, pal, cx, cy, dx, dy, action, frame, caster);
   if (action === "dig") {
     drawPickaxe(img, cx, cy, dx, dy, frame, pal);
     if (weapon === "greatshield") drawShield(img, cx, cy, dx, dy, pal, "great", Math.max(1, frame - 1));

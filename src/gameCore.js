@@ -72,7 +72,7 @@ export const HERO_CLASSES = {
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v10-expanded-heroes";
+export const PIXEL_ASSET_VERSION = "v11-armored-heroes";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -1051,11 +1051,15 @@ export function createGame(options = {}) {
       scale = 1 + 0.1 * waveSin;
       rot = -0.05 * waveSin * Math.sign(dx || 1);
     } else if (e.actionType === "attack") {
-      if (c && c.weapon === "spear") power = 10;
-      else if (c && (c.weapon === "greatshield" || c.weapon === "cross_shield")) power = 4;
-      else power = 7;
-      scale = 1 + (c && c.weapon === "greatshield" ? 0.08 : 0.05) * waveSin;
-      rot = 0.1 * waveSin * Math.sign(dx || 1);
+      if (c) {
+        power = 0;
+        scale = 1;
+        rot = 0;
+      } else {
+        power = 7;
+        scale = 1 + 0.05 * waveSin;
+        rot = 0.1 * waveSin * Math.sign(dx || 1);
+      }
     } else if (e.actionType === "dig") {
       power = 6;
       rot = 0.16 * waveSin * Math.sign(dx || 1);
