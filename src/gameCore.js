@@ -32,16 +32,18 @@ export const DIG_BREAK = 140;
 export const DIG_CD = 780;
 export const BORN_ANIM = 320;
 export const EVO_TIME = 65000;
+export const VEIN_FADE_START = 45000;
+export const VEIN_DECAY_TIME = 90000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 
 export const KINDS = {
   slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#7fbaff" },
-  carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a" },
+  carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣" },
   spitter: { hp: 16, atk: 6, range: 2, moveCd: 590, atkCd: 980, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, col: "#a64dff" },
   golem: { hp: 95, atk: 4, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#6f86c4" },
   flame: { hp: 64, atk: 15, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, col: "#ff8a3a" },
   superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 1, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム" },
-  evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "進化肉食魔物" },
+  evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣" },
   tarantula: { hp: 62, atk: 15, range: 2, moveCd: 560, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#ff6b5a", eliteOf: "spitter", name: "タランチュラ" },
   titan: { hp: 220, atk: 13, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, col: "#d9b27a", eliteOf: "golem", name: "タイタン" },
   infernal: { hp: 150, atk: 28, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, col: "#5ab0ff", eliteOf: "flame", name: "インフェルノ" },
@@ -49,7 +51,7 @@ export const KINDS = {
 
 export const VEIN = {
   moss: { kind: "slime", evoKind: "superslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", touchNeed: 4 },
-  meat: { kind: "carniv", evoKind: "evolved", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "肉脈→肉食魔物", evoName: "上位肉脈", touchNeed: 7 },
+  meat: { kind: "carniv", evoKind: "evolved", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", touchNeed: 7 },
   venom: { kind: "spitter", evoKind: "tarantula", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒吐き", evoName: "上位毒脈", touchNeed: 10, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒吐きが眠る" },
   stone: { kind: "golem", evoKind: "titan", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→岩兵", evoName: "上位石脈", touchNeed: 13, unlockMsg: "新たな鉱脈『石脈』 ─ 岩兵が眠る" },
   ember: { kind: "flame", evoKind: "infernal", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→炎魔", evoName: "上位火脈", touchNeed: 16, unlockMsg: "新たな鉱脈『火脈』 ─ 炎魔が眠る" },
@@ -63,7 +65,7 @@ export const HERO_CLASSES = {
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v8-rich-veins-eggs-cracks";
+export const PIXEL_ASSET_VERSION = "v9-self-made-makai-veins";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -140,6 +142,15 @@ export function createGame(options = {}) {
     return 0.045;
   }
 
+  function clearVein(tile) {
+    tile.sub = null;
+    tile.evo = false;
+    tile.age = 0;
+    tile.evoChecked = false;
+    tile.evoTouch = 0;
+    tile.evoTouching = {};
+  }
+
   function buildGrid() {
     grid = [];
     for (let r = 0; r < ROWS; r++) {
@@ -152,8 +163,8 @@ export function createGame(options = {}) {
       }
       grid.push(row);
     }
-    seedType("moss", 8, 2, ROWS - 3);
-    seedType("meat", 3, 2, ROWS - 3);
+    seedType("moss", 8, 1, CORE_ROW);
+    seedType("meat", 3, 1, CORE_ROW);
     grid[1][ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
     grid[2][ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
     grid[CORE_ROW][CORE_COL] = { t: "core", sub: null, shade: 0 };
@@ -187,11 +198,11 @@ export function createGame(options = {}) {
   }
 
   function seedVeins(wv) {
-    seedType("moss", 3, 2, ROWS - 3);
-    seedType("meat", 1 + (wv >= 5 ? 1 : 0), 4, ROWS - 3);
-    if (wv >= 3) seedType("venom", 1 + (wv >= 7 ? 1 : 0), 3, ROWS - 3);
-    if (wv >= 6) seedType("stone", 1, 7, ROWS - 3);
-    if (wv >= 9) seedType("ember", 1, 8, ROWS - 3);
+    seedType("moss", 3, 1, CORE_ROW);
+    seedType("meat", 1 + (wv >= 5 ? 1 : 0), 1, CORE_ROW);
+    if (wv >= 3) seedType("venom", 1 + (wv >= 7 ? 1 : 0), 1, CORE_ROW);
+    if (wv >= 6) seedType("stone", 1, 1, CORE_ROW);
+    if (wv >= 9) seedType("ember", 1, 1, CORE_ROW);
   }
 
   function openNeighbors(col, row) {
@@ -320,12 +331,7 @@ export function createGame(options = {}) {
       const vein = tile.sub;
       const kind = tile.evo ? VEIN[vein].evoKind : VEIN[vein].kind;
       tile.t = "tunnel";
-      tile.sub = null;
-      tile.evo = false;
-      tile.age = 0;
-      tile.evoChecked = false;
-      tile.evoTouch = 0;
-      tile.evoTouching = {};
+      clearVein(tile);
       spawnMonster(kind, col, row);
       const mo = monsters[monsters.length - 1];
       if (mo && mo.col === col && mo.row === row) {
@@ -335,7 +341,7 @@ export function createGame(options = {}) {
     } else {
       tile.t = "tunnel";
     }
-    tile.sub = null;
+    clearVein(tile);
     effects.push({ type: "dig", x: cx(col), y: cy(row), life: 340, max: 340 });
   }
 
@@ -415,10 +421,24 @@ export function createGame(options = {}) {
       t.evoTouching = touching;
       if ((t.evoTouch || 0) >= veinTouchNeed(t.sub)) {
         t.evo = true;
+        t.age = 0;
         t.evoChecked = true;
         effects.push({ type: "evolveVein", x: cx(c), y: cy(r), life: 760, max: 760, color: VEIN[t.sub].color });
         toast(c, r, VEIN[t.sub].evoName, "#ffe08a");
       }
+    }
+  }
+
+  function updateVeinAging(dt) {
+    for (let r = 1; r < ROWS - 1; r++) for (let c = 1; c < COLS - 1; c++) {
+      const t = grid[r][c];
+      if (t.t !== "earth" || !t.sub) continue;
+      t.age = (t.age || 0) + dt;
+      if (t.age < VEIN_DECAY_TIME) continue;
+      const color = VEIN[t.sub] ? VEIN[t.sub].color : "#cfd8e3";
+      clearVein(t);
+      t.dig = 0;
+      effects.push({ type: "puff", x: cx(c), y: cy(r), life: 320, max: 320, color });
     }
   }
 
@@ -860,7 +880,7 @@ export function createGame(options = {}) {
             setAction(h, "dig", cx(step.col), cy(step.row), ATK_ANIM);
             if (step.tile.dig >= DIG_BREAK) {
               step.tile.t = "tunnel";
-              step.tile.sub = null;
+              clearVein(step.tile);
               step.tile.dig = 0;
             }
           } else {
@@ -900,6 +920,7 @@ export function createGame(options = {}) {
       }
     }
     updateVeinTouchEvolution();
+    updateVeinAging(dt);
     updateEggs(dt);
     updateEliteEggBreeding(dt);
     updateLowerBreeding(dt);
@@ -997,12 +1018,12 @@ export function createGame(options = {}) {
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
     update, resetGame, startGame, gameOver, tryDig, startWave, tauntEarly,
-    updateVeinTouchEvolution, veinTouchNeed, beginMove, updateVisualPosition, setAction, actorPose,
+    updateVeinTouchEvolution, updateVeinAging, veinTouchNeed, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroStep, openNeighbors, openFreeNeighbors, hasLOS, occupied, actorOccupied,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
     KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
-    EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME,
+    EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
     PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
@@ -1011,7 +1032,7 @@ export function createGame(options = {}) {
 
 export const Core = {
   VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
-  EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME,
+  EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
   PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
   PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, heroDigDmg, cx, cy,
@@ -1019,7 +1040,7 @@ export const Core = {
 
 export function exposeGameNamespace(currentGame = null) {
   if (typeof globalThis === "undefined") return;
-  globalThis.HakaishinDungeon = {
+  globalThis.MakaiDefense = {
     Core,
     createGame,
     get current() {

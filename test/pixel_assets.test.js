@@ -19,7 +19,6 @@ import {
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const meta = JSON.parse(fs.readFileSync(path.join(repoDir, "assets/pixel/sprites.json"), "utf8"));
-const thirdParty = JSON.parse(fs.readFileSync(path.join(repoDir, "assets/pixel/third_party_assets.json"), "utf8"));
 const pngCache = new Map();
 
 function png(file) {
@@ -134,8 +133,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v8-rich-veins-eggs-cracks");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v8-rich-veins-eggs-cracks");
+    expect(PIXEL_ASSET_VERSION).toBe("v9-self-made-makai-veins");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v9-self-made-makai-veins");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -164,7 +163,6 @@ describe("ピクセル素材", () => {
   it("卵は種別色のよくある卵シルエットになる", () => {
     const eggs = PIXEL_ACTORS.filter((name) => name.startsWith("egg_"));
     for (const name of eggs) {
-      expect(thirdParty.actors[name]).toBeUndefined();
       const b = alphaBounds(actorCrop(name, "idle", "s", 1));
       const w = b.maxX - b.minX + 1;
       const h = b.maxY - b.minY + 1;
@@ -180,24 +178,23 @@ describe("ピクセル素材", () => {
     }
   });
 
-  it("鉱脈タイルは地層内にリッチな結晶模様を持つ", () => {
+  it("鉱脈タイルは地層内に控えめな結晶模様を持つ", () => {
     const earth = tileCrop("earth");
     for (const name of ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"]) {
       const stats = tileMotifStats(tileCrop(name), earth);
-      expect(stats.motif, name).toBeGreaterThan(name.endsWith("_evo") ? 310 : 240);
-      expect(stats.motif, name).toBeLessThan(name.endsWith("_evo") ? 830 : 620);
-      expect(stats.outside, name).toBeLessThanOrEqual(190);
+      expect(stats.motif, name).toBeGreaterThan(name.endsWith("_evo") ? 150 : 95);
+      expect(stats.motif, name).toBeLessThan(name.endsWith("_evo") ? 540 : 390);
+      expect(stats.outside, name).toBeLessThanOrEqual(145);
     }
   });
 
-  it("タイルは外部CC0素材を元に生成される", () => {
-    expect(thirdParty.tiles).toBeTruthy();
-    for (const name of ["earth", "tunnel", "bedrock", "surface", "core"]) {
-      const refs = thirdParty.tiles[name];
-      expect(Array.isArray(refs), name).toBe(true);
-      expect(refs[0].startsWith("dcss:releases/Nov-2015/dngn/"), name).toBe(true);
-      const file = path.join(repoDir, thirdParty.sources.dcss.localRoot, refs[0].replace(/^dcss:/, ""));
-      expect(fs.existsSync(file), file).toBe(true);
+  it("素材生成は外部素材に依存しない", () => {
+    expect(fs.existsSync(path.join(repoDir, "assets/pixel/third_party_assets.json"))).toBe(false);
+    expect(fs.existsSync(path.join(repoDir, "assets/pixel/THIRD_PARTY_ASSETS.md"))).toBe(false);
+    expect(fs.existsSync(path.join(repoDir, "assets/external"))).toBe(false);
+    const build = fs.readFileSync(path.join(repoDir, "tools/build_pixel_assets.js"), "utf8");
+    for (const term of ["readExternal", "actorSources", "tileSources", "third_party", "THIRD_PARTY", "assets/external", "dcss", "DCSS"]) {
+      expect(build).not.toContain(term);
     }
     expect(diffRatio(tileCrop("earth"), tileCrop("tunnel"))).toBeGreaterThan(0.22);
     expect(diffRatio(tileCrop("earth"), tileCrop("bedrock"))).toBeGreaterThan(0.22);

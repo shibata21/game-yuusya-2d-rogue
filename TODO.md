@@ -9,8 +9,8 @@
 ## 画像素材
 
 - 48pxセルの高密度ドット素材を継続利用する。
-- `assets/pixel/source/v5/` の8方向・アクション別個別PNGから `actors.png` / `tiles.png` / `effects.png` / `sprites.json` を再生成する。
-- キャラクター素材は `assets/external/cc0/` の商用利用可能なCC0外部素材のみから生成する。
+- `assets/pixel/source/v6-self-made/` の8方向・アクション別個別PNGから `actors.png` / `tiles.png` / `effects.png` / `sprites.json` を再生成する。
+- モンスター・勇者・タイル素材は外部素材を使わず、ローカル生成スクリプトの図形描画で自製する。
 - 読み込みURLには `PIXEL_ASSET_VERSION` のバージョン文字列を付ける。
 - Vite build時は `vite.config.mjs` で `assets/pixel/` を `dist/assets/pixel/` へコピーする。
 

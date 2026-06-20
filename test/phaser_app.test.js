@@ -36,11 +36,11 @@ describe("Phaserアプリ構成", () => {
   it("公開名前空間から独立したゲームを生成できる", async () => {
     const core = await import("../src/gameCore.js");
     core.exposeGameNamespace();
-    expect(globalThis.HakaishinDungeon).toBeTruthy();
-    const a = globalThis.HakaishinDungeon.createGame({ seed: 1 });
-    const b = globalThis.HakaishinDungeon.createGame({ seed: 2 });
+    expect(globalThis.MakaiDefense).toBeTruthy();
+    const a = globalThis.MakaiDefense.createGame({ seed: 1 });
+    const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.HakaishinDungeon.Core.PIXEL_ASSET_VERSION).toBe("v8-rich-veins-eggs-cracks");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v9-self-made-makai-veins");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

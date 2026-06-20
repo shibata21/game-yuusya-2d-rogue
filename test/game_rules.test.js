@@ -62,13 +62,17 @@ describe("ゲームルール", () => {
   it("初期鉱脈は上下固定ではなくスライム多めでランダム配置される", () => {
     const mossRows = [];
     const meatRows = [];
-    for (let seed = 1; seed <= 16; seed++) {
+    let seenTopEdge = false;
+    let seenBottomEdge = false;
+    for (let seed = 1; seed <= 64; seed++) {
       const game = createGame({ seed });
       const moss = [];
       const meat = [];
       for (let r = 0; r < game.ROWS; r++) for (let c = 0; c < game.COLS; c++) {
         if (game.grid[r][c].sub === "moss") moss.push(r);
         if (game.grid[r][c].sub === "meat") meat.push(r);
+        if (game.grid[r][c].sub && r === 1) seenTopEdge = true;
+        if (game.grid[r][c].sub && r === game.CORE_ROW) seenBottomEdge = true;
       }
       expect(moss).toHaveLength(8);
       expect(meat).toHaveLength(3);
@@ -77,6 +81,8 @@ describe("ゲームルール", () => {
     }
     expect(Math.max(...mossRows)).toBeGreaterThan(9);
     expect(Math.min(...meatRows)).toBeLessThan(8);
+    expect(seenTopEdge).toBe(true);
+    expect(seenBottomEdge).toBe(true);
   });
 
   it("鉱脈を掘ると魔物が出て固定コストを消費する", () => {
@@ -125,6 +131,35 @@ describe("ゲームルール", () => {
     expect(VEIN.meat.touchNeed).toBeLessThan(VEIN.venom.touchNeed);
     expect(VEIN.venom.touchNeed).toBeLessThan(VEIN.stone.touchNeed);
     expect(VEIN.stone.touchNeed).toBeLessThan(VEIN.ember.touchNeed);
+  });
+
+  it("掘られない鉱脈は薄くなる時間を経て消滅し、土に戻る", () => {
+    carveAll();
+    G.waveCountdown = 999999;
+    G.grid[5][5] = { t: "earth", sub: "moss", shade: 0, evo: false, age: 0, evoTouch: 0, evoTouching: {} };
+    G.update(G.VEIN_FADE_START + 1);
+    expect(G.grid[5][5].sub).toBe("moss");
+    expect(G.grid[5][5].age).toBeGreaterThan(G.VEIN_FADE_START);
+    G.update(G.VEIN_DECAY_TIME - G.VEIN_FADE_START - 2);
+    expect(G.grid[5][5].sub).toBe("moss");
+    G.update(2);
+    expect(G.grid[5][5].t).toBe("earth");
+    expect(G.grid[5][5].sub).toBe(null);
+    expect(G.grid[5][5].evo).toBe(false);
+    expect(G.effects.some((e) => e.type === "puff")).toBe(true);
+  });
+
+  it("上位化した鉱脈は消滅タイマーをリセットする", () => {
+    carveAll();
+    G.waveCountdown = 999999;
+    const c = 5;
+    const r = 5;
+    G.grid[r][c] = { t: "earth", sub: "moss", shade: 0, evo: false, age: G.VEIN_DECAY_TIME - 1, evoTouch: 0, evoTouching: {} };
+    for (const [col, row] of [[c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]]) G.spawnMonster("slime", col, row);
+    G.update(100);
+    expect(G.grid[r][c].sub).toBe("moss");
+    expect(G.grid[r][c].evo).toBe(true);
+    expect(G.grid[r][c].age).toBeLessThan(G.VEIN_DECAY_TIME);
   });
 
   it("掘らなければ魔物は自然発生しない", () => {

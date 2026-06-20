@@ -4,10 +4,9 @@ const fs = require("fs");
 const path = require("path");
 const { PNG } = require("pngjs");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, ACTORS, TILES, EFFECTS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
   readPng, spritePath,
 } = require("./pixel_asset_common");
-const THIRD_PARTY_FILE = path.join(OUT_DIR, "third_party_assets.json");
 
 let failed = false;
 function fail(msg) {
@@ -240,11 +239,11 @@ function validateRichVeins() {
         if (x < 10 || x > 38 || y < 8 || y > 40) outside++;
       }
     }
-    if (motif < (name.endsWith("_evo") ? 310 : 240)) fail(name + " の鉱脈模様が単純すぎます: " + motif);
-    if (motif > (name.endsWith("_evo") ? 830 : 620)) fail(name + " の鉱脈模様が複雑すぎます: " + motif);
-    if (outside > 190) fail(name + " の鉱脈模様が広がりすぎています: " + outside);
+    if (motif < (name.endsWith("_evo") ? 150 : 95)) fail(name + " の鉱脈模様が単純すぎます: " + motif);
+    if (motif > (name.endsWith("_evo") ? 540 : 390)) fail(name + " の鉱脈模様が複雑すぎます: " + motif);
+    if (outside > 145) fail(name + " の鉱脈模様が広がりすぎています: " + outside);
   }
-  ok("鉱脈の地層内リッチモチーフを検査しました");
+  ok("鉱脈の控えめな地層内モチーフを検査しました");
 }
 
 function validateNoCircleSyntax() {
@@ -253,58 +252,36 @@ function validateNoCircleSyntax() {
   if (/\bring\s*\(/.test(build) || /function\s+ring\b/.test(common)) fail("円形囲み用の ring が残っています");
   ok("円形囲みヘルパーが残っていないことを検査しました");
 }
-function validateExternalActorSources() {
-  exists(THIRD_PARTY_FILE);
-  const meta = JSON.parse(fs.readFileSync(THIRD_PARTY_FILE, "utf8"));
-  const source = meta.sources && meta.sources.dcss;
-  if (!source || source.license !== "CC0-1.0") fail("DCSS素材ソースのCC0ライセンス記録がありません");
-  if (!source.licenseFile) fail("DCSS素材ソースのライセンス本文パスがありません");
-  else exists(source.licenseFile);
-  for (const name of ACTORS.filter((n) => !n.startsWith("egg_"))) {
-    const refs = meta.actors && meta.actors[name];
-    if (!Array.isArray(refs) || refs.length === 0) fail(name + " の外部素材参照がありません");
-    for (const ref of refs || []) {
-      if (!ref.startsWith("dcss:")) fail(name + " の外部素材参照が不正です: " + ref);
-      const file = path.join(source.localRoot, ref.replace(/^dcss:/, ""));
-      exists(file);
-    }
-  }
+
+function validateSelfMadeAssetPipeline() {
+  const blockedPaths = [
+    path.join(OUT_DIR, "third_party_assets.json"),
+    path.join(OUT_DIR, "THIRD_PARTY_ASSETS.md"),
+    path.join("assets", "external"),
+  ];
+  for (const file of blockedPaths) if (fs.existsSync(file)) fail("外部素材用ファイルが残っています: " + file);
   const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
-  if (/function\s+drawMonster\b/.test(build) || /function\s+drawHero\b/.test(build) || /function\s+bodyBox\b/.test(build) || /function\s+eye\b/.test(build)) {
-    fail("旧式の図形キャラクター生成関数が残っています");
-  }
-  ok("キャラクター外部CC0素材の参照を検査しました");
-}
-function validateExternalTileSources() {
-  exists(THIRD_PARTY_FILE);
-  const meta = JSON.parse(fs.readFileSync(THIRD_PARTY_FILE, "utf8"));
-  const source = meta.sources && meta.sources.dcss;
-  if (!source || source.license !== "CC0-1.0") fail("DCSSタイル素材ソースのCC0ライセンス記録がありません");
-  if (!source.licenseFile) fail("DCSSタイル素材ソースのライセンス本文パスがありません");
-  else exists(source.licenseFile);
+  const blockedTerms = ["readExternal", "actorSources", "tileSources", "third_party", "THIRD_PARTY", "assets/external", "dcss", "DCSS"];
+  for (const term of blockedTerms) if (build.includes(term)) fail("生成スクリプトに外部素材参照が残っています: " + term);
   for (const name of TILES) {
-    const refs = meta.tiles && meta.tiles[name];
-    if (!Array.isArray(refs) || refs.length === 0) fail(name + " の外部タイル素材参照がありません");
-    for (const ref of refs || []) {
-      if (!ref.startsWith("dcss:")) fail(name + " の外部タイル素材参照が不正です: " + ref);
-      const file = path.join(source.localRoot, ref.replace(/^dcss:/, ""));
-      exists(file);
-    }
-    const img = readPng(spritePath("tiles", name));
-    const colors = uniqueOpaqueColors(img);
-    if (colors < 10) fail(name + " のタイル色数が少なすぎます: " + colors);
+    const colors = uniqueOpaqueColors(readPng(spritePath("tiles", name)));
+    if (colors < 8) fail(name + " の自製タイル色数が少なすぎます: " + colors);
   }
-  const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
-  if (!/const\s+tileSources\s*=/.test(build) || !/externalTile\(/.test(build)) fail("タイル外部素材生成の定義が見つかりません");
-  ok("タイル外部CC0素材の参照を検査しました");
+  ok("外部素材に依存しない自製生成パイプラインを検査しました");
 }
-function validateNoLegacyActorSources() {
-  for (const version of ["v2", "v3", "v4"]) {
-    const dir = path.join(OUT_DIR, "source", version, "actors");
-    if (fs.existsSync(dir)) fail("旧世代の生成キャラクターソースが残っています: " + dir);
+
+function validateNoLegacyAssetSources() {
+  const sourceRoot = path.join(OUT_DIR, "source");
+  const allowed = path.basename(SOURCE_DIR);
+  if (!fs.existsSync(sourceRoot)) {
+    fail("素材ソースディレクトリがありません: " + sourceRoot);
+    return;
   }
-  if (fs.existsSync(path.join(OUT_DIR, "source", "actors-source.png"))) fail("旧生成キャラクターシートが残っています");
-  ok("旧世代の生成キャラクターソースがないことを検査しました");
+  for (const entry of fs.readdirSync(sourceRoot, { withFileTypes: true })) {
+    if (entry.isDirectory() && entry.name !== allowed) fail("旧世代の生成素材ソースが残っています: " + path.join(sourceRoot, entry.name));
+  }
+  if (fs.existsSync(path.join(sourceRoot, "actors-source.png"))) fail("旧生成キャラクターシートが残っています");
+  ok("旧世代の生成素材ソースがないことを検査しました");
 }
 
 (async () => {
@@ -312,9 +289,8 @@ function validateNoLegacyActorSources() {
   validateMeta();
   validateAtlas();
   validateNoCircleSyntax();
-  validateExternalActorSources();
-  validateExternalTileSources();
-  validateNoLegacyActorSources();
+  validateSelfMadeAssetPipeline();
+  validateNoLegacyAssetSources();
   validateActorDirectionDiff();
   validateHeroActionDiff();
   validateElitePaletteVariants();

@@ -1,7 +1,7 @@
 {
   "name": "game-yuusya-2d-rogue",
   "version": "1.0.0",
-  "description": "破壊神ダンジョンのPhaser版とローカル素材生成・検証",
+  "description": "魔界を守るPhaser版とローカル自製素材生成・検証",
   "main": "src/main.js",
   "scripts": {
     "assets:build": "node tools/build_pixel_assets.js",

@@ -26,6 +26,8 @@ import {
   BORN_ANIM,
   ATK_ANIM,
   DIG_BREAK,
+  VEIN_FADE_START,
+  VEIN_DECAY_TIME,
 } from "./gameCore.js";
 import "./style.css";
 
@@ -61,6 +63,7 @@ class MainScene extends Phaser.Scene {
   constructor() {
     super("MainScene");
     this.tileSprites = [];
+    this.veinSprites = [];
     this.actorSprites = [];
     this.effectSprites = [];
     this.crackGraphics = null;
@@ -85,7 +88,13 @@ class MainScene extends Phaser.Scene {
       for (let c = 0; c < COLS; c++) {
         const sprite = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, "tiles", 0);
         sprite.setOrigin(0.5, 0.5);
+        sprite.setDepth(0);
         this.tileSprites.push(sprite);
+        const vein = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, "tiles", 0);
+        vein.setOrigin(0.5, 0.5);
+        vein.setDepth(10);
+        vein.setVisible(false);
+        this.veinSprites.push(vein);
       }
     }
     this.crackGraphics = this.add.graphics();
@@ -104,9 +113,27 @@ class MainScene extends Phaser.Scene {
   syncTiles() {
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
+        const tile = gameApi.grid[r][c];
         const sprite = this.tileSprites[r * COLS + c];
-        const idx = PIXEL_TILES.indexOf(tileKey(gameApi.grid[r][c]));
+        const overlay = this.veinSprites[r * COLS + c];
+        const baseKey = tile.t === "earth" && tile.sub ? "earth" : tileKey(tile);
+        const idx = PIXEL_TILES.indexOf(baseKey);
         sprite.setFrame(idx >= 0 ? idx : 1);
+        sprite.setAlpha(1);
+        sprite.clearTint();
+        if (tile.t === "earth" && tile.sub) {
+          const veinIdx = PIXEL_TILES.indexOf(tileKey(tile));
+          const fade = Math.max(0, Math.min(1, ((tile.age || 0) - VEIN_FADE_START) / (VEIN_DECAY_TIME - VEIN_FADE_START)));
+          overlay.setVisible(true);
+          overlay.setFrame(veinIdx >= 0 ? veinIdx : idx);
+          overlay.setAlpha(1 - fade * 0.72);
+          if (fade > 0) overlay.setTint(0xf1d9c4);
+          else overlay.clearTint();
+        } else {
+          overlay.setVisible(false);
+          overlay.setAlpha(1);
+          overlay.clearTint();
+        }
       }
     }
   }
@@ -229,7 +256,7 @@ function legendHtml() {
     const open = gameApi.unlocked.has(key);
     html += `<span class="${open ? "" : "locked"}"><i style="background:${v.color}"></i>${v.legend}${open ? "" : ` <em>W${v.unlock}</em>`}</span>`;
   }
-  html += `<span><i style="background:var(--magic)"></i>魔王コア</span>`;
+  html += `<span><i style="background:var(--magic)"></i>魔界コア</span>`;
   return html;
 }
 
