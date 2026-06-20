@@ -25,6 +25,7 @@ import {
   EGG_HATCH,
   BORN_ANIM,
   ATK_ANIM,
+  DIG_BREAK,
 } from "./gameCore.js";
 import "./style.css";
 
@@ -62,6 +63,7 @@ class MainScene extends Phaser.Scene {
     this.tileSprites = [];
     this.actorSprites = [];
     this.effectSprites = [];
+    this.crackGraphics = null;
   }
 
   preload() {
@@ -86,11 +88,14 @@ class MainScene extends Phaser.Scene {
         this.tileSprites.push(sprite);
       }
     }
+    this.crackGraphics = this.add.graphics();
+    this.crackGraphics.setDepth(80);
   }
 
   update(_time, delta) {
     gameApi.update(Math.min(delta, 60));
     this.syncTiles();
+    this.syncCracks();
     this.syncActors();
     this.syncEffects();
     updateHud();
@@ -103,6 +108,48 @@ class MainScene extends Phaser.Scene {
         const idx = PIXEL_TILES.indexOf(tileKey(gameApi.grid[r][c]));
         sprite.setFrame(idx >= 0 ? idx : 1);
       }
+    }
+  }
+
+  syncCracks() {
+    if (!this.crackGraphics) return;
+    this.crackGraphics.clear();
+    for (let r = 0; r < ROWS; r++) {
+      for (let c = 0; c < COLS; c++) {
+        const tile = gameApi.grid[r][c];
+        if (tile.t !== "earth" || !tile.dig) continue;
+        this.drawDigCracks(c, r, Math.max(0, Math.min(1, tile.dig / DIG_BREAK)), !!tile.sub);
+      }
+    }
+  }
+
+  drawDigCracks(col, row, progress, isVein) {
+    const g = this.crackGraphics;
+    const x = col * TILE;
+    const y = row * TILE;
+    const dark = isVein ? 0x07040a : 0x120911;
+    const glow = isVein ? 0xffd36f : 0x6e5b49;
+    const alpha = 0.4 + progress * 0.55;
+    const segments = [
+      { t: 0.05, p: [[15, 11], [23, 21], [32, 18]] },
+      { t: 0.28, p: [[24, 21], [21, 31], [13, 38]] },
+      { t: 0.46, p: [[25, 22], [35, 31], [39, 40]] },
+      { t: 0.64, p: [[18, 26], [10, 25], [6, 31]] },
+      { t: 0.82, p: [[29, 15], [36, 10], [43, 12]] },
+    ];
+    for (const seg of segments) {
+      if (progress < seg.t) continue;
+      const width = progress > 0.75 ? 3 : 2;
+      g.lineStyle(width, dark, alpha);
+      g.beginPath();
+      g.moveTo(x + seg.p[0][0], y + seg.p[0][1]);
+      for (let i = 1; i < seg.p.length; i++) g.lineTo(x + seg.p[i][0], y + seg.p[i][1]);
+      g.strokePath();
+      g.lineStyle(1, glow, isVein ? 0.25 + progress * 0.35 : 0.18);
+      g.beginPath();
+      g.moveTo(x + seg.p[0][0] + 1, y + seg.p[0][1]);
+      for (let i = 1; i < seg.p.length; i++) g.lineTo(x + seg.p[i][0] + 1, y + seg.p[i][1]);
+      g.strokePath();
     }
   }
 

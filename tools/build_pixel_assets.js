@@ -28,11 +28,6 @@ const actorSources = {
   tank: "player/base/human_m.png",
   mage: "player/base/human_f.png",
   priest: "mon/deep_elf_priest.png",
-  egg_superslime: "item/food/lump_of_royal_jelly.png",
-  egg_evolved: "gui/spells/summoning/summon_demon.png",
-  egg_tarantula: "gui/spells/monster/fire_breath.png",
-  egg_titan: "mon/statues/statue_base.png",
-  egg_infernal: "gui/spells/fire/fireball.png",
 };
 const tileSources = {
   earth: "dngn/floor/dirt_full.png",
@@ -77,6 +72,72 @@ function noise(img, seed, colors, count) {
 function shardGlow(img, cx, cy, r, col, alpha) {
   const pts = [[0,-1],[1,-1],[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1]];
   pts.forEach((p, i) => diamond(img, cx + p[0] * r, cy + p[1] * r, i % 2 ? 2 : 3, col, alpha));
+}
+function oval(img, cx, cy, rx, ry, hex, alpha = 255) {
+  const c = rgba(hex, alpha);
+  for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) {
+    for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+      const dx = (x + 0.5 - cx) / rx;
+      const dy = (y + 0.5 - cy) / ry;
+      if (dx * dx + dy * dy <= 1) setPx(img, x, y, c);
+    }
+  }
+}
+const eggPalette = {
+  egg_superslime: ["#f7d4d7", "#e84a4a", "#fff5f5", "#8f2631"],
+  egg_evolved: ["#e0b4c4", "#9b2f4f", "#fff0f7", "#5a182c"],
+  egg_tarantula: ["#ffd1c8", "#ff6b5a", "#fff7ef", "#873226"],
+  egg_titan: ["#efe0bf", "#d9b27a", "#fff9dc", "#6c5430"],
+  egg_infernal: ["#cae8ff", "#5ab0ff", "#f1fbff", "#185179"],
+};
+const veinPalette = {
+  moss: { dark: "#1d5628", mid: "#54b765", light: "#bdf7bd", glow: "#eaffd8", style: "moss" },
+  meat: { dark: "#711018", mid: "#d83d32", light: "#ffb39e", glow: "#ffe0c8", style: "meat" },
+  venom: { dark: "#491576", mid: "#9f4bff", light: "#e0bcff", glow: "#f5e7ff", style: "venom" },
+  stone: { dark: "#283b62", mid: "#6f86c4", light: "#bcd0ff", glow: "#edf4ff", style: "stone" },
+  ember: { dark: "#7a2e06", mid: "#ff9e22", light: "#ffe39a", glow: "#fff5bc", style: "ember" },
+};
+function drawVeinShard(img, x, y, size, pal, shape) {
+  if (shape === "flame") {
+    tri(img, x - size, y + size, x, y - size - 3, x + size, y + size, pal.mid, 235);
+    tri(img, x - Math.ceil(size / 2), y + size - 1, x + 1, y - Math.floor(size / 2), x + size - 1, y + size - 1, pal.light, 210);
+  } else if (shape === "tooth") {
+    tri(img, x - size, y - size, x + size, y - size + 1, x, y + size + 2, pal.mid, 235);
+    line(img, x - size + 2, y - size + 1, x, y + size - 1, pal.light, 2, 170);
+  } else if (shape === "needle") {
+    tri(img, x, y - size - 3, x + size, y + size, x - size, y + size, pal.mid, 230);
+    diamond(img, x, y + 1, Math.max(2, size - 3), pal.light, 210);
+  } else {
+    diamond(img, x, y, size, pal.mid, 235);
+    diamond(img, x - 1, y - 2, Math.max(2, size - 3), pal.light, 210);
+  }
+  diamond(img, x - Math.floor(size / 3), y - Math.floor(size / 2), 1, pal.glow, 230);
+}
+function drawRichVein(img, base, evo) {
+  const pal = veinPalette[base];
+  line(img, 8, 31, 19, 25, pal.dark, 5, 150);
+  line(img, 18, 25, 31, 19, pal.dark, 5, 150);
+  line(img, 30, 19, 42, 14, pal.dark, 4, 145);
+  line(img, 9, 32, 20, 27, pal.mid, 3, 180);
+  line(img, 19, 26, 32, 20, pal.mid, 3, 190);
+  line(img, 31, 20, 41, 15, pal.light, 2, 175);
+  line(img, 13, 18, 24, 24, pal.dark, 3, 125);
+  line(img, 24, 24, 35, 33, pal.mid, 2, 160);
+  const shape = pal.style === "ember" ? "flame" : (pal.style === "meat" ? "tooth" : (pal.style === "venom" ? "needle" : "gem"));
+  drawVeinShard(img, 24, 23, evo ? 10 : 8, pal, shape);
+  drawVeinShard(img, 15, 31, evo ? 6 : 5, pal, shape);
+  drawVeinShard(img, 35, 17, evo ? 6 : 5, pal, shape);
+  if (pal.style === "stone") drawVeinShard(img, 31, 30, evo ? 7 : 5, pal, "gem");
+  if (pal.style === "moss") {
+    diamond(img, 20, 17, 3, pal.light, 170);
+    diamond(img, 30, 30, 2, pal.glow, 180);
+  }
+  if (evo) {
+    shardGlow(img, 24, 23, 13, pal.light, 145);
+    for (const p of [[11,13],[38,10],[39,36],[18,39]]) diamond(img, p[0], p[1], 3, pal.glow, 220);
+    line(img, 11, 13, 24, 23, pal.glow, 1, 130);
+    line(img, 24, 23, 39, 36, pal.glow, 1, 125);
+  }
 }
 
 function trimPngBuffer(buf) {
@@ -224,7 +285,18 @@ function heroBase(name) {
   return cropOpaque(out, 1);
 }
 function eggBase(name) {
-  return normalize(readExternal(actorSources[name]), 27, 27);
+  const colors = eggPalette[name];
+  const out = image(31, 36);
+  oval(out, 15, 20, 10, 15, colors[3], 225);
+  oval(out, 15, 19, 9, 14, colors[0], 255);
+  oval(out, 16, 23, 8, 10, colors[1], 95);
+  oval(out, 12, 14, 3, 5, colors[2], 190);
+  diamond(out, 10, 24, 2, colors[1], 210);
+  diamond(out, 20, 19, 2, colors[1], 190);
+  diamond(out, 17, 29, 2, colors[3], 150);
+  line(out, 8, 25, 13, 31, colors[3], 1, 100);
+  line(out, 20, 13, 23, 18, colors[2], 1, 130);
+  return cropOpaque(out, 1);
 }
 function directionalSprite(src, dir, action, frame, isHero) {
   const [dx, dy] = dirVec[dir];
@@ -272,14 +344,7 @@ function drawTile(name) {
     diamond(img, 22, 21, 3, "#f5e6ff", 240);
   }
   if (!tileSources[base]) {
-    const vein = { moss:["#2e7d35","#6fcf6f","#bdf7bd","diamond"], meat:["#7b1515","#e63a2c","#ffb39e","meat"], venom:["#4e1d7d","#a64dff","#e0bcff","venom"], stone:["#33466b","#6f86c4","#bcd0ff","stone"], ember:["#8c3b0c","#ffae26","#ffe39a","ember"] }[base];
-    const cx = 24, cy = 24;
-    if (vein[3] === "diamond") { diamond(img, cx, cy, 10, vein[0]); diamond(img, cx, cy, 7, vein[1]); diamond(img, cx - 2, cy - 3, 3, vein[2]); }
-    else if (vein[3] === "meat") { rect(img, cx - 8, cy - 7, 16, 14, vein[0]); rect(img, cx - 6, cy - 5, 12, 10, vein[1]); line(img, cx - 4, cy - 5, cx + 4, cy + 5, vein[2], 2, 220); }
-    else if (vein[3] === "venom") { tri(img, cx, cy - 10, cx + 10, cy + 6, cx - 10, cy + 6, vein[0]); tri(img, cx, cy - 7, cx + 7, cy + 5, cx - 7, cy + 5, vein[1]); diamond(img, cx, cy + 1, 3, vein[2]); }
-    else if (vein[3] === "stone") { diamond(img, cx - 5, cy, 8, vein[0]); diamond(img, cx + 5, cy, 8, vein[1]); rect(img, cx - 2, cy - 4, 4, 3, vein[2]); }
-    else { tri(img, cx - 9, cy + 8, cx, cy - 12, cx + 9, cy + 8, vein[1]); tri(img, cx - 4, cy + 7, cx + 2, cy - 4, cx + 7, cy + 7, vein[2]); }
-    if (evo) { diamond(img, 13, 12, 3, vein[2]); diamond(img, 35, 12, 3, vein[2]); diamond(img, 24, 36, 3, vein[2]); }
+    drawRichVein(img, base, evo);
   }
   return img;
 }

@@ -63,7 +63,7 @@ export const HERO_CLASSES = {
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v7-external-tiles-los-1";
+export const PIXEL_ASSET_VERSION = "v8-rich-veins-eggs-cracks";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -129,6 +129,7 @@ export function createGame(options = {}) {
   const clamp = (v, a, b) => (v < a ? a : (v > b ? b : v));
   const inBounds = (col, row) => col >= 0 && row >= 0 && col < COLS && row < ROWS;
   const cheb = (a, b) => Math.max(Math.abs(a.col - b.col), Math.abs(a.row - b.row));
+  const cardinalDist = (a, b) => Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
   const isMoving = (e) => (e.moveAnim || 0) > 0;
 
   function digCost() {
@@ -151,8 +152,8 @@ export function createGame(options = {}) {
       }
       grid.push(row);
     }
-    seedType("moss", 8, 2, 9);
-    seedType("meat", 3, 8, ROWS - 3);
+    seedType("moss", 8, 2, ROWS - 3);
+    seedType("meat", 3, 2, ROWS - 3);
     grid[1][ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
     grid[2][ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
     grid[CORE_ROW][CORE_COL] = { t: "core", sub: null, shade: 0 };
@@ -229,7 +230,7 @@ export function createGame(options = {}) {
   }
 
   function isElite(kind) {
-    return Object.values(VEIN).some((v) => v.evoKind === kind);
+    return !!(KINDS[kind] && KINDS[kind].eliteOf);
   }
 
   function dirFromDelta(dx, dy, fallback = "s") {
@@ -362,9 +363,9 @@ export function createGame(options = {}) {
     return eggs.filter((e) => e.kind === kind).length;
   }
 
-  function eggSpot(a, b) {
+  function eggSpot(m) {
     const cand = [];
-    for (const base of [a, b]) for (const n of openNeighbors(base.col, base.row)) if (!occupied(n.col, n.row)) cand.push(n);
+    for (const n of openNeighbors(m.col, m.row)) if (!occupied(n.col, n.row)) cand.push(n);
     return cand.length ? cand[ri(0, cand.length - 1)] : null;
   }
 
@@ -385,19 +386,13 @@ export function createGame(options = {}) {
 
   function updateEliteEggBreeding(dt) {
     for (const m of monsters) if (isElite(m.kind)) m.eggCd = (m.eggCd === undefined ? EGG_CHECK : m.eggCd) - dt;
-    for (let i = 0; i < monsters.length; i++) {
-      const a = monsters[i];
-      if (!isElite(a.kind) || a.eggCd > 0 || eggCount(a.kind) >= EGG_KIND_CAP) continue;
-      for (let j = i + 1; j < monsters.length; j++) {
-        const b = monsters[j];
-        if (b.kind !== a.kind || cheb(a, b) > 1) continue;
-        a.eggCd = EGG_CHECK * rnd(0.9, 1.25);
-        b.eggCd = EGG_CHECK * rnd(0.9, 1.25);
-        if (random() < EGG_CHANCE) {
-          const spot = eggSpot(a, b);
-          if (spot) spawnEgg(a.kind, spot.col, spot.row);
-        }
-        break;
+    for (const m of monsters) {
+      if (!isElite(m.kind) || m.eggCd > 0) continue;
+      m.eggCd = EGG_CHECK * rnd(0.9, 1.25);
+      if (eggCount(m.kind) >= EGG_KIND_CAP) continue;
+      if (random() < EGG_CHANCE) {
+        const spot = eggSpot(m);
+        if (spot) spawnEgg(m.kind, spot.col, spot.row);
       }
     }
   }
@@ -412,7 +407,7 @@ export function createGame(options = {}) {
       if (t.t !== "earth" || !t.sub || t.evo) continue;
       const touching = {};
       for (const m of monsters) {
-        if (cheb(m, { col: c, row: r }) <= 1) {
+        if (cardinalDist(m, { col: c, row: r }) === 1) {
           touching[m.id] = true;
           if (!t.evoTouching || !t.evoTouching[m.id]) t.evoTouch = (t.evoTouch || 0) + 1;
         }

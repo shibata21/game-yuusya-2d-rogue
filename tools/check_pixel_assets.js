@@ -211,7 +211,23 @@ function validateElitePaletteVariants() {
   }
   ok("進化モンスターの色違い化を検査しました");
 }
-function validateSimpleVeins() {
+function validateEggShapes() {
+  const eggs = ACTORS.filter((n) => n.startsWith("egg_"));
+  for (const name of eggs) {
+    const img = actorFrame(name, "idle", "s", 1);
+    const b = alphaBounds(img);
+    const w = b.maxX - b.minX + 1;
+    const h = b.maxY - b.minY + 1;
+    if (b.count < 220) fail(name + " の卵が小さすぎます: " + b.count);
+    if (w < 17 || w > 29 || h < 24 || h > 38 || h <= w + 5) fail(name + " の卵シルエットが不正です: " + w + "x" + h);
+  }
+  for (let i = 1; i < eggs.length; i++) {
+    const d = diffRatio(actorFrame(eggs[i - 1], "idle", "s", 1), actorFrame(eggs[i], "idle", "s", 1));
+    if (d < 0.08) fail(eggs[i - 1] + "/" + eggs[i] + " の卵色差分が小さすぎます: " + d.toFixed(3));
+  }
+  ok("モンスター別の卵シルエットと色差を検査しました");
+}
+function validateRichVeins() {
   const veins = ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"];
   const earth = readPng(spritePath("tiles", "earth"));
   for (const name of veins) {
@@ -224,10 +240,11 @@ function validateSimpleVeins() {
         if (x < 10 || x > 38 || y < 8 || y > 40) outside++;
       }
     }
-    if (motif > (name.endsWith("_evo") ? 360 : 290)) fail(name + " の鉱脈模様が複雑すぎます: " + motif);
-    if (outside > 45) fail(name + " の鉱脈模様が広がりすぎています: " + outside);
+    if (motif < (name.endsWith("_evo") ? 310 : 240)) fail(name + " の鉱脈模様が単純すぎます: " + motif);
+    if (motif > (name.endsWith("_evo") ? 830 : 620)) fail(name + " の鉱脈模様が複雑すぎます: " + motif);
+    if (outside > 190) fail(name + " の鉱脈模様が広がりすぎています: " + outside);
   }
-  ok("鉱脈のシンプルな中央モチーフを検査しました");
+  ok("鉱脈の地層内リッチモチーフを検査しました");
 }
 
 function validateNoCircleSyntax() {
@@ -243,7 +260,7 @@ function validateExternalActorSources() {
   if (!source || source.license !== "CC0-1.0") fail("DCSS素材ソースのCC0ライセンス記録がありません");
   if (!source.licenseFile) fail("DCSS素材ソースのライセンス本文パスがありません");
   else exists(source.licenseFile);
-  for (const name of ACTORS) {
+  for (const name of ACTORS.filter((n) => !n.startsWith("egg_"))) {
     const refs = meta.actors && meta.actors[name];
     if (!Array.isArray(refs) || refs.length === 0) fail(name + " の外部素材参照がありません");
     for (const ref of refs || []) {
@@ -301,7 +318,8 @@ function validateNoLegacyActorSources() {
   validateActorDirectionDiff();
   validateHeroActionDiff();
   validateElitePaletteVariants();
-  validateSimpleVeins();
+  validateEggShapes();
+  validateRichVeins();
   await validateGeneratedDiff();
   if (failed) process.exit(1);
   console.log("ピクセル素材検査が完了しました。");

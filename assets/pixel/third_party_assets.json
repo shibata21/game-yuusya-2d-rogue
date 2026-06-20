@@ -23,12 +23,7 @@
     "warrior": ["dcss:releases/Nov-2015/player/base/human_m.png", "dcss:releases/Nov-2015/player/body/dragonarm_blue.png", "dcss:releases/Nov-2015/player/hand1/long_sword_slant.png", "dcss:releases/Nov-2015/player/hand1/heavy_sword.png"],
     "tank": ["dcss:releases/Nov-2015/player/base/human_m.png", "dcss:releases/Nov-2015/player/body/dragonarm_shadow.png", "dcss:releases/Nov-2015/player/hand2/doll_only/shield_middle_gray.png", "dcss:releases/Nov-2015/player/hand2/doll_only/shield_round_white.png"],
     "mage": ["dcss:releases/Nov-2015/player/base/human_f.png", "dcss:releases/Nov-2015/player/body/dragonarm_magenta.png", "dcss:releases/Nov-2015/player/head/wizard_purple.png", "dcss:releases/Nov-2015/player/hand1/staff_mage.png", "dcss:releases/Nov-2015/gui/spells/fire/flame_tongue.png"],
-    "priest": ["dcss:releases/Nov-2015/mon/deep_elf_priest.png", "dcss:releases/Nov-2015/player/body/dragonarm_white.png", "dcss:releases/Nov-2015/player/head/wizard_white.png", "dcss:releases/Nov-2015/player/hand1/staff_fancy.png", "dcss:releases/Nov-2015/gui/spells/fire/fireball.png"],
-    "egg_superslime": ["dcss:releases/Nov-2015/item/food/lump_of_royal_jelly.png"],
-    "egg_evolved": ["dcss:releases/Nov-2015/gui/spells/summoning/summon_demon.png"],
-    "egg_tarantula": ["dcss:releases/Nov-2015/gui/spells/monster/fire_breath.png"],
-    "egg_titan": ["dcss:releases/Nov-2015/mon/statues/statue_base.png"],
-    "egg_infernal": ["dcss:releases/Nov-2015/gui/spells/fire/fireball.png"]
+    "priest": ["dcss:releases/Nov-2015/mon/deep_elf_priest.png", "dcss:releases/Nov-2015/player/body/dragonarm_white.png", "dcss:releases/Nov-2015/player/head/wizard_white.png", "dcss:releases/Nov-2015/player/hand1/staff_fancy.png", "dcss:releases/Nov-2015/gui/spells/fire/fireball.png"]
   },
   "tiles": {
     "earth": ["dcss:releases/Nov-2015/dngn/floor/dirt_full.png"],

@@ -24,6 +24,8 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('this.load.spritesheet("actors"');
     expect(src).toContain('this.load.spritesheet("effects"');
     expect(src).toContain("Phaser.Scale.FIT");
+    expect(src).toContain("crackGraphics");
+    expect(src).toContain("DIG_BREAK");
   });
 
   it("ViteビルドはPages配下で読める相対baseを使う", () => {
@@ -38,7 +40,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.HakaishinDungeon.createGame({ seed: 1 });
     const b = globalThis.HakaishinDungeon.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.HakaishinDungeon.Core.PIXEL_ASSET_VERSION).toBe("v7-external-tiles-los-1");
+    expect(globalThis.HakaishinDungeon.Core.PIXEL_ASSET_VERSION).toBe("v8-rich-veins-eggs-cracks");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

@@ -55,6 +55,28 @@ describe("ゲームルール", () => {
     expect(G.grid[0][G.ENTRANCE_COL].t).toBe("surface");
     expect(G.grid[G.CORE_ROW][G.CORE_COL].t).toBe("core");
     expect(G.nutrients).toBe(G.START_NUT);
+    expect(G.grid.flat().filter((t) => t.sub === "moss")).toHaveLength(8);
+    expect(G.grid.flat().filter((t) => t.sub === "meat")).toHaveLength(3);
+  });
+
+  it("初期鉱脈は上下固定ではなくスライム多めでランダム配置される", () => {
+    const mossRows = [];
+    const meatRows = [];
+    for (let seed = 1; seed <= 16; seed++) {
+      const game = createGame({ seed });
+      const moss = [];
+      const meat = [];
+      for (let r = 0; r < game.ROWS; r++) for (let c = 0; c < game.COLS; c++) {
+        if (game.grid[r][c].sub === "moss") moss.push(r);
+        if (game.grid[r][c].sub === "meat") meat.push(r);
+      }
+      expect(moss).toHaveLength(8);
+      expect(meat).toHaveLength(3);
+      mossRows.push(...moss);
+      meatRows.push(...meat);
+    }
+    expect(Math.max(...mossRows)).toBeGreaterThan(9);
+    expect(Math.min(...meatRows)).toBeLessThan(8);
   });
 
   it("鉱脈を掘ると魔物が出て固定コストを消費する", () => {
@@ -87,6 +109,17 @@ describe("ゲームルール", () => {
     expect(G.grid[r][c].evoTouch).toBeGreaterThanOrEqual(VEIN.moss.touchNeed);
   });
 
+  it("鉱脈進化は斜め接触を数えない", () => {
+    carveAll();
+    const c = 5;
+    const r = 5;
+    G.grid[r][c] = { t: "earth", sub: "moss", shade: 0, evo: false, evoTouch: 0, evoTouching: {} };
+    for (const [col, row] of [[c + 1, r + 1], [c - 1, r + 1], [c + 1, r - 1], [c - 1, r - 1]]) G.spawnMonster("slime", col, row);
+    G.update(100);
+    expect(G.grid[r][c].evo).toBe(false);
+    expect(G.grid[r][c].evoTouch || 0).toBe(0);
+  });
+
   it("後半鉱脈ほど進化に必要な接触数が多い", () => {
     expect(VEIN.moss.touchNeed).toBeLessThan(VEIN.meat.touchNeed);
     expect(VEIN.meat.touchNeed).toBeLessThan(VEIN.venom.touchNeed);
@@ -116,16 +149,15 @@ describe("ゲームルール", () => {
     expect(G.eggs).toHaveLength(0);
   });
 
-  it("隣接した同種上位2体は卵を作り、卵は同じ上位種に孵化する", () => {
+  it("上位モンスター1体は単独で卵を作り、卵は同じ上位種に孵化する", () => {
     carveAll();
     G.setRandom(() => 0);
     G.spawnMonster("superslime", 5, 5);
-    G.spawnMonster("superslime", 6, 5);
     G.monsters[0].eggCd = 0;
-    G.monsters[1].eggCd = 0;
     G.update(G.EGG_CHECK);
     expect(G.eggs).toHaveLength(1);
     expect(G.eggs[0].kind).toBe("superslime");
+    expect(Math.abs(G.eggs[0].col - 5) + Math.abs(G.eggs[0].row - 5)).toBe(1);
     G.waveCountdown = 999999;
     G.monsters.forEach((m) => { m.eggCd = 999999; });
     G.setRandom(() => 0.99);

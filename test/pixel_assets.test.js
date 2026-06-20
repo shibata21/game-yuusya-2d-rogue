@@ -33,6 +33,24 @@ function crop(img, x0, y0, w, h) {
   return out;
 }
 
+function alphaBounds(img) {
+  let minX = img.width;
+  let minY = img.height;
+  let maxX = -1;
+  let maxY = -1;
+  let count = 0;
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+    if (img.data[(y * img.width + x) * 4 + 3] > 0) {
+      count++;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  return { minX, minY, maxX, maxY, count };
+}
+
 function actorCrop(name, action, dir, frame) {
   const img = png("assets/pixel/actors.png");
   const row = Object.keys(meta.actors).indexOf(name);
@@ -56,6 +74,20 @@ function diffRatio(a, b) {
     if (d > 32) diff++;
   }
   return union ? diff / union : 0;
+}
+
+function tileMotifStats(tile, earth) {
+  let motif = 0;
+  let outside = 0;
+  for (let y = 0; y < tile.height; y++) for (let x = 0; x < tile.width; x++) {
+    const i = (y * tile.width + x) * 4;
+    const d = Math.abs(tile.data[i] - earth.data[i]) + Math.abs(tile.data[i + 1] - earth.data[i + 1]) + Math.abs(tile.data[i + 2] - earth.data[i + 2]) + Math.abs(tile.data[i + 3] - earth.data[i + 3]);
+    if (d > 48) {
+      motif++;
+      if (x < 10 || x > 38 || y < 8 || y > 40) outside++;
+    }
+  }
+  return { motif, outside };
 }
 
 function paletteStats(base, elite) {
@@ -102,8 +134,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v7-external-tiles-los-1");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v7-external-tiles-los-1");
+    expect(PIXEL_ASSET_VERSION).toBe("v8-rich-veins-eggs-cracks");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v8-rich-veins-eggs-cracks");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -127,6 +159,35 @@ describe("ピクセル素材", () => {
     expect(diffRatio(actorCrop("warrior", "idle", "e", 1), actorCrop("warrior", "attack", "e", 2))).toBeGreaterThan(0.18);
     expect(diffRatio(actorCrop("mage", "idle", "e", 1), actorCrop("mage", "cast", "e", 2))).toBeGreaterThan(0.18);
     expect(diffRatio(actorCrop("priest", "idle", "e", 1), actorCrop("priest", "heal", "e", 2))).toBeGreaterThan(0.18);
+  });
+
+  it("卵は種別色のよくある卵シルエットになる", () => {
+    const eggs = PIXEL_ACTORS.filter((name) => name.startsWith("egg_"));
+    for (const name of eggs) {
+      expect(thirdParty.actors[name]).toBeUndefined();
+      const b = alphaBounds(actorCrop(name, "idle", "s", 1));
+      const w = b.maxX - b.minX + 1;
+      const h = b.maxY - b.minY + 1;
+      expect(b.count, name).toBeGreaterThan(220);
+      expect(w, name).toBeGreaterThanOrEqual(17);
+      expect(w, name).toBeLessThanOrEqual(29);
+      expect(h, name).toBeGreaterThanOrEqual(24);
+      expect(h, name).toBeLessThanOrEqual(38);
+      expect(h, name).toBeGreaterThan(w + 5);
+    }
+    for (let i = 1; i < eggs.length; i++) {
+      expect(diffRatio(actorCrop(eggs[i - 1], "idle", "s", 1), actorCrop(eggs[i], "idle", "s", 1)), `${eggs[i - 1]}/${eggs[i]}`).toBeGreaterThan(0.08);
+    }
+  });
+
+  it("鉱脈タイルは地層内にリッチな結晶模様を持つ", () => {
+    const earth = tileCrop("earth");
+    for (const name of ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"]) {
+      const stats = tileMotifStats(tileCrop(name), earth);
+      expect(stats.motif, name).toBeGreaterThan(name.endsWith("_evo") ? 310 : 240);
+      expect(stats.motif, name).toBeLessThan(name.endsWith("_evo") ? 830 : 620);
+      expect(stats.outside, name).toBeLessThanOrEqual(190);
+    }
   });
 
   it("タイルは外部CC0素材を元に生成される", () => {
