@@ -1,11 +1,14 @@
 {
   "name": "game-yuusya-2d-rogue",
   "version": "1.0.0",
-  "description": "破壊神ダンジョンのローカル素材生成と検証",
-  "main": "hakaishin_dungeon.js",
+  "description": "破壊神ダンジョンのPhaser版とローカル素材生成・検証",
+  "main": "src/main.js",
   "scripts": {
     "assets:build": "node tools/build_pixel_assets.js",
     "assets:check": "node tools/check_pixel_assets.js",
+    "dev": "node node_modules/vite/bin/vite.js --host 0.0.0.0",
+    "build": "node node_modules/vite/bin/vite.js build",
+    "preview": "node node_modules/vite/bin/vite.js preview --host 0.0.0.0",
     "test": "node node_modules/vitest/vitest.mjs run"
   },
   "repository": {
@@ -23,6 +26,10 @@
   "devDependencies": {
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",
+    "vite": "^8.0.16",
     "vitest": "^4.1.9"
+  },
+  "dependencies": {
+    "phaser": "^4.2.0"
   }
 }
