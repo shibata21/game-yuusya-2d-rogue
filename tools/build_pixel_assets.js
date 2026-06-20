@@ -372,31 +372,47 @@ function drawMonster(img, name, action, dir, frame) {
 }
 
 function drawSword(img, cx, cy, dx, dy, frame, pal) {
-  const fx = dx || (dy === 0 ? 1 : 0);
-  const px = dx === 0 ? -Math.sign(dy || 1) : 0;
-  const py = dx === 0 ? 0 : 1;
-  const sweep = [-7, -2, 6, 1][frame];
-  const reach = 13 + frame * 2;
-  const sx = cx + fx * 4 + px * sweep;
-  const sy = cy - 1 + dy * 3 + py * sweep;
-  const ex = cx + fx * reach + px * (sweep + 8);
-  const ey = cy - 10 + dy * reach + py * (sweep + 8);
-  line(img, sx, sy, ex, ey, pal.metal, 4, 245);
-  line(img, sx - px * 2, sy - py * 2, ex - px * 2, ey - py * 2, "#ffffff", 1, 170);
-  line(img, cx + fx * 2, cy + dy * 2, cx + fx * 8, cy + 6 + dy * 6, pal.accent, 2, 220);
-  diamond(img, ex, ey, 2, pal.light, 220);
+  const vx = dx || (dy === 0 ? 1 : 0);
+  const vy = dy || 0;
+  const px = -vy;
+  const py = vx;
+  const swing = [-3, -1, 3, 1][frame];
+  const hiltX = cx + vx * 4 + px * swing;
+  const hiltY = cy + 4 + vy * 5 + py * swing;
+  const tipX = hiltX + vx * 10 + px * 4;
+  const tipY = hiltY + vy * 10 + py * 4;
+  line(img, hiltX, hiltY, tipX, tipY, pal.dark, 5, 225);
+  line(img, hiltX, hiltY, tipX, tipY, pal.metal, 3, 245);
+  line(img, hiltX - px, hiltY - py, tipX - px, tipY - py, "#ffffff", 1, 165);
+  line(img, hiltX - px * 4, hiltY - py * 4, hiltX + px * 4, hiltY + py * 4, pal.dark, 4, 225);
+  line(img, hiltX - px * 3, hiltY - py * 3, hiltX + px * 3, hiltY + py * 3, pal.accent, 2, 230);
+  line(img, hiltX - vx * 5, hiltY - vy * 5, hiltX, hiltY, "#6a4428", 3, 235);
+  diamond(img, tipX, tipY, 2, pal.light, 210);
 }
 
 function drawSpear(img, cx, cy, dx, dy, frame, pal) {
   const fx = dx || (dy === 0 ? 1 : 0);
-  const thrust = 5 + frame * 4;
-  line(img, cx - fx * 8, cy + 7 - dy * 5, cx + fx * (18 + thrust), cy + dy * (17 + thrust), "#6a4428", 3, 240);
+  const fy = dy || 0;
+  const px = -fy;
+  const py = fx;
+  const thrust = [0, 1, 2, 1][frame];
+  const baseX = cx - fx * 8 - px + fx * thrust;
+  const baseY = cy + 7 - fy * 5 - py + fy * thrust;
+  const tipX = cx + fx * 15 + px + fx * thrust;
+  const tipY = cy + fy * 15 + py + fy * thrust;
+  line(img, baseX, baseY, tipX, tipY, pal.dark, 4, 220);
+  line(img, baseX, baseY, tipX, tipY, "#6a4428", 2, 245);
   tri(img,
-    cx + fx * (20 + thrust), cy + dy * (18 + thrust),
-    cx + fx * (15 + thrust) - dy * 3, cy + dy * (14 + thrust) + fx * 3,
-    cx + fx * (15 + thrust) + dy * 3, cy + dy * (14 + thrust) - fx * 3,
+    tipX + fx * 5, tipY + fy * 5,
+    tipX - fx * 2 + px * 5, tipY - fy * 2 + py * 5,
+    tipX - fx * 2 - px * 5, tipY - fy * 2 - py * 5,
+    pal.dark, 220);
+  tri(img,
+    tipX + fx * 4, tipY + fy * 4,
+    tipX - fx * 2 + px * 3, tipY - fy * 2 + py * 3,
+    tipX - fx * 2 - px * 3, tipY - fy * 2 - py * 3,
     pal.metal, 245);
-  diamond(img, cx + fx * (10 + frame), cy + dy * (10 + frame), 2, pal.accent, 180);
+  diamond(img, cx + fx * 7 + fx * thrust, cy + fy * 7 + fy * thrust, 2, pal.accent, 180);
 }
 
 function drawShield(img, cx, cy, dx, dy, pal, kind, frame) {
@@ -422,8 +438,18 @@ function drawShield(img, cx, cy, dx, dy, pal, kind, frame) {
 
 function drawPickaxe(img, cx, cy, dx, dy, frame, pal) {
   const fx = dx || 1;
-  line(img, cx - fx * 8, cy - 8, cx + fx * 11, cy + 12, "#6a4428", 3, 235);
-  line(img, cx + fx * (5 - frame), cy - 12, cx + fx * (17 + frame), cy - 5, pal.metal, 3, 230);
+  const fy = dy || 0;
+  const swing = [0, 1, 2, 1][frame];
+  const lift = [-1, -3, 1, -2][frame];
+  const gripX = cx + fx * 4;
+  const gripY = cy + 4 + fy * 2;
+  const headX = cx + fx * (11 + swing);
+  const headY = cy - 9 + fy * 4 + lift;
+  line(img, gripX, gripY, headX, headY, pal.dark, 4, 215);
+  line(img, gripX, gripY, headX, headY, "#6a4428", 2, 245);
+  line(img, headX - fx * 6, headY - 1, headX + fx * 6, headY + 1, pal.dark, 5, 210);
+  line(img, headX - fx * 5, headY - 1, headX + fx * 5, headY + 1, pal.metal, 3, 240);
+  line(img, headX + fx * 5, headY + 1, headX + fx * 7, headY + 4, pal.metal, 2, 235);
 }
 
 function drawStaff(img, cx, cy, dx, dy, frame, pal, variant) {
