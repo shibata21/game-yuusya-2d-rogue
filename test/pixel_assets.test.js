@@ -133,8 +133,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v9-self-made-makai-veins");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v9-self-made-makai-veins");
+    expect(PIXEL_ASSET_VERSION).toBe("v10-expanded-heroes");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v10-expanded-heroes");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -156,8 +156,19 @@ describe("ピクセル素材", () => {
       expect(diffRatio(actorCrop(name, "idle", "s", 1), actorCrop(name, "idle", "n", 1)), name).toBeGreaterThan(0.13);
     }
     expect(diffRatio(actorCrop("warrior", "idle", "e", 1), actorCrop("warrior", "attack", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("superwarrior", "idle", "e", 1), actorCrop("superwarrior", "attack", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("ultrawarrior", "idle", "e", 1), actorCrop("ultrawarrior", "attack", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("tank", "idle", "e", 1), actorCrop("tank", "attack", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("crossknight", "idle", "e", 1), actorCrop("crossknight", "attack", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("captain", "idle", "e", 1), actorCrop("captain", "attack", "e", 2))).toBeGreaterThan(0.18);
     expect(diffRatio(actorCrop("mage", "idle", "e", 1), actorCrop("mage", "cast", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("supermage", "idle", "e", 1), actorCrop("supermage", "cast", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("sage", "idle", "e", 1), actorCrop("sage", "cast", "e", 2))).toBeGreaterThan(0.18);
     expect(diffRatio(actorCrop("priest", "idle", "e", 1), actorCrop("priest", "heal", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("saint", "idle", "e", 1), actorCrop("saint", "heal", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("warrior", "attack", "e", 2), actorCrop("superwarrior", "attack", "e", 2))).toBeGreaterThan(0.16);
+    expect(diffRatio(actorCrop("tank", "attack", "e", 2), actorCrop("crossknight", "attack", "e", 2))).toBeGreaterThan(0.16);
+    expect(diffRatio(actorCrop("mage", "cast", "e", 2), actorCrop("supermage", "cast", "e", 2))).toBeGreaterThan(0.16);
   });
 
   it("卵は種別色のよくある卵シルエットになる", () => {

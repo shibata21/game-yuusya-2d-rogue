@@ -176,7 +176,19 @@ function validateActorDirectionDiff() {
   ok("アクターの8方向差分を検査しました");
 }
 function validateHeroActionDiff() {
-  const heroActions = { warrior: "attack", tank: "dig", mage: "cast", priest: "heal" };
+  const heroActions = {
+    warrior: "attack",
+    superwarrior: "attack",
+    ultrawarrior: "attack",
+    tank: "attack",
+    crossknight: "attack",
+    captain: "attack",
+    priest: "heal",
+    saint: "heal",
+    mage: "cast",
+    supermage: "cast",
+    sage: "cast",
+  };
   for (const name of Object.keys(heroActions)) {
     const action = heroActions[name];
     const d = diffRatio(actorFrame(name, "idle", "e", 1), actorFrame(name, action, "e", 2));

@@ -28,6 +28,7 @@ function hero(cls, col, row, extra = {}) {
     hp: 60,
     maxHp: 100,
     atk: 10,
+    defense: c.defense || 0,
     range: c.range,
     wave: 5,
     moveCd: Math.round(720 * c.moveMul),
@@ -342,6 +343,92 @@ describe("ゲームルール", () => {
     G.startWave();
     for (let i = 0; i < 20; i++) G.update(G.HERO_STAGGER);
     expect(G.heroes).toHaveLength(G.MAX_HEROES);
+  });
+
+  it("後半役職は指定ウェーブまで出現せず、騎士団長は1ウェーブ最大1体", () => {
+    const late = new Set(["crossknight", "captain", "saint", "sage"]);
+    G.wave = 13;
+    for (let i = 0; i < 120; i++) {
+      G.heroes.length = 0;
+      G.spawnHero();
+      expect(late.has(G.heroes[0].cls)).toBe(false);
+    }
+    expect(HERO_CLASSES.crossknight.unlock).toBeGreaterThan(13);
+    expect(HERO_CLASSES.saint.unlock).toBeGreaterThan(13);
+    expect(HERO_CLASSES.sage.unlock).toBeGreaterThan(13);
+    expect(HERO_CLASSES.captain.unlock).toBeGreaterThan(13);
+
+    G.resetGame(1);
+    G.setRandom(() => 0.999);
+    G.wave = HERO_CLASSES.captain.unlock - 1;
+    G.startWave();
+    expect(G.wave).toBe(HERO_CLASSES.captain.unlock);
+    expect(G.spawnQueue.filter((q) => q.cls === "captain")).toHaveLength(1);
+  });
+
+  it("同系統の下位勇者は同ウェーブの上位役職を主要数値で越えない", () => {
+    const w = 24;
+    const s = (cls) => G.resolveHeroStats(cls, w);
+    expect(s("warrior").atk).toBeLessThan(s("superwarrior").atk);
+    expect(s("superwarrior").atk).toBeLessThan(s("ultrawarrior").atk);
+    expect(s("ultrawarrior").atk).toBeLessThan(s("crossknight").atk);
+    expect(s("crossknight").atk).toBeLessThan(s("captain").atk);
+    expect(s("mage").atk).toBeLessThan(s("supermage").atk);
+    expect(s("supermage").atk).toBeLessThan(s("sage").atk);
+    expect(s("priest").heal).toBeLessThan(s("saint").heal);
+    expect(s("warrior").hp).toBeLessThan(s("ultrawarrior").hp);
+    expect(s("crossknight").defense).toBeLessThan(s("captain").defense);
+  });
+
+  it("防御は勇者への被ダメージを軽減し、低防御職は重く受ける", () => {
+    const raw = 20;
+    const w = hero("warrior", 5, 5);
+    const t = hero("tank", 5, 5);
+    const m = hero("mage", 5, 5);
+    expect(G.heroDamageTaken(raw, t)).toBeLessThan(G.heroDamageTaken(raw, w));
+    expect(G.heroDamageTaken(raw, m)).toBeGreaterThan(G.heroDamageTaken(raw, w));
+  });
+
+  it("聖女は僧侶より大きく回復する", () => {
+    carveAll();
+    const priest = hero("priest", 5, 5, { wave: 18, healCd: 0 });
+    const saint = hero("saint", 5, 5, { wave: 18, healCd: 0 });
+    const targetA = hero("warrior", 6, 5, { hp: 20, maxHp: 100 });
+    const targetB = hero("warrior", 6, 5, { hp: 20, maxHp: 100 });
+
+    G.heroes.push(priest, targetA);
+    G.update(100);
+    const priestHeal = targetA.hp - 20;
+
+    G.heroes.length = 0;
+    G.heroes.push(saint, targetB);
+    G.update(100);
+    const saintHeal = targetB.hp - 20;
+
+    expect(saintHeal).toBeGreaterThan(priestHeal);
+    expect(saint.actionType).toBe("heal");
+  });
+
+  it("賢者は攻撃方向の範囲だけを壁越しなしで攻撃する", () => {
+    carveAll();
+    const sage = hero("sage", 5, 5, { wave: 20, atk: 20, range: HERO_CLASSES.sage.range, atkCd: 0 });
+    G.heroes.push(sage);
+    G.spawnMonster("slime", 6, 5);
+    G.spawnMonster("slime", 8, 5);
+    G.spawnMonster("slime", 6, 6);
+    for (const m of G.monsters) {
+      m.atkCd = 999999;
+      m.moveCd = 999999;
+    }
+    G.grid[5][7].t = "earth";
+    G.update(100);
+
+    expect(G.monsters.some((m) => m.col === 6 && m.row === 5)).toBe(false);
+    const blocked = G.monsters.find((m) => m.col === 8 && m.row === 5);
+    const offLane = G.monsters.find((m) => m.col === 6 && m.row === 6);
+    expect(blocked.hp).toBe(blocked.maxHp);
+    expect(offLane.hp).toBe(offLane.maxHp);
+    expect(sage.actionType).toBe("cast");
   });
 
   it("撃破報酬と長時間上限を守る", () => {

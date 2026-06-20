@@ -14,7 +14,8 @@ const SOURCE_DIR = path.join(OUT_DIR, "source", "v6-self-made");
 const ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",
   "superslime", "tarantula", "titan", "infernal",
-  "warrior", "tank", "mage", "priest",
+  "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain",
+  "priest", "saint", "mage", "supermage", "sage",
   "egg_superslime", "egg_evolved", "egg_tarantula", "egg_titan", "egg_infernal",
 ];
 const TILES = [

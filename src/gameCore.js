@@ -58,19 +58,26 @@ export const VEIN = {
 };
 
 export const HERO_CLASSES = {
-  warrior: { name: "戦士", hpMul: 1.0, atkMul: 1.0, range: 1, moveMul: 1.0, atkCd: 650, weight: 3, unlock: 1 },
-  tank: { name: "盾兵", hpMul: 2.4, atkMul: 0.6, range: 1, moveMul: 1.5, atkCd: 800, weight: 1.4, unlock: 3, msg: "重装の盾兵が現れた ─ 非常に硬い" },
-  mage: { name: "魔法使い", hpMul: 0.55, atkMul: 1.5, range: 3, moveMul: 1.0, atkCd: 900, weight: 1.3, unlock: 5, msg: "魔法使いが現れた ─ 遠くから魔物を撃つ" },
-  priest: { name: "僧侶", hpMul: 0.85, atkMul: 0.35, range: 1, moveMul: 1.0, atkCd: 1000, weight: 1.0, unlock: 7, heal: true, healCd: 1500, healRange: 2, msg: "僧侶が現れた ─ 仲間を癒やす" },
+  warrior: { name: "勇者", role: "fighter", rank: 1, hpMul: 1.0, atkMul: 1.0, defense: 0, range: 1, moveMul: 1.0, atkCd: 650, weight: 3.0, unlock: 1, weapon: "sword" },
+  tank: { name: "タンク勇者", role: "tank", rank: 1, hpMul: 2.4, atkMul: 0.55, defense: 55, range: 1, moveMul: 1.55, atkCd: 850, weight: 1.35, unlock: 4, weapon: "greatshield", msg: "タンク勇者が現れた ─ 大楯で魔界へ迫る" },
+  mage: { name: "魔法使い", role: "caster", rank: 1, hpMul: 0.55, atkMul: 1.45, defense: -10, range: 3, moveMul: 1.0, atkCd: 900, weight: 1.3, unlock: 5, weapon: "staff", msg: "魔法使いが現れた ─ 遠くから魔物を撃つ" },
+  superwarrior: { name: "スーパー勇者", role: "fighter", rank: 2, hpMul: 1.05, atkMul: 1.25, defense: 4, range: 1, moveMul: 0.96, atkCd: 620, weight: 1.55, unlock: 6, weapon: "spear", msg: "スーパー勇者が現れた ─ 槍の突きが鋭い" },
+  priest: { name: "僧侶", role: "healer", rank: 1, hpMul: 0.85, atkMul: 0.35, defense: 0, range: 1, moveMul: 1.0, atkCd: 1000, weight: 1.0, unlock: 7, weapon: "rod", heal: true, healCd: 1500, healRange: 2, healMul: 1.0, msg: "僧侶が現れた ─ 仲間を癒やす" },
+  ultrawarrior: { name: "ウルトラ勇者", role: "fighter", rank: 3, hpMul: 1.25, atkMul: 1.38, defense: 18, range: 1, moveMul: 1.08, atkCd: 680, weight: 1.25, unlock: 8, weapon: "sword_shield", msg: "ウルトラ勇者が現れた ─ 剣と盾で押し込む" },
+  supermage: { name: "スーパー魔法使い", role: "caster", rank: 2, hpMul: 0.62, atkMul: 1.75, defense: -10, range: 3, moveMul: 1.0, atkCd: 880, weight: 0.75, unlock: 11, weapon: "gem_staff", msg: "スーパー魔法使いが現れた ─ 魔石の飛び道具が強い" },
+  crossknight: { name: "十字騎士団", role: "fighter", rank: 4, hpMul: 1.55, atkMul: 1.55, defense: 28, range: 1, moveMul: 1.12, atkCd: 660, weight: 0.85, unlock: 14, weapon: "cross_shield", msg: "十字騎士団が現れた ─ 後半の重装部隊" },
+  saint: { name: "聖女", role: "healer", rank: 2, hpMul: 1.1, atkMul: 0.45, defense: 8, range: 1, moveMul: 1.08, atkCd: 1050, weight: 0.55, unlock: 16, weapon: "saint_rod", heal: true, healCd: 1100, healRange: 3, healMul: 2.25, msg: "聖女が現れた ─ 仲間を大きく癒やす" },
+  sage: { name: "賢者", role: "caster", rank: 3, hpMul: 0.72, atkMul: 1.95, defense: -8, range: 4, moveMul: 1.05, atkCd: 1050, weight: 0.45, unlock: 18, weapon: "glow_staff", areaAttack: true, areaScale: 0.65, areaMax: 3, msg: "賢者が現れた ─ 光る杖で列を薙ぐ" },
+  captain: { name: "騎士団長", role: "fighter", rank: 5, hpMul: 1.85, atkMul: 1.75, defense: 42, range: 1, moveMul: 1.0, atkCd: 600, weight: 0.35, unlock: 20, weapon: "gold_sword_shield", maxPerWave: 1, msg: "騎士団長が現れた ─ 金色の剣と盾を持つ強敵" },
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v9-self-made-makai-veins";
+export const PIXEL_ASSET_VERSION = "v10-expanded-heroes";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
 export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat"];
-export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "warrior", "tank", "mage", "priest", "egg_superslime", "egg_evolved", "egg_tarantula", "egg_titan", "egg_infernal"];
+export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage", "egg_superslime", "egg_evolved", "egg_tarantula", "egg_titan", "egg_infernal"];
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 
@@ -88,6 +95,15 @@ export function cy(row) {
 
 export function heroDigDmg(atk) {
   return Math.min(95, 30 + atk * 1.2);
+}
+
+export function resolveHeroStats(cls, wave) {
+  const c = HERO_CLASSES[cls] || HERO_CLASSES.warrior;
+  const w = Math.max(0, wave || 0);
+  const hp = Math.max(12, Math.round((26 + w * 8) * c.hpMul));
+  const atk = Math.max(1, Math.round((4 + w * 1.2) * c.atkMul));
+  const heal = c.heal ? Math.max(1, Math.round((6 + w * 1.5) * (c.healMul || 1))) : 0;
+  return { hp, atk, defense: c.defense || 0, range: c.range, heal };
 }
 
 export function pixelActorX(action, dir, frame) {
@@ -474,23 +490,30 @@ export function createGame(options = {}) {
     return true;
   }
 
+  function heroClassWaveCount(cls) {
+    let n = 0;
+    for (const h of heroes) if (h.wave === wave && h.cls === cls) n++;
+    for (const q of spawnQueue) if (q.cls === cls) n++;
+    return n;
+  }
+
   function pickHeroClass() {
     const pool = [];
     for (const key in HERO_CLASSES) {
       const c = HERO_CLASSES[key];
+      if (c.maxPerWave && heroClassWaveCount(key) >= c.maxPerWave) continue;
       if (wave >= c.unlock) for (let i = 0; i < Math.round(c.weight * 10); i++) pool.push(key);
     }
     return pool.length ? pool[ri(0, pool.length - 1)] : "warrior";
   }
 
-  function spawnHero() {
-    const cls = pickHeroClass();
+  function spawnHero(cls = null) {
+    cls = HERO_CLASSES[cls] ? cls : pickHeroClass();
     const c = HERO_CLASSES[cls];
-    const hp = Math.max(12, Math.round((26 + wave * 8) * c.hpMul));
-    const atk = Math.max(1, Math.round((4 + wave * 1.2) * c.atkMul));
+    const stats = resolveHeroStats(cls, wave);
     heroes.push({
       id: ++idc, cls, col: ENTRANCE_COL, row: 0, px: cx(ENTRANCE_COL), py: cy(0), faceDir: "s",
-      hp, maxHp: hp, atk, range: c.range, wave, moveCd: Math.round(720 * c.moveMul), atkCd: 0,
+      hp: stats.hp, maxHp: stats.hp, atk: stats.atk, defense: stats.defense, range: stats.range, wave, moveCd: Math.round(720 * c.moveMul), atkCd: 0,
       coreCd: 0, actCd: 300, healCd: 800, blockedMs: 0, atkAnim: 0, atkTX: 0, atkTY: 0,
       bob: rnd(0, 6.28), actionType: "idle", actionTime: 0, moveAnim: 0,
     });
@@ -513,7 +536,7 @@ export function createGame(options = {}) {
     let count = Math.min(1 + Math.floor(wave / 2), 5);
     const room = (MAX_HEROES + 4) - heroes.length - spawnQueue.length;
     count = Math.max(0, Math.min(count, room));
-    for (let i = 0; i < count; i++) spawnQueue.push({ delay: i * HERO_STAGGER });
+    for (let i = 0; i < count; i++) spawnQueue.push({ delay: i * HERO_STAGGER, cls: pickHeroClass() });
     waveCountdown = WAVE_INTERVAL;
   }
 
@@ -657,6 +680,31 @@ export function createGame(options = {}) {
     return monsters.some((m) => !isMoving(m) && cheb(m, h) <= 1);
   }
 
+  function heroDamageTaken(raw, h) {
+    const cls = HERO_CLASSES[h.cls] || HERO_CLASSES.warrior;
+    const defense = h.defense === undefined ? (cls.defense || 0) : h.defense;
+    return Math.max(1, Math.ceil(raw * 100 / Math.max(30, 100 + defense)));
+  }
+
+  function damageMonster(m, amount, color = "#fff") {
+    if (!monsters.includes(m)) return false;
+    m.hp -= amount;
+    popDmg(m.px, m.py, `-${amount}`, color);
+    if (m.hp <= 0) killMonster(m);
+    return true;
+  }
+
+  function sameHeroAttackLane(h, target, m) {
+    const sx = Math.sign(target.col - h.col);
+    const sy = Math.sign(target.row - h.row);
+    const mx = m.col - h.col;
+    const my = m.row - h.row;
+    if (sx === 0 && sy === 0) return false;
+    if (sx === 0) return mx === 0 && Math.sign(my) === sy;
+    if (sy === 0) return my === 0 && Math.sign(mx) === sx;
+    return Math.sign(mx) === sx && Math.sign(my) === sy && Math.abs(mx) === Math.abs(my);
+  }
+
   function killMonster(m) {
     const i = monsters.indexOf(m);
     if (i >= 0) monsters.splice(i, 1);
@@ -786,8 +834,9 @@ export function createGame(options = {}) {
       if (heroTarget) {
         faceToward(m, heroTarget.px, heroTarget.py);
         if (m.atkCd <= 0) {
-          heroTarget.hp -= m.atk;
-          popDmg(heroTarget.px, heroTarget.py, `-${m.atk}`, m.kind === "spitter" ? "#b6ff7a" : "#ff8a8a");
+          const dmg = heroDamageTaken(m.atk, heroTarget);
+          heroTarget.hp -= dmg;
+          popDmg(heroTarget.px, heroTarget.py, `-${dmg}`, m.kind === "spitter" ? "#b6ff7a" : "#ff8a8a");
           m.atkCd = k.atkCd;
           setAction(m, m.range >= 2 ? "cast" : "attack", heroTarget.px, heroTarget.py, ATK_ANIM);
           if (m.range >= 2) shoot(m.px, m.py - 4, heroTarget.px, heroTarget.py, "#9bff5a");
@@ -825,7 +874,7 @@ export function createGame(options = {}) {
       if (c.heal && h.healCd <= 0) {
         const target = heroHealTarget(h, c);
         if (target) {
-          const amount = Math.round(6 + h.wave * 1.5);
+          const amount = resolveHeroStats(h.cls, h.wave).heal;
           target.hp = Math.min(target.maxHp, target.hp + amount);
           slash(target.px, target.py - 2, "#9effa0");
           popDmg(target.px, target.py - 10, `+${amount}`, "#9effa0");
@@ -838,13 +887,25 @@ export function createGame(options = {}) {
       const monsterTarget = lowestMonsterInRange(h);
       if (monsterTarget) faceToward(h, monsterTarget.px, monsterTarget.py);
       if (monsterTarget && h.atkCd <= 0) {
-        monsterTarget.hp -= h.atk;
-        popDmg(monsterTarget.px, monsterTarget.py, `-${h.atk}`, "#fff");
         h.atkCd = c.atkCd;
-        setAction(h, h.range >= 2 ? "cast" : "attack", monsterTarget.px, monsterTarget.py, ATK_ANIM);
-        if (h.range >= 2) shoot(h.px, h.py - 6, monsterTarget.px, monsterTarget.py, "#b6a6ff");
+        const ranged = h.range >= 2 || c.areaAttack;
+        setAction(h, ranged ? "cast" : "attack", monsterTarget.px, monsterTarget.py, ATK_ANIM);
+        if (ranged) shoot(h.px, h.py - 6, monsterTarget.px, monsterTarget.py, c.areaAttack ? "#fff0a6" : "#b6a6ff");
         else slash(monsterTarget.px, monsterTarget.py, "#ffffff");
-        if (monsterTarget.hp <= 0) killMonster(monsterTarget);
+        damageMonster(monsterTarget, h.atk, "#fff");
+        if (c.areaAttack) {
+          let extra = 0;
+          const areaDmg = Math.max(1, Math.round(h.atk * (c.areaScale || 0.65)));
+          for (const m of [...monsters]) {
+            if (m === monsterTarget || isMoving(m) || cheb(m, h) > h.range) continue;
+            if (!sameHeroAttackLane(h, monsterTarget, m)) continue;
+            if (!hasLOS(h.col, h.row, m.col, m.row)) continue;
+            shoot(h.px, h.py - 8, m.px, m.py, "#ffe680");
+            damageMonster(m, areaDmg, "#fff0a6");
+            extra++;
+            if (extra >= (c.areaMax || 3)) break;
+          }
+        }
         continue;
       }
       if (hasAdjacentMonster(h)) {
@@ -912,7 +973,7 @@ export function createGame(options = {}) {
       spawnQueue[i].delay -= dt;
       if (spawnQueue[i].delay <= 0) {
         if (heroes.length < MAX_HEROES) {
-          spawnHero();
+          spawnHero(spawnQueue[i].cls);
           spawnQueue.splice(i, 1);
         } else {
           spawnQueue[i].delay = 800;
@@ -971,21 +1032,35 @@ export function createGame(options = {}) {
     const dy = e.actionTY - e.py;
     const d = Math.hypot(dx, dy) || 1;
     let power = 5;
+    let yLift = 0;
     let scale = 1;
     let rot = 0;
+    const c = e.cls ? HERO_CLASSES[e.cls] : null;
     if (e.actionType === "eat") {
       power = 12;
       scale = 1 + 0.18 * waveSin;
       rot = 0.12 * waveSin * Math.sign(dx || 1);
     } else if (e.actionType === "cast") {
-      power = -3;
-      scale = 1 + 0.08 * waveSin;
+      power = c && c.areaAttack ? -1 : -3;
+      yLift = c && c.areaAttack ? -4 : -2;
+      scale = 1 + (c && c.areaAttack ? 0.12 : 0.08) * waveSin;
       rot = -0.08 * waveSin * Math.sign(dx || 1);
+    } else if (e.actionType === "heal") {
+      power = -1;
+      yLift = -5;
+      scale = 1 + 0.1 * waveSin;
+      rot = -0.05 * waveSin * Math.sign(dx || 1);
+    } else if (e.actionType === "attack") {
+      if (c && c.weapon === "spear") power = 10;
+      else if (c && (c.weapon === "greatshield" || c.weapon === "cross_shield")) power = 4;
+      else power = 7;
+      scale = 1 + (c && c.weapon === "greatshield" ? 0.08 : 0.05) * waveSin;
+      rot = 0.1 * waveSin * Math.sign(dx || 1);
     } else if (e.actionType === "dig") {
       power = 6;
       rot = 0.16 * waveSin * Math.sign(dx || 1);
     }
-    return { x: dx / d * power * waveSin, y: dy / d * power * waveSin, scale, rot };
+    return { x: dx / d * power * waveSin, y: dy / d * power * waveSin + yLift * waveSin, scale, rot };
   }
 
   function actorAction(e) {
@@ -1022,6 +1097,7 @@ export function createGame(options = {}) {
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroStep, openNeighbors, openFreeNeighbors, hasLOS, occupied, actorOccupied,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, rankOf,
+    resolveHeroStats, heroDamageTaken,
     KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
@@ -1035,7 +1111,7 @@ export const Core = {
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
   PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
-  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, heroDigDmg, cx, cy,
+  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, heroDigDmg, resolveHeroStats, cx, cy,
 };
 
 export function exposeGameNamespace(currentGame = null) {

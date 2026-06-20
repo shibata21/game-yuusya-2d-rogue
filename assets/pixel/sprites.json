@@ -174,7 +174,7 @@
         36
       ]
     },
-    "tank": {
+    "superwarrior": {
       "sheet": "actors",
       "x": 0,
       "y": 528,
@@ -188,7 +188,7 @@
         36
       ]
     },
-    "mage": {
+    "ultrawarrior": {
       "sheet": "actors",
       "x": 0,
       "y": 576,
@@ -202,7 +202,7 @@
         36
       ]
     },
-    "priest": {
+    "tank": {
       "sheet": "actors",
       "x": 0,
       "y": 624,
@@ -216,7 +216,7 @@
         36
       ]
     },
-    "egg_superslime": {
+    "crossknight": {
       "sheet": "actors",
       "x": 0,
       "y": 672,
@@ -230,7 +230,7 @@
         36
       ]
     },
-    "egg_evolved": {
+    "captain": {
       "sheet": "actors",
       "x": 0,
       "y": 720,
@@ -244,7 +244,7 @@
         36
       ]
     },
-    "egg_tarantula": {
+    "priest": {
       "sheet": "actors",
       "x": 0,
       "y": 768,
@@ -258,7 +258,7 @@
         36
       ]
     },
-    "egg_titan": {
+    "saint": {
       "sheet": "actors",
       "x": 0,
       "y": 816,
@@ -272,10 +272,108 @@
         36
       ]
     },
-    "egg_infernal": {
+    "mage": {
       "sheet": "actors",
       "x": 0,
       "y": 864,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "supermage": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 912,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "sage": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 960,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_superslime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1008,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_evolved": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1056,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_tarantula": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1104,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_titan": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1152,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1200,
       "w": 48,
       "h": 48,
       "frames": 4,

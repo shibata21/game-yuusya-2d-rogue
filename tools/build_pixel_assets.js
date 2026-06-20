@@ -7,7 +7,7 @@ const {
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
-const heroNames = ["warrior", "tank", "mage", "priest"];
+const heroNames = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage"];
 const dirVec = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 const eliteBase = { superslime: "slime", evolved: "carniv", tarantula: "spitter", titan: "golem", infernal: "flame" };
 
@@ -25,10 +25,17 @@ const monsterPalettes = {
 };
 
 const heroPalettes = {
-  warrior: { dark: "#27324f", mid: "#476fb8", light: "#b9d4ff", skin: "#e8b18a", metal: "#edf3ff", accent: "#ffcf4d" },
-  tank: { dark: "#30343d", mid: "#68717d", light: "#d0d8e2", skin: "#d9a37c", metal: "#f4f6fa", accent: "#7bd96b" },
-  mage: { dark: "#40205f", mid: "#8a45c4", light: "#e3c0ff", skin: "#e9b58f", metal: "#f0dcff", accent: "#86d8ff" },
-  priest: { dark: "#4c3d23", mid: "#d9c68a", light: "#fff4c7", skin: "#e6b089", metal: "#ffffff", accent: "#9effa0" },
+  warrior: { dark: "#27324f", mid: "#476fb8", light: "#b9d4ff", skin: "#e8b18a", metal: "#edf3ff", accent: "#ffcf4d", weapon: "sword" },
+  superwarrior: { dark: "#293a31", mid: "#4f9a63", light: "#bdf0c7", skin: "#e8b18a", metal: "#edf3ff", accent: "#ffdf6b", weapon: "spear" },
+  ultrawarrior: { dark: "#26314a", mid: "#4f78d0", light: "#d7e6ff", skin: "#e8b18a", metal: "#f3f7ff", accent: "#73d6ff", weapon: "sword_shield" },
+  tank: { dark: "#30343d", mid: "#68717d", light: "#d0d8e2", skin: "#d9a37c", metal: "#f4f6fa", accent: "#7bd96b", weapon: "greatshield" },
+  crossknight: { dark: "#2d3342", mid: "#6d768b", light: "#dce4ef", skin: "#e2aa82", metal: "#f7f7f0", accent: "#ff5d5d", weapon: "cross_shield" },
+  captain: { dark: "#493414", mid: "#bc8d2b", light: "#ffe3a3", skin: "#e8b18a", metal: "#fff2bd", accent: "#ffd24a", weapon: "gold_sword_shield" },
+  priest: { dark: "#4c3d23", mid: "#d9c68a", light: "#fff4c7", skin: "#e6b089", metal: "#ffffff", accent: "#9effa0", weapon: "rod" },
+  saint: { dark: "#3d3157", mid: "#d9d0ef", light: "#fff8ff", skin: "#e8b18a", metal: "#ffffff", accent: "#9effc3", weapon: "saint_rod", robe: true },
+  mage: { dark: "#40205f", mid: "#8a45c4", light: "#e3c0ff", skin: "#e9b58f", metal: "#f0dcff", accent: "#86d8ff", weapon: "staff" },
+  supermage: { dark: "#203456", mid: "#4d74c8", light: "#c6dcff", skin: "#e9b58f", metal: "#d8ecff", accent: "#6ff0ff", weapon: "gem_staff" },
+  sage: { dark: "#293047", mid: "#91b885", light: "#efffd0", skin: "#e9b58f", metal: "#fff7d0", accent: "#fff06a", weapon: "glow_staff" },
 };
 
 const eggPalette = {
@@ -365,39 +372,107 @@ function drawMonster(img, name, action, dir, frame) {
 }
 
 function drawSword(img, cx, cy, dx, dy, frame, pal) {
-  const reach = 11 + frame * 4;
-  line(img, cx + dx * 4, cy - 3 + dy * 4, cx + dx * reach, cy - 8 + dy * reach, pal.metal, 4, 235);
-  line(img, cx + dx * 3, cy + dy * 3, cx + dx * 9, cy + 6 + dy * 7, pal.accent, 2, 220);
+  const fx = dx || (dy === 0 ? 1 : 0);
+  const reach = 12 + frame * 3;
+  line(img, cx + fx * 3, cy - 1 + dy * 3, cx + fx * reach, cy - 9 + dy * reach, pal.metal, 4, 235);
+  line(img, cx + fx * 2, cy + dy * 2, cx + fx * 8, cy + 6 + dy * 6, pal.accent, 2, 220);
+  diamond(img, cx + fx * reach, cy - 9 + dy * reach, 2, pal.light, 210);
 }
 
-function drawStaff(img, cx, cy, dx, dy, frame, pal, heal) {
-  line(img, cx - dx * 5, cy + 10, cx + dx * 10, cy - 13 + dy * 5, "#5b3922", 3, 235);
-  diamond(img, cx + dx * (12 + frame), cy - 15 + dy * 5, 4 + frame, heal ? "#9effa0" : pal.accent, 210);
+function drawSpear(img, cx, cy, dx, dy, frame, pal) {
+  const fx = dx || (dy === 0 ? 1 : 0);
+  const thrust = 5 + frame * 4;
+  line(img, cx - fx * 8, cy + 7 - dy * 5, cx + fx * (18 + thrust), cy + dy * (17 + thrust), "#6a4428", 3, 240);
+  tri(img,
+    cx + fx * (20 + thrust), cy + dy * (18 + thrust),
+    cx + fx * (15 + thrust) - dy * 3, cy + dy * (14 + thrust) + fx * 3,
+    cx + fx * (15 + thrust) + dy * 3, cy + dy * (14 + thrust) - fx * 3,
+    pal.metal, 245);
+  diamond(img, cx + fx * (10 + frame), cy + dy * (10 + frame), 2, pal.accent, 180);
+}
+
+function drawShield(img, cx, cy, dx, dy, pal, kind, frame) {
+  const sx = dx ? -dx * 9 : -8;
+  const sy = dy > 0 ? 4 : (dy < 0 ? -3 : 2);
+  const push = kind === "great" ? frame : Math.floor(frame / 2);
+  const scx = cx + sx + (dx || 1) * push;
+  const scy = cy + sy + dy * push;
+  const big = kind === "great";
+  oval(img, scx, scy + 2, big ? 10 : 8, big ? 14 : 11, pal.dark, 245);
+  oval(img, scx, scy, big ? 9 : 7, big ? 13 : 10, pal.metal, 240);
+  oval(img, scx, scy - 2, big ? 6 : 5, big ? 9 : 7, pal.mid, 210);
+  if (kind === "cross") {
+    line(img, scx, scy - 8, scx, scy + 7, pal.accent, 2, 245);
+    line(img, scx - 5, scy - 1, scx + 5, scy - 1, pal.accent, 2, 245);
+  } else if (kind === "gold") {
+    diamond(img, scx, scy - 2, 5, pal.accent, 225);
+    line(img, scx - 5, scy + 5, scx + 5, scy + 5, "#fff1a8", 1, 200);
+  } else if (big) {
+    line(img, scx - 6, scy - 7, scx + 6, scy + 8, pal.light, 2, 170);
+  }
+}
+
+function drawPickaxe(img, cx, cy, dx, dy, frame, pal) {
+  const fx = dx || 1;
+  line(img, cx - fx * 8, cy - 8, cx + fx * 11, cy + 12, "#6a4428", 3, 235);
+  line(img, cx + fx * (5 - frame), cy - 12, cx + fx * (17 + frame), cy - 5, pal.metal, 3, 230);
+}
+
+function drawStaff(img, cx, cy, dx, dy, frame, pal, variant) {
+  const fx = dx || 1;
+  const lift = variant === "heal" || variant === "saint" || variant === "glow" ? frame * 2 : frame;
+  line(img, cx - fx * 5, cy + 11, cx + fx * 10, cy - 13 - lift + dy * 5, "#5b3922", 3, 235);
+  const headX = cx + fx * (12 + frame);
+  const headY = cy - 15 - lift + dy * 5;
+  const gem = variant === "heal" || variant === "saint" ? "#9effa0" : (variant === "gem" ? "#6ff0ff" : (variant === "glow" ? "#fff06a" : pal.accent));
+  diamond(img, headX, headY, variant === "glow" ? 6 + frame : 4 + frame, gem, variant === "glow" ? 185 : 215);
+  if (variant === "gem" || variant === "glow") diamond(img, headX, headY, 2 + frame, "#ffffff", 220);
+  if (variant === "glow") {
+    line(img, headX - 8, headY, headX + 8, headY, gem, 1, 120);
+    line(img, headX, headY - 8, headX, headY + 8, gem, 1, 120);
+  }
 }
 
 function drawHero(img, name, action, dir, frame) {
-  const pal = heroPalettes[name];
+  const pal = heroPalettes[name] || heroPalettes.warrior;
   const [dx, dy] = dirVec[dir];
-  const bob = action === "idle" ? [0, -1, 0, 1][frame] : [0, 1, 3, 1][frame];
-  const lunge = action === "idle" ? 0 : [0, 1, 4, 1][frame];
+  const weapon = pal.weapon || "sword";
+  const caster = ["priest", "saint", "mage", "supermage", "sage"].includes(name);
+  const bob = action === "idle" ? [0, -1, 0, 1][frame] : [0, 1, 2, 1][frame];
+  const attackLunge = weapon === "spear" ? [0, 2, 7, 2][frame] : (weapon === "greatshield" ? [0, 1, 3, 1][frame] : [0, 1, 4, 1][frame]);
+  const lunge = action === "attack" ? attackLunge : (action === "dig" ? [0, 1, 3, 1][frame] : 0);
+  const lift = (action === "cast" || action === "heal") ? [0, -1, -3, -1][frame] : 0;
   const cx = 24 + dx * lunge;
-  const cy = 23 + bob + dy * Math.min(2, lunge);
+  const cy = 23 + bob + lift + dy * Math.min(2, lunge);
   oval(img, cx, cy + 17, 11, 4, "#0c0812", 80);
   rect(img, cx - 5, cy + 10, 4, 10, pal.dark, 245);
   rect(img, cx + 1, cy + 10, 4, 10, pal.dark, 245);
-  oval(img, cx, cy + 4, 9, 12, pal.dark, 245);
-  oval(img, cx + dx * 3, cy + 1, 7, 10, pal.mid, 245);
+  if (pal.robe) {
+    tri(img, cx - 11, cy + 15, cx, cy - 7, cx + 11, cy + 15, pal.dark, 245);
+    tri(img, cx - 8, cy + 14, cx + dx * 2, cy - 4, cx + 8, cy + 14, pal.mid, 235);
+    line(img, cx, cy - 4, cx, cy + 15, pal.light, 1, 170);
+  } else if (caster) {
+    oval(img, cx, cy + 4, 9, 12, pal.dark, 245);
+    tri(img, cx - 9, cy + 14, cx + dx * 2, cy - 4, cx + 9, cy + 14, pal.mid, 230);
+  } else {
+    oval(img, cx, cy + 4, 9, 12, pal.dark, 245);
+    oval(img, cx + dx * 3, cy + 1, 7, 10, pal.mid, 245);
+    rect(img, cx - 4, cy, 8, 9, pal.light, 95);
+  }
   oval(img, cx + dx * 3, cy - 11 + dy * 2, 7, 7, pal.skin, 245);
   rect(img, cx - 8 - dx * 2, cy + 1, 5, 12, pal.mid, 235);
   rect(img, cx + 3 + dx * 2, cy + 1, 5, 12, pal.mid, 235);
-  if (name === "tank") {
-    oval(img, cx - dx * 9, cy + 2, 7, 11, pal.metal, 235);
-    line(img, cx - dx * 13, cy - 4, cx - dx * 6, cy + 9, pal.dark, 2, 190);
-  }
-  if (name === "mage" || name === "priest") {
-    tri(img, cx + dx * 3 - 7, cy - 14, cx + dx * 3, cy - 25, cx + dx * 3 + 7, cy - 14, pal.dark, 245);
+  if (caster) {
+    if (name === "saint") {
+      oval(img, cx + dx * 3, cy - 13 + dy * 2, 8, 8, pal.light, 160);
+      line(img, cx - 6, cy - 17, cx + 6, cy - 17, pal.accent, 2, 170);
+    } else {
+      tri(img, cx + dx * 3 - 7, cy - 14, cx + dx * 3, cy - 25, cx + dx * 3 + 7, cy - 14, pal.dark, 245);
+      if (name === "sage") diamond(img, cx + dx * 3, cy - 24, 3, pal.accent, 190);
+    }
   } else {
     rect(img, cx + dx * 3 - 6, cy - 17, 12, 5, pal.metal, 230);
+    if (name === "captain") diamond(img, cx + dx * 3, cy - 17, 3, pal.accent, 220);
   }
   if (dy >= 0 || dx !== 0) {
     rect(img, cx + dx * 3 - 3, cy - 11 + dy, 2, 2, "#24140f", 240);
@@ -405,13 +480,57 @@ function drawHero(img, name, action, dir, frame) {
   } else {
     line(img, cx - 5, cy - 13, cx + 5, cy - 15, pal.light, 2, 140);
   }
-  if (action === "attack" || (name === "warrior" && action !== "idle")) drawSword(img, cx, cy, dx || 1, dy, frame, pal);
-  if (action === "dig" || (name === "tank" && action !== "idle")) {
-    line(img, cx - 8, cy - 8, cx + 10, cy + 12, "#6a4428", 3, 235);
-    line(img, cx + 6 - frame, cy - 12, cx + 17 + frame, cy - 5, pal.metal, 3, 230);
+  if (action === "dig") {
+    drawPickaxe(img, cx, cy, dx, dy, frame, pal);
+    if (weapon === "greatshield") drawShield(img, cx, cy, dx, dy, pal, "great", Math.max(1, frame - 1));
+    return;
   }
-  if (action === "cast" || (name === "mage" && action !== "idle")) drawStaff(img, cx, cy, dx || 1, dy, frame, pal, false);
-  if (action === "heal" || (name === "priest" && action !== "idle")) drawStaff(img, cx, cy, dx || 1, dy, frame, pal, true);
+  if (weapon === "spear") drawSpear(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
+  else if (weapon === "greatshield") drawShield(img, cx, cy, dx, dy, pal, "great", action === "attack" ? frame : 0);
+  else if (weapon === "sword_shield") {
+    drawShield(img, cx, cy, dx, dy, pal, "normal", action === "attack" ? frame : 0);
+    drawSword(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
+  } else if (weapon === "cross_shield") {
+    drawShield(img, cx, cy, dx, dy, pal, "cross", action === "attack" ? frame : 0);
+    drawSword(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
+  } else if (weapon === "gold_sword_shield") {
+    drawShield(img, cx, cy, dx, dy, pal, "gold", action === "attack" ? frame : 0);
+    drawSword(img, cx, cy, dx, dy, action === "attack" ? frame : 1, pal);
+  } else if (weapon === "rod") {
+    drawStaff(img, cx, cy, dx, dy, frame, pal, action === "heal" ? "heal" : "rod");
+  } else if (weapon === "saint_rod") {
+    drawStaff(img, cx, cy, dx, dy, frame, pal, action === "heal" ? "saint" : "heal");
+  } else if (weapon === "staff") {
+    drawStaff(img, cx, cy, dx, dy, action === "cast" ? frame : 0, pal, "staff");
+  } else if (weapon === "gem_staff") {
+    drawStaff(img, cx, cy, dx, dy, action === "cast" ? frame : 1, pal, "gem");
+  } else if (weapon === "glow_staff") {
+    drawStaff(img, cx, cy, dx, dy, action === "cast" ? frame : 1, pal, "glow");
+  } else {
+    drawSword(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
+  }
+  if (action === "heal") {
+    const fx = dx || 1;
+    const hx = cx + fx * (14 + frame);
+    const hy = cy - 18 - frame + dy * 5;
+    oval(img, hx, hy, 8 + frame, 6 + frame, pal.accent, 95);
+    line(img, hx, hy - 7, hx, hy + 7, "#ffffff", 2, 220);
+    line(img, hx - 7, hy, hx + 7, hy, "#ffffff", 2, 220);
+    diamond(img, cx - 10, cy - 7, 3, pal.accent, 180);
+    diamond(img, cx + 9, cy - 4, 2, pal.light, 165);
+  } else if (action === "cast") {
+    const fx = dx || 1;
+    const fy = dy;
+    const sx = cx + fx * (17 + frame * 2);
+    const sy = cy - 8 + fy * (11 + frame);
+    oval(img, sx, sy, name === "sage" ? 9 + frame : 6 + frame, name === "sage" ? 7 + frame : 5 + frame, pal.accent, name === "sage" ? 125 : 110);
+    diamond(img, sx, sy, name === "supermage" || name === "sage" ? 5 + frame : 4 + frame, "#ffffff", 215);
+    line(img, cx + fx * 8, cy - 9 + fy * 5, sx, sy, pal.accent, name === "sage" ? 3 : 2, 160);
+    if (name === "sage") {
+      line(img, sx - 10, sy, sx + 10, sy, pal.light, 1, 160);
+      line(img, sx, sy - 10, sx, sy + 10, pal.light, 1, 160);
+    }
+  }
 }
 
 function drawEgg(img, name, frame) {
