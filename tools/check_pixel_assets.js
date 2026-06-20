@@ -239,11 +239,12 @@ function validateRichVeins() {
         if (x < 10 || x > 38 || y < 8 || y > 40) outside++;
       }
     }
-    if (motif < (name.endsWith("_evo") ? 150 : 95)) fail(name + " の鉱脈模様が単純すぎます: " + motif);
-    if (motif > (name.endsWith("_evo") ? 540 : 390)) fail(name + " の鉱脈模様が複雑すぎます: " + motif);
-    if (outside > 145) fail(name + " の鉱脈模様が広がりすぎています: " + outside);
+    const evo = name.endsWith("_evo");
+    if (motif < (evo ? 420 : 95)) fail(name + " の鉱脈マークが単純すぎます: " + motif);
+    if (motif > (evo ? 1160 : 620)) fail(name + " の鉱脈マークが複雑すぎます: " + motif);
+    if (outside > (evo ? 360 : 145)) fail(name + " の鉱脈マークが広がりすぎています: " + outside);
   }
-  ok("鉱脈の控えめな地層内モチーフを検査しました");
+  ok("鉱脈の種別マークと進化枠発光を検査しました");
 }
 
 function validateNoCircleSyntax() {

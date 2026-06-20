@@ -39,22 +39,22 @@ export const OPEN = new Set(["tunnel", "core", "surface"]);
 export const KINDS = {
   slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#7fbaff" },
   carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣" },
-  spitter: { hp: 16, atk: 6, range: 2, moveCd: 590, atkCd: 980, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, col: "#a64dff" },
-  golem: { hp: 95, atk: 4, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#6f86c4" },
-  flame: { hp: 64, atk: 15, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, col: "#ff8a3a" },
+  spitter: { hp: 16, atk: 6, range: 2, moveCd: 590, atkCd: 980, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, col: "#a64dff", name: "毒蜘蛛" },
+  golem: { hp: 95, atk: 4, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#6f86c4", name: "ゴーレム" },
+  flame: { hp: 64, atk: 15, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, col: "#ff8a3a", name: "火竜" },
   superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 1, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム" },
   evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣" },
-  tarantula: { hp: 62, atk: 15, range: 2, moveCd: 560, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#ff6b5a", eliteOf: "spitter", name: "タランチュラ" },
-  titan: { hp: 220, atk: 13, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, col: "#d9b27a", eliteOf: "golem", name: "タイタン" },
-  infernal: { hp: 150, atk: 28, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, col: "#5ab0ff", eliteOf: "flame", name: "インフェルノ" },
+  tarantula: { hp: 62, atk: 15, range: 2, moveCd: 560, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛" },
+  titan: { hp: 220, atk: 13, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム" },
+  infernal: { hp: 150, atk: 28, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜" },
 };
 
 export const VEIN = {
   moss: { kind: "slime", evoKind: "superslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", touchNeed: 4 },
   meat: { kind: "carniv", evoKind: "evolved", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", touchNeed: 7 },
-  venom: { kind: "spitter", evoKind: "tarantula", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒吐き", evoName: "上位毒脈", touchNeed: 10, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒吐きが眠る" },
-  stone: { kind: "golem", evoKind: "titan", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→岩兵", evoName: "上位石脈", touchNeed: 13, unlockMsg: "新たな鉱脈『石脈』 ─ 岩兵が眠る" },
-  ember: { kind: "flame", evoKind: "infernal", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→炎魔", evoName: "上位火脈", touchNeed: 16, unlockMsg: "新たな鉱脈『火脈』 ─ 炎魔が眠る" },
+  venom: { kind: "spitter", evoKind: "tarantula", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", touchNeed: 10, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
+  stone: { kind: "golem", evoKind: "titan", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", touchNeed: 13, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
+  ember: { kind: "flame", evoKind: "infernal", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", touchNeed: 16, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
 };
 
 export const HERO_CLASSES = {

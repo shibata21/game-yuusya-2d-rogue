@@ -178,13 +178,14 @@ describe("ピクセル素材", () => {
     }
   });
 
-  it("鉱脈タイルは地層内に控えめな結晶模様を持つ", () => {
+  it("鉱脈タイルは種別マークを持ち、進化後は枠が光る", () => {
     const earth = tileCrop("earth");
     for (const name of ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"]) {
       const stats = tileMotifStats(tileCrop(name), earth);
-      expect(stats.motif, name).toBeGreaterThan(name.endsWith("_evo") ? 150 : 95);
-      expect(stats.motif, name).toBeLessThan(name.endsWith("_evo") ? 540 : 390);
-      expect(stats.outside, name).toBeLessThanOrEqual(145);
+      const evo = name.endsWith("_evo");
+      expect(stats.motif, name).toBeGreaterThan(evo ? 420 : 95);
+      expect(stats.motif, name).toBeLessThan(evo ? 1160 : 620);
+      expect(stats.outside, name).toBeLessThanOrEqual(evo ? 360 : 145);
     }
   });
 

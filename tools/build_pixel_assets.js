@@ -40,11 +40,11 @@ const eggPalette = {
 };
 
 const veinPalette = {
-  moss: { dark: "#24572b", mid: "#66bf68", light: "#c7f7c7", spark: "#eaffd8", shape: "leaf" },
+  moss: { dark: "#24572b", mid: "#66bf68", light: "#c7f7c7", spark: "#eaffd8", shape: "spots" },
   meat: { dark: "#6c1f16", mid: "#d65b38", light: "#ffb38a", spark: "#ffe0c6", shape: "fang" },
-  venom: { dark: "#3a195f", mid: "#8c55e6", light: "#d8b7ff", spark: "#f5e7ff", shape: "needle" },
-  stone: { dark: "#2b3854", mid: "#6f86c4", light: "#c5d8ff", spark: "#edf4ff", shape: "gem" },
-  ember: { dark: "#702b0a", mid: "#ff9822", light: "#ffe38a", spark: "#fff5bc", shape: "flame" },
+  venom: { dark: "#3a195f", mid: "#8c55e6", light: "#d8b7ff", spark: "#f5e7ff", shape: "drop" },
+  stone: { dark: "#2b3854", mid: "#6f86c4", light: "#c5d8ff", spark: "#edf4ff", shape: "rock" },
+  ember: { dark: "#702b0a", mid: "#ff9822", light: "#ffe38a", spark: "#fff5bc", shape: "ember" },
 };
 
 function oval(img, cx, cy, rx, ry, hex, alpha = 255) {
@@ -137,35 +137,58 @@ function drawCoreTile() {
 
 function drawVeinMotif(img, base, evo) {
   const pal = veinPalette[base];
-  line(img, 13, 30, 24, 23, pal.dark, evo ? 4 : 3, 145);
-  line(img, 24, 23, 36, 17, pal.dark, evo ? 4 : 3, 135);
-  line(img, 16, 31, 27, 24, pal.mid, 2, 185);
-  line(img, 25, 23, 36, 18, pal.light, 1, 165);
-  const size = evo ? 8 : 6;
-  if (pal.shape === "fang") {
-    tri(img, 20 - size, 18, 20 + size, 19, 21, 19 + size * 2, pal.mid, 235);
-    tri(img, 30 - size + 1, 25, 30 + size - 1, 25, 30, 25 + size * 2, pal.light, 220);
-  } else if (pal.shape === "flame") {
-    tri(img, 23 - size, 30, 24, 13, 24 + size, 30, pal.mid, 235);
-    tri(img, 21, 29, 26, 18, 30, 31, pal.light, 210);
-  } else if (pal.shape === "needle") {
-    tri(img, 17, 31, 24, 14, 31, 31, pal.mid, 230);
-    diamond(img, 24, 25, evo ? 4 : 3, pal.light, 205);
-  } else if (pal.shape === "leaf") {
-    oval(img, 21, 23, size, Math.max(4, size - 1), pal.mid, 225);
-    oval(img, 30, 25, Math.max(4, size - 1), size, pal.light, 185);
-    line(img, 16, 28, 35, 20, pal.dark, 1, 150);
-  } else {
-    diamond(img, 24, 23, size, pal.mid, 235);
-    diamond(img, 23, 21, Math.max(3, size - 3), pal.light, 205);
+  oval(img, 24, 25, 14, 11, pal.light, 18);
+  if (pal.shape === "spots") {
+    const dots = [[20,23,5],[29,25,4],[24,31,3],[31,18,2]];
+    for (const [x, y, r] of dots) {
+      oval(img, x, y, r + 1, r, pal.dark, 210);
+      oval(img, x, y - 1, r, Math.max(2, r - 1), pal.mid, 235);
+      diamond(img, x - 1, y - 2, 1, pal.spark, 185);
+    }
+  } else if (pal.shape === "fang") {
+    const fang = (x, y, h, col) => {
+      tri(img, x - 6, y, x + 6, y, x, y + h, pal.dark, 230);
+      tri(img, x - 4, y + 1, x + 4, y + 1, x, y + h - 2, col, 238);
+      line(img, x - 3, y + 2, x, y + h - 4, pal.spark, 1, 125);
+    };
+    fang(20, 17, 15, pal.light);
+    fang(30, 18, 14, pal.mid);
+  } else if (pal.shape === "drop") {
+    const drop = (x, y, s, col) => {
+      tri(img, x - s, y, x, y - s - 5, x + s, y, pal.dark, 210);
+      oval(img, x, y + 3, s, s + 2, pal.dark, 220);
+      tri(img, x - s + 2, y, x, y - s - 2, x + s - 2, y, col, 230);
+      oval(img, x, y + 3, s - 2, s, col, 235);
+      diamond(img, x - 2, y, 1, pal.spark, 175);
+    };
+    drop(24, 24, 7, pal.mid);
+    drop(34, 29, 3, pal.light);
+    oval(img, 15, 30, 3, 2, pal.mid, 190);
+  } else if (pal.shape === "rock") {
+    diamond(img, 24, 24, 9, pal.dark, 235);
+    tri(img, 14, 24, 24, 13, 25, 24, pal.mid, 235);
+    tri(img, 25, 24, 35, 20, 26, 35, pal.light, 205);
+    tri(img, 15, 25, 24, 25, 22, 35, pal.mid, 190);
+    line(img, 19, 22, 28, 26, "#172137", 1, 140);
+    line(img, 26, 18, 24, 32, "#172137", 1, 115);
+  } else if (pal.shape === "ember") {
+    tri(img, 17, 34, 24, 14, 31, 34, pal.dark, 235);
+    tri(img, 19, 33, 26, 18, 32, 34, pal.mid, 235);
+    tri(img, 21, 32, 25, 22, 29, 34, pal.light, 215);
+    diamond(img, 15, 24, 2, pal.mid, 180);
+    diamond(img, 34, 22, 3, pal.light, 175);
   }
-  diamond(img, 34, 17, evo ? 3 : 2, pal.spark, 190);
-  diamond(img, 16, 32, evo ? 3 : 2, pal.spark, 160);
+  diamond(img, 37, 14, 2, pal.spark, 115);
+  diamond(img, 12, 34, 2, pal.spark, 100);
   if (evo) {
-    diamond(img, 24, 23, 12, pal.light, 70);
-    line(img, 12, 16, 24, 23, pal.spark, 1, 105);
-    line(img, 24, 23, 39, 33, pal.spark, 1, 95);
-    diamond(img, 39, 33, 3, pal.spark, 170);
+    line(img, 5, 7, 42, 7, pal.spark, 2, 155);
+    line(img, 42, 7, 42, 40, pal.spark, 2, 140);
+    line(img, 42, 40, 5, 40, pal.spark, 2, 125);
+    line(img, 5, 40, 5, 7, pal.spark, 2, 140);
+    line(img, 8, 10, 39, 10, pal.light, 1, 120);
+    line(img, 39, 10, 39, 37, pal.light, 1, 105);
+    line(img, 39, 37, 8, 37, pal.light, 1, 90);
+    line(img, 8, 37, 8, 10, pal.light, 1, 105);
   }
 }
 
@@ -211,42 +234,67 @@ function drawSlime(img, pal, cx, cy, dx, dy, action, frame) {
   }
 }
 
-function drawFangBeast(img, pal, cx, cy, dx, dy, action, frame) {
+function drawDogBeast(img, pal, cx, cy, dx, dy, action, frame) {
   const bite = action === "attack" || action === "eat" ? [0, 1, 3, 1][frame] : 0;
-  const hx = cx + dx * (10 + bite);
-  const hy = cy - 3 + dy * (5 + bite);
-  oval(img, cx - dx * 3, cy + 5, 16, 8, pal.dark, 245);
-  oval(img, cx - dx * 2, cy + 2, 14, 8, pal.mid, 245);
-  oval(img, hx, hy, 8, 7, pal.dark, 245);
-  oval(img, hx, hy - 2, 6, 5, pal.mid, 245);
-  const tailX = cx - dx * 15;
-  const tailY = cy + 1 - dy * 4;
-  line(img, cx - dx * 11, cy + 2, tailX, tailY, pal.dark, 4, 235);
+  const faceX = dx || 1;
+  const hx = cx + faceX * (10 + bite);
+  const hy = cy - 4 + dy * (4 + bite);
+  oval(img, cx - faceX * 3, cy + 5, 16, 8, pal.dark, 245);
+  oval(img, cx - faceX * 2, cy + 2, 14, 8, pal.mid, 245);
+  oval(img, hx, hy, 7, 6, pal.dark, 245);
+  oval(img, hx + faceX * 4, hy + 1, 5, 4, pal.mid, 245);
+  tri(img, hx - faceX * 4, hy - 5, hx - faceX, hy - 13, hx + faceX * 2, hy - 5, pal.dark, 235);
+  tri(img, hx + faceX * 1, hy - 5, hx + faceX * 4, hy - 12, hx + faceX * 7, hy - 5, pal.dark, 220);
+  const tailX = cx - faceX * 17;
+  const tailY = cy - 3 - dy * 3;
+  line(img, cx - faceX * 12, cy + 1, tailX, tailY, pal.dark, 4, 235);
+  line(img, tailX, tailY, tailX - faceX * 4, tailY - 4, pal.light, 2, 185);
   for (const sx of [-7, 4]) {
-    const lx = cx + sx - dx * 2;
-    line(img, lx, cy + 9, lx + dx * 3, cy + 16, pal.dark, 3, 235);
-    diamond(img, lx + dx * 3, cy + 16, 2, pal.light, 210);
+    const lx = cx + sx - faceX * 2;
+    line(img, lx, cy + 9, lx + faceX * 3, cy + 16, pal.dark, 3, 235);
+    diamond(img, lx + faceX * 3, cy + 16, 2, pal.light, 210);
   }
-  if (dy >= 0 || dx !== 0) drawEye(img, hx + Math.max(-2, dx * 2), hy - 3, pal);
-  tri(img, hx + dx * 4 - 1, hy + 2, hx + dx * 4 + 3, hy + 3, hx + dx * 7, hy + 7, pal.light, 230);
-  tri(img, hx - dx * 2 - 1, hy + 2, hx - dx * 2 + 3, hy + 3, hx - dx * 1, hy + 7, pal.light, 210);
-  if (dy < 0) line(img, cx - 8, cy - 4, cx + 8, cy - 6, pal.light, 2, 130);
+  if (dy >= 0 || dx !== 0) drawEye(img, hx + faceX * 3, hy - 3, pal);
+  tri(img, hx + faceX * 5, hy + 3, hx + faceX * 8, hy + 3, hx + faceX * 7, hy + 7, pal.light, 225);
+  tri(img, hx + faceX * 1, hy + 3, hx + faceX * 4, hy + 3, hx + faceX * 3, hy + 7, pal.light, 205);
+  if (dy < 0) line(img, cx - 8, cy - 5, cx + 8, cy - 7, pal.light, 2, 130);
 }
 
-function drawSpitter(img, pal, cx, cy, dx, dy, action, frame) {
+function drawSpider(img, pal, cx, cy, dx, dy, action, frame) {
   const cast = action === "cast" || action === "attack" ? frame : 0;
-  oval(img, cx, cy + 4, 13, 9, pal.dark, 245);
-  oval(img, cx + dx * 3, cy + 1, 10, 8, pal.mid, 245);
-  for (const side of [-1, 1]) {
-    line(img, cx - 5, cy + 4, cx - 14, cy + side * 6 + 4, pal.dark, 2, 220);
-    line(img, cx + 5, cy + 4, cx + 14, cy + side * 6 + 4, pal.dark, 2, 220);
+  const faceX = dx || 1;
+  const headX = dx === 0 ? cx : cx + faceX * 4;
+  const headY = dx === 0 ? cy + (dy >= 0 ? 8 : -4) : cy + 1;
+  oval(img, cx, cy + 5, 14, 9, pal.dark, 245);
+  oval(img, headX, headY, dx === 0 ? 9 : 10, 8, pal.mid, 245);
+  if (dy < 0 && dx === 0) {
+    line(img, cx - 8, cy + 4, cx + 8, cy + 2, pal.light, 2, 135);
+    diamond(img, cx, cy + 6, 4, pal.dark, 180);
   }
-  const tx = cx - dx * (11 + cast);
-  const ty = cy - 7 - dy * 5;
-  line(img, cx - dx * 6, cy, tx, ty, pal.dark, 3, 235);
-  diamond(img, tx, ty, 4, pal.light, 220);
-  if (dy >= 0 || dx !== 0) drawEye(img, cx + dx * 6 - 2, cy - 2 + dy * 2, pal);
-  if (action === "cast") diamond(img, cx + dx * (12 + frame * 2), cy - 3 + dy * 8, 3 + frame, pal.eye, 180);
+  for (const side of [-1, 1]) {
+    for (const [sx, reach] of [[-9, 15], [-4, 13], [3, 13], [8, 15]]) {
+      const rootX = cx + sx;
+      const rootY = cy + 4 + side;
+      const kneeX = rootX + Math.sign(sx || side) * 7;
+      const kneeY = rootY + side * (4 + (Math.abs(sx) % 3));
+      const footX = cx + Math.sign(sx || side) * reach;
+      const footY = cy + 8 + side * (7 + (Math.abs(sx) % 2));
+      line(img, rootX, rootY, kneeX, kneeY, pal.dark, 2, 225);
+      line(img, kneeX, kneeY, footX, footY, pal.dark, 2, 215);
+    }
+  }
+  if (dy >= 0 || dx !== 0) {
+    drawEye(img, headX + (dx === 0 ? -4 : faceX * 4), headY - 3 + Math.max(0, dy), pal);
+    drawEye(img, headX + (dx === 0 ? 4 : 0), headY - 3 + Math.max(0, dy), pal);
+  }
+  if (action === "cast") {
+    const wx = dx === 0 ? cx : cx + faceX * (12 + frame * 2);
+    const wy = dx === 0 ? cy + dy * (12 + frame * 2) : cy - 4 + dy * 8;
+    diamond(img, wx, wy, 3 + frame, pal.eye, 150);
+    line(img, headX, headY, wx, wy, pal.light, 1, 120);
+  } else if (cast) {
+    diamond(img, dx === 0 ? cx : cx + faceX * (10 + cast), dx === 0 ? cy + dy * (10 + cast) : cy - 2 + dy * 6, 3, pal.light, 150);
+  }
 }
 
 function drawGolem(img, pal, cx, cy, dx, dy, action, frame) {
@@ -274,18 +322,30 @@ function drawGolem(img, pal, cx, cy, dx, dy, action, frame) {
   line(img, cx - 9, cy - 1, cx + 8, cy + 1, pal.light, 1, 105);
 }
 
-function drawFlame(img, pal, cx, cy, dx, dy, action, frame) {
+function drawDragon(img, pal, cx, cy, dx, dy, action, frame) {
   const flare = action === "attack" || action === "cast" ? frame * 2 : 0;
-  oval(img, cx, cy + 13, 12, 5, "#0c0812", 80);
-  tri(img, cx - 13, cy + 17, cx + dx * (3 + flare), cy - 18 - flare, cx + 13, cy + 17, pal.dark, 245);
-  tri(img, cx - 9, cy + 15, cx + dx * (5 + flare), cy - 12 - flare, cx + 9, cy + 15, pal.mid, 245);
-  tri(img, cx - 5, cy + 12, cx + dx * (4 + flare), cy - 5 - flare, cx + 6, cy + 13, pal.light, 225);
-  diamond(img, cx - dx * 9, cy + 2 - dy * 5, 3, pal.mid, 175);
-  if (dy >= 0 || dx !== 0) {
-    drawEye(img, cx - 4 + dx * 2, cy + 1 + dy, pal);
-    drawEye(img, cx + 4 + dx * 2, cy + 1 + dy, pal);
-  } else {
-    line(img, cx - 8, cy - 3, cx + 7, cy - 6, pal.light, 2, 125);
+  const faceX = dx || 1;
+  oval(img, cx, cy + 13, 13, 5, "#0c0812", 80);
+  oval(img, cx - faceX * 2, cy + 5, 15, 8, pal.dark, 245);
+  oval(img, cx - faceX, cy + 2, 12, 7, pal.mid, 245);
+  const hx = cx + faceX * (11 + Math.min(2, flare));
+  const hy = cy - 3 + dy * 4;
+  oval(img, hx, hy, 7, 6, pal.dark, 245);
+  oval(img, hx + faceX * 5, hy + 1, 5, 4, pal.mid, 245);
+  tri(img, cx - faceX * 4, cy + 2, cx - faceX * 15, cy - 13 - flare, cx - faceX * 7, cy + 10, pal.dark, 225);
+  tri(img, cx - faceX * 3, cy + 3, cx - faceX * 12, cy - 8 - flare, cx - faceX * 6, cy + 8, pal.mid, 215);
+  tri(img, cx + faceX * 2, cy + 2, cx + faceX * 10, cy - 12 - flare, cx + faceX * 7, cy + 9, pal.dark, 205);
+  tri(img, cx + faceX * 3, cy + 3, cx + faceX * 8, cy - 7 - flare, cx + faceX * 7, cy + 8, pal.mid, 195);
+  line(img, cx - faceX * 12, cy + 4, cx - faceX * 19, cy + 1 - dy * 3, pal.dark, 4, 235);
+  diamond(img, cx - faceX * 20, cy + 1 - dy * 3, 3, pal.light, 170);
+  for (const sx of [-6, 5]) line(img, cx + sx, cy + 10, cx + sx + faceX * 3, cy + 16, pal.dark, 3, 230);
+  tri(img, hx - faceX * 4, hy - 4, hx - faceX * 2, hy - 13, hx + faceX, hy - 4, pal.light, 220);
+  tri(img, hx + faceX * 2, hy - 4, hx + faceX * 4, hy - 12, hx + faceX * 8, hy - 4, pal.light, 205);
+  line(img, hx + faceX * 4, hy + 3, hx + faceX * 9, hy + 2, pal.light, 2, 190);
+  if (dy >= 0 || dx !== 0) drawEye(img, hx + faceX * 4, hy - 2, pal);
+  if (action === "cast" || action === "attack") {
+    tri(img, hx + faceX * 8, hy + 3, hx + faceX * (16 + flare), hy - 3, hx + faceX * (15 + flare), hy + 8, pal.light, 185);
+    tri(img, hx + faceX * 10, hy + 3, hx + faceX * (14 + flare), hy + 1, hx + faceX * (14 + flare), hy + 6, pal.mid, 200);
   }
 }
 
@@ -298,10 +358,10 @@ function drawMonster(img, name, action, dir, frame) {
   const cx = 24 + dx * lunge;
   const cy = 23 + bob + dy * Math.min(2, lunge);
   if (base === "slime") drawSlime(img, pal, cx, cy, dx, dy, action, frame);
-  else if (base === "carniv") drawFangBeast(img, pal, cx, cy, dx, dy, action, frame);
-  else if (base === "spitter") drawSpitter(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "carniv") drawDogBeast(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "spitter") drawSpider(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "golem") drawGolem(img, pal, cx, cy, dx, dy, action, frame);
-  else if (base === "flame") drawFlame(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "flame") drawDragon(img, pal, cx, cy, dx, dy, action, frame);
 }
 
 function drawSword(img, cx, cy, dx, dy, frame, pal) {
