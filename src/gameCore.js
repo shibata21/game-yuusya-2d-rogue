@@ -72,7 +72,7 @@ export const HERO_CLASSES = {
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v12-readable-weapons";
+export const PIXEL_ASSET_VERSION = "v13-monster-front-back";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];

@@ -243,6 +243,44 @@ function drawSlime(img, pal, cx, cy, dx, dy, action, frame) {
 
 function drawDogBeast(img, pal, cx, cy, dx, dy, action, frame) {
   const bite = action === "attack" || action === "eat" ? [0, 1, 3, 1][frame] : 0;
+  if (dx === 0 && dy > 0) {
+    oval(img, cx, cy + 12, 13, 4, "#0c0812", 80);
+    oval(img, cx, cy + 5, 14, 9, pal.dark, 245);
+    oval(img, cx, cy + 2, 11, 8, pal.mid, 245);
+    oval(img, cx, cy - 7 + bite, 10, 8, pal.dark, 245);
+    oval(img, cx, cy - 4 + bite, 8, 6, pal.mid, 245);
+    oval(img, cx, cy + 1 + bite, 6, 4, pal.light, 220);
+    tri(img, cx - 8, cy - 10 + bite, cx - 5, cy - 18 + bite, cx - 1, cy - 10 + bite, pal.dark, 235);
+    tri(img, cx + 8, cy - 10 + bite, cx + 5, cy - 18 + bite, cx + 1, cy - 10 + bite, pal.dark, 235);
+    drawEye(img, cx - 4, cy - 7 + bite, pal);
+    drawEye(img, cx + 4, cy - 7 + bite, pal);
+    diamond(img, cx, cy - 1 + bite, 2, pal.eye, 240);
+    tri(img, cx - 3, cy + 4 + bite, cx, cy + 8 + bite, cx + 1, cy + 4 + bite, pal.light, 220);
+    tri(img, cx + 3, cy + 4 + bite, cx + 1, cy + 8 + bite, cx, cy + 4 + bite, pal.light, 220);
+    for (const sx of [-6, 6]) {
+      line(img, cx + sx, cy + 8, cx + sx, cy + 16, pal.dark, 3, 235);
+      diamond(img, cx + sx, cy + 16, 2, pal.light, 210);
+    }
+    return;
+  }
+  if (dx === 0 && dy < 0) {
+    oval(img, cx, cy + 11, 13, 4, "#0c0812", 80);
+    oval(img, cx, cy + 5, 15, 9, pal.dark, 245);
+    oval(img, cx, cy + 1, 12, 8, pal.mid, 245);
+    oval(img, cx, cy - 7, 9, 7, pal.dark, 245);
+    oval(img, cx, cy - 8, 6, 5, pal.mid, 230);
+    tri(img, cx - 7, cy - 8, cx - 5, cy - 16, cx - 1, cy - 8, pal.dark, 230);
+    tri(img, cx + 7, cy - 8, cx + 5, cy - 16, cx + 1, cy - 8, pal.dark, 230);
+    line(img, cx - 9, cy + 2, cx + 8, cy, pal.light, 2, 115);
+    line(img, cx, cy + 2, cx, cy + 9, pal.dark, 2, 145);
+    line(img, cx - 2, cy + 1, cx - 15, cy - 4, pal.dark, 4, 235);
+    line(img, cx - 15, cy - 4, cx - 18, cy - 10, pal.light, 2, 185);
+    for (const sx of [-6, 6]) {
+      line(img, cx + sx, cy + 8, cx + sx, cy + 16, pal.dark, 3, 235);
+      diamond(img, cx + sx, cy + 16, 2, pal.light, 175);
+    }
+    return;
+  }
   const faceX = dx || 1;
   const hx = cx + faceX * (10 + bite);
   const hy = cy - 4 + dy * (4 + bite);
@@ -261,7 +299,7 @@ function drawDogBeast(img, pal, cx, cy, dx, dy, action, frame) {
     line(img, lx, cy + 9, lx + faceX * 3, cy + 16, pal.dark, 3, 235);
     diamond(img, lx + faceX * 3, cy + 16, 2, pal.light, 210);
   }
-  if (dy >= 0 || dx !== 0) drawEye(img, hx + faceX * 3, hy - 3, pal);
+  if (dy >= 0) drawEye(img, hx + faceX * 3, hy - 3, pal);
   tri(img, hx + faceX * 5, hy + 3, hx + faceX * 8, hy + 3, hx + faceX * 7, hy + 7, pal.light, 225);
   tri(img, hx + faceX * 1, hy + 3, hx + faceX * 4, hy + 3, hx + faceX * 3, hy + 7, pal.light, 205);
   if (dy < 0) line(img, cx - 8, cy - 5, cx + 8, cy - 7, pal.light, 2, 130);
@@ -331,6 +369,48 @@ function drawGolem(img, pal, cx, cy, dx, dy, action, frame) {
 
 function drawDragon(img, pal, cx, cy, dx, dy, action, frame) {
   const flare = action === "attack" || action === "cast" ? frame * 2 : 0;
+  if (dx === 0 && dy > 0) {
+    oval(img, cx, cy + 14, 13, 5, "#0c0812", 80);
+    oval(img, cx, cy + 6, 14, 9, pal.dark, 245);
+    oval(img, cx, cy + 2, 11, 8, pal.mid, 245);
+    tri(img, cx - 5, cy + 3, cx - 18, cy - 10 - flare, cx - 10, cy + 10, pal.dark, 220);
+    tri(img, cx - 4, cy + 3, cx - 14, cy - 5 - flare, cx - 8, cy + 8, pal.mid, 205);
+    tri(img, cx + 5, cy + 3, cx + 18, cy - 10 - flare, cx + 10, cy + 10, pal.dark, 220);
+    tri(img, cx + 4, cy + 3, cx + 14, cy - 5 - flare, cx + 8, cy + 8, pal.mid, 205);
+    oval(img, cx, cy - 6, 10, 8, pal.dark, 245);
+    oval(img, cx, cy - 2, 8, 6, pal.mid, 245);
+    oval(img, cx, cy + 2, 6, 4, pal.light, 210);
+    tri(img, cx - 6, cy - 10, cx - 4, cy - 20, cx - 1, cy - 10, pal.light, 220);
+    tri(img, cx + 6, cy - 10, cx + 4, cy - 20, cx + 1, cy - 10, pal.light, 220);
+    drawEye(img, cx - 4, cy - 6, pal);
+    drawEye(img, cx + 4, cy - 6, pal);
+    line(img, cx - 4, cy + 3, cx + 4, cy + 3, pal.eye, 2, 190);
+    line(img, cx - 7, cy + 10, cx - 8, cy + 16, pal.dark, 3, 230);
+    line(img, cx + 7, cy + 10, cx + 8, cy + 16, pal.dark, 3, 230);
+    if (action === "cast" || action === "attack") {
+      tri(img, cx - 4, cy + 5, cx, cy + 16 + flare, cx + 4, cy + 5, pal.light, 180);
+      tri(img, cx - 2, cy + 6, cx, cy + 13 + flare, cx + 2, cy + 6, pal.mid, 205);
+    }
+    return;
+  }
+  if (dx === 0 && dy < 0) {
+    oval(img, cx, cy + 14, 13, 5, "#0c0812", 80);
+    oval(img, cx, cy + 6, 15, 9, pal.dark, 245);
+    oval(img, cx, cy + 2, 12, 7, pal.mid, 245);
+    tri(img, cx - 4, cy + 3, cx - 17, cy - 12 - flare, cx - 9, cy + 10, pal.dark, 225);
+    tri(img, cx - 3, cy + 4, cx - 13, cy - 7 - flare, cx - 7, cy + 8, pal.mid, 205);
+    tri(img, cx + 4, cy + 3, cx + 17, cy - 12 - flare, cx + 9, cy + 10, pal.dark, 225);
+    tri(img, cx + 3, cy + 4, cx + 13, cy - 7 - flare, cx + 7, cy + 8, pal.mid, 205);
+    oval(img, cx, cy - 7, 8, 7, pal.dark, 245);
+    oval(img, cx, cy - 8, 6, 5, pal.mid, 230);
+    tri(img, cx - 6, cy - 10, cx - 4, cy - 20, cx - 1, cy - 10, pal.light, 205);
+    tri(img, cx + 6, cy - 10, cx + 4, cy - 20, cx + 1, cy - 10, pal.light, 205);
+    line(img, cx - 8, cy + 2, cx + 8, cy, pal.light, 2, 110);
+    line(img, cx - 1, cy + 8, cx - 13, cy + 1, pal.dark, 4, 230);
+    diamond(img, cx - 14, cy + 1, 3, pal.light, 165);
+    for (const sx of [-6, 5]) line(img, cx + sx, cy + 10, cx + sx, cy + 16, pal.dark, 3, 230);
+    return;
+  }
   const faceX = dx || 1;
   oval(img, cx, cy + 13, 13, 5, "#0c0812", 80);
   oval(img, cx - faceX * 2, cy + 5, 15, 8, pal.dark, 245);
@@ -349,7 +429,7 @@ function drawDragon(img, pal, cx, cy, dx, dy, action, frame) {
   tri(img, hx - faceX * 4, hy - 4, hx - faceX * 2, hy - 13, hx + faceX, hy - 4, pal.light, 220);
   tri(img, hx + faceX * 2, hy - 4, hx + faceX * 4, hy - 12, hx + faceX * 8, hy - 4, pal.light, 205);
   line(img, hx + faceX * 4, hy + 3, hx + faceX * 9, hy + 2, pal.light, 2, 190);
-  if (dy >= 0 || dx !== 0) drawEye(img, hx + faceX * 4, hy - 2, pal);
+  if (dy >= 0) drawEye(img, hx + faceX * 4, hy - 2, pal);
   if (action === "cast" || action === "attack") {
     tri(img, hx + faceX * 8, hy + 3, hx + faceX * (16 + flare), hy - 3, hx + faceX * (15 + flare), hy + 8, pal.light, 185);
     tri(img, hx + faceX * 10, hy + 3, hx + faceX * (14 + flare), hy + 1, hx + faceX * (14 + flare), hy + 6, pal.mid, 200);

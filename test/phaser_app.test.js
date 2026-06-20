@@ -40,7 +40,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v12-readable-weapons");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v13-monster-front-back");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
