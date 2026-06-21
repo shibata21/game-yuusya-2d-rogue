@@ -33,6 +33,11 @@ import "./style.css";
 
 let gameApi = createGame({ seed: 1 });
 exposeGameNamespace(gameApi);
+let codexOpen = false;
+let codexTab = "monster";
+
+const MONSTER_CODEX_ORDER = ["slime", "superslime", "carniv", "evolved", "spitter", "tarantula", "golem", "titan", "flame", "infernal"];
+const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage"];
 
 function tileKey(tile) {
   if (tile.t === "earth" && tile.sub) return `${tile.sub}${tile.evo ? "_evo" : ""}`;
@@ -72,6 +77,7 @@ class MainScene extends Phaser.Scene {
     this.actorSprites = [];
     this.effectSprites = [];
     this.crackGraphics = null;
+    this.tapStart = null;
   }
 
   preload() {
@@ -83,7 +89,19 @@ class MainScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor("#120c1a");
     this.input.on("pointerdown", (pointer) => {
-      if (gameApi.gameState !== "playing") return;
+      this.tapStart = { x: pointer.x, y: pointer.y, time: pointer.event && pointer.event.timeStamp ? pointer.event.timeStamp : this.time.now, moved: false };
+    });
+    this.input.on("pointermove", (pointer) => {
+      if (!this.tapStart) return;
+      if (Math.hypot(pointer.x - this.tapStart.x, pointer.y - this.tapStart.y) > 10) this.tapStart.moved = true;
+    });
+    this.input.on("pointerup", (pointer) => {
+      if (!this.tapStart) return;
+      const start = this.tapStart;
+      this.tapStart = null;
+      const elapsed = (pointer.event && pointer.event.timeStamp ? pointer.event.timeStamp : this.time.now) - start.time;
+      if (codexOpen || gameApi.gameState !== "playing" || start.moved || elapsed > 450) return;
+      if (Math.hypot(pointer.x - start.x, pointer.y - start.y) > 10) return;
       const col = Math.floor(pointer.x / TILE);
       const row = Math.floor(pointer.y / TILE);
       gameApi.tryDig(col, row);
@@ -107,7 +125,7 @@ class MainScene extends Phaser.Scene {
   }
 
   update(_time, delta) {
-    gameApi.update(Math.min(delta, 60));
+    if (!codexOpen) gameApi.update(Math.min(delta, 60));
     this.syncTiles();
     this.syncCracks();
     this.syncActors();
@@ -264,8 +282,96 @@ function legendHtml() {
     const open = gameApi.unlocked.has(key);
     html += `<span class="${open ? "" : "locked"}"><i style="background:${v.color}"></i>${v.legend}${open ? "" : ` <em>W${v.unlock}</em>`}</span>`;
   }
-  html += `<span><i style="background:var(--magic)"></i>魔界コア</span>`;
+  html += `<span><i style="background:var(--magic)"></i>迷宮コア</span>`;
   return html;
+}
+
+function roleLabel(role) {
+  if (role === "fighter") return "前衛";
+  if (role === "tank") return "盾役";
+  if (role === "caster") return "遠距離";
+  if (role === "healer") return "回復";
+  return "特殊";
+}
+
+function monsterUnlockLabel(kind) {
+  for (const key in VEIN) {
+    const v = VEIN[key];
+    if (v.kind === kind) return `W${v.unlock}`;
+    if (v.evoKind === kind) return `上位${v.unlock}`;
+  }
+  return "-";
+}
+
+function codexSpriteStyle(name) {
+  const row = PIXEL_ACTORS.indexOf(name);
+  const x = pixelActorX("idle", "s", 1);
+  const y = Math.max(0, row) * TILE;
+  return `background-image:url("${pixelAssetUrl("actors.png")}");background-position:-${x}px -${y}px;`;
+}
+
+function statPill(label, value) {
+  return `<span><b>${label}</b>${value}</span>`;
+}
+
+function monsterCard(kind) {
+  const k = KINDS[kind];
+  const name = k.name || kind;
+  const type = k.eliteOf ? "上位モンスター" : "通常モンスター";
+  return `
+    <article class="codex-card">
+      <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(kind)}'></div></div>
+      <div class="codex-body">
+        <div class="codex-title"><strong>${name}</strong><em>${type}</em></div>
+        <div class="codex-stats">
+          ${statPill("HP", k.hp)}${statPill("攻", k.atk)}${statPill("射", k.range)}${statPill("解禁", monsterUnlockLabel(kind))}
+        </div>
+        <p>${k.profile}</p>
+      </div>
+    </article>`;
+}
+
+function heroCard(cls) {
+  const c = HERO_CLASSES[cls];
+  const stats = gameApi.resolveHeroStats(cls, Math.max(c.unlock, 1));
+  return `
+    <article class="codex-card">
+      <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(cls)}'></div></div>
+      <div class="codex-body">
+        <div class="codex-title"><strong>${c.name}</strong><em>${roleLabel(c.role)}</em></div>
+        <div class="codex-stats">
+          ${statPill("HP", stats.hp)}${statPill("攻", stats.atk)}${statPill("射", c.range)}${statPill("解禁", `W${c.unlock}`)}
+        </div>
+        <p>${c.profile}</p>
+      </div>
+    </article>`;
+}
+
+function renderCodex() {
+  const grid = document.getElementById("codexGrid");
+  if (!grid) return;
+  grid.innerHTML = codexTab === "monster"
+    ? MONSTER_CODEX_ORDER.map(monsterCard).join("")
+    : HERO_CODEX_ORDER.map(heroCard).join("");
+  for (const btn of document.querySelectorAll("[data-codex-tab]")) {
+    const active = btn.dataset.codexTab === codexTab;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-selected", active ? "true" : "false");
+  }
+}
+
+function showCodex() {
+  codexOpen = true;
+  document.getElementById("gameScreen").classList.add("hidden");
+  document.getElementById("codexPanel").classList.remove("hidden");
+  renderCodex();
+}
+
+function hideCodex() {
+  codexOpen = false;
+  document.getElementById("codexPanel").classList.add("hidden");
+  document.getElementById("gameScreen").classList.remove("hidden");
+  updateHud();
 }
 
 function updateHud() {
@@ -298,6 +404,14 @@ function startGame() {
 function boot() {
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("restartBtn").addEventListener("click", startGame);
+  document.getElementById("codexBtn").addEventListener("click", showCodex);
+  document.getElementById("codexBackBtn").addEventListener("click", hideCodex);
+  for (const btn of document.querySelectorAll("[data-codex-tab]")) {
+    btn.addEventListener("click", () => {
+      codexTab = btn.dataset.codexTab;
+      renderCodex();
+    });
+  }
   document.getElementById("tauntBtn").addEventListener("click", () => {
     gameApi.tauntEarly();
     updateHud();
@@ -312,6 +426,14 @@ function boot() {
     backgroundColor: "#120c1a",
     pixelArt: true,
     roundPixels: true,
+    input: {
+      touch: { capture: false },
+      mouse: {
+        preventDefaultDown: false,
+        preventDefaultUp: false,
+        preventDefaultMove: false,
+      },
+    },
     scale: {
       mode: Phaser.Scale.FIT,
       autoCenter: Phaser.Scale.CENTER_HORIZONTALLY,

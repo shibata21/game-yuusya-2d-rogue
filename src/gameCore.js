@@ -37,16 +37,16 @@ export const VEIN_DECAY_TIME = 90000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 
 export const KINDS = {
-  slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68" },
-  carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣" },
-  spitter: { hp: 16, atk: 6, range: 2, moveCd: 590, atkCd: 980, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, col: "#a64dff", name: "毒蜘蛛" },
-  golem: { hp: 95, atk: 4, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#6f86c4", name: "ゴーレム" },
-  flame: { hp: 64, atk: 15, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, col: "#ff8a3a", name: "火竜" },
-  superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 1, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム" },
-  evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣" },
-  tarantula: { hp: 62, atk: 15, range: 2, moveCd: 560, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛" },
-  titan: { hp: 220, atk: 13, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム" },
-  infernal: { hp: 150, atk: 28, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜" },
+  slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68", name: "スライム", profile: "数で迷宮の通路を埋める基礎戦力。ゆっくり増殖する。" },
+  carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣", profile: "犬系の近接魔物。足が速く、勇者へ食らいつきやすい。" },
+  spitter: { hp: 16, atk: 6, range: 2, moveCd: 590, atkCd: 980, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, col: "#a64dff", name: "毒蜘蛛", profile: "糸と毒で距離を取る蜘蛛。壁越しには攻撃できない。" },
+  golem: { hp: 95, atk: 4, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#6f86c4", name: "ゴーレム", profile: "硬い石の守り手。鈍いが長く前線を支える。" },
+  flame: { hp: 64, atk: 15, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, col: "#ff8a3a", name: "火竜", profile: "高火力の竜。狭い通路で勇者を焼き払う主力。" },
+  superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 1, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム", profile: "上位スライム。単独で卵を作り、粘り強く数を戻す。" },
+  evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣", profile: "牙獣の上位種。高い攻撃力で前衛勇者を崩す。" },
+  tarantula: { hp: 62, atk: 15, range: 2, moveCd: 560, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛", profile: "大型の毒蜘蛛。射線を確保した場所から強い毒を放つ。" },
+  titan: { hp: 220, atk: 13, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "巨体の石像。最前線で勇者の進軍を受け止める。" },
+  infernal: { hp: 150, atk: 28, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "火竜の上位種。高い耐久と火力で終盤を支える。" },
 };
 
 export const VEIN = {
@@ -58,21 +58,21 @@ export const VEIN = {
 };
 
 export const HERO_CLASSES = {
-  warrior: { name: "勇者", role: "fighter", rank: 1, hpMul: 1.0, atkMul: 1.0, defense: 0, range: 1, moveMul: 1.0, atkCd: 650, weight: 3.0, unlock: 1, weapon: "sword" },
-  tank: { name: "タンク勇者", role: "tank", rank: 1, hpMul: 2.4, atkMul: 0.55, defense: 55, range: 1, moveMul: 1.55, atkCd: 850, weight: 1.35, unlock: 4, weapon: "greatshield", msg: "タンク勇者が現れた ─ 大楯で魔界へ迫る" },
-  mage: { name: "魔法使い", role: "caster", rank: 1, hpMul: 0.55, atkMul: 1.45, defense: -10, range: 3, moveMul: 1.0, atkCd: 900, weight: 1.3, unlock: 5, weapon: "staff", msg: "魔法使いが現れた ─ 遠くから魔物を撃つ" },
-  superwarrior: { name: "スーパー勇者", role: "fighter", rank: 2, hpMul: 1.05, atkMul: 1.25, defense: 4, range: 1, moveMul: 0.96, atkCd: 620, weight: 1.55, unlock: 6, weapon: "spear", msg: "スーパー勇者が現れた ─ 槍の突きが鋭い" },
-  priest: { name: "僧侶", role: "healer", rank: 1, hpMul: 0.85, atkMul: 0.35, defense: 0, range: 1, moveMul: 1.0, atkCd: 1000, weight: 1.0, unlock: 7, weapon: "rod", heal: true, healCd: 1500, healRange: 2, healMul: 1.0, msg: "僧侶が現れた ─ 仲間を癒やす" },
-  ultrawarrior: { name: "ウルトラ勇者", role: "fighter", rank: 3, hpMul: 1.25, atkMul: 1.38, defense: 18, range: 1, moveMul: 1.08, atkCd: 680, weight: 1.25, unlock: 8, weapon: "sword_shield", msg: "ウルトラ勇者が現れた ─ 剣と盾で押し込む" },
-  supermage: { name: "スーパー魔法使い", role: "caster", rank: 2, hpMul: 0.62, atkMul: 1.75, defense: -10, range: 3, moveMul: 1.0, atkCd: 880, weight: 0.75, unlock: 11, weapon: "gem_staff", msg: "スーパー魔法使いが現れた ─ 魔石の飛び道具が強い" },
-  crossknight: { name: "十字騎士団", role: "fighter", rank: 4, hpMul: 1.55, atkMul: 1.55, defense: 28, range: 1, moveMul: 1.12, atkCd: 660, weight: 0.85, unlock: 14, weapon: "cross_shield", msg: "十字騎士団が現れた ─ 後半の重装部隊" },
-  saint: { name: "聖女", role: "healer", rank: 2, hpMul: 1.1, atkMul: 0.45, defense: 8, range: 1, moveMul: 1.08, atkCd: 1050, weight: 0.55, unlock: 16, weapon: "saint_rod", heal: true, healCd: 1100, healRange: 3, healMul: 2.25, msg: "聖女が現れた ─ 仲間を大きく癒やす" },
-  sage: { name: "賢者", role: "caster", rank: 3, hpMul: 0.72, atkMul: 1.95, defense: -8, range: 4, moveMul: 1.05, atkCd: 1050, weight: 0.45, unlock: 18, weapon: "glow_staff", areaAttack: true, areaScale: 0.65, areaMax: 3, msg: "賢者が現れた ─ 光る杖で列を薙ぐ" },
-  captain: { name: "騎士団長", role: "fighter", rank: 5, hpMul: 1.85, atkMul: 1.75, defense: 42, range: 1, moveMul: 1.0, atkCd: 600, weight: 0.35, unlock: 20, weapon: "gold_sword_shield", maxPerWave: 1, msg: "騎士団長が現れた ─ 金色の剣と盾を持つ強敵" },
+  warrior: { name: "勇者", role: "fighter", rank: 1, hpMul: 1.0, atkMul: 1.0, defense: 0, range: 1, moveMul: 1.0, atkCd: 650, weight: 3.0, unlock: 1, weapon: "sword", profile: "剣を持つ標準的な前衛。迷宮コアへまっすぐ進む。" },
+  tank: { name: "タンク勇者", role: "tank", rank: 1, hpMul: 2.4, atkMul: 0.55, defense: 55, range: 1, moveMul: 1.55, atkCd: 850, weight: 1.35, unlock: 4, weapon: "greatshield", msg: "タンク勇者が現れた ─ 大楯で迷宮へ迫る", profile: "大楯を持つ重装前衛。攻撃は低いが非常に硬い。" },
+  mage: { name: "魔法使い", role: "caster", rank: 1, hpMul: 0.55, atkMul: 1.45, defense: -10, range: 3, moveMul: 1.0, atkCd: 900, weight: 1.3, unlock: 5, weapon: "staff", msg: "魔法使いが現れた ─ 遠くから魔物を撃つ", profile: "杖で遠距離攻撃する後衛。防御は低い。" },
+  superwarrior: { name: "スーパー勇者", role: "fighter", rank: 2, hpMul: 1.05, atkMul: 1.25, defense: 4, range: 1, moveMul: 0.96, atkCd: 620, weight: 1.55, unlock: 6, weapon: "spear", msg: "スーパー勇者が現れた ─ 槍の突きが鋭い", profile: "槍を持つ強化前衛。通常勇者より攻撃性能が高い。" },
+  priest: { name: "僧侶", role: "healer", rank: 1, hpMul: 0.85, atkMul: 0.35, defense: 0, range: 1, moveMul: 1.0, atkCd: 1000, weight: 1.0, unlock: 7, weapon: "rod", heal: true, healCd: 1500, healRange: 2, healMul: 1.0, msg: "僧侶が現れた ─ 仲間を癒やす", profile: "ロッドで仲間を回復する。魔物への攻撃力は低い。" },
+  ultrawarrior: { name: "ウルトラ勇者", role: "fighter", rank: 3, hpMul: 1.25, atkMul: 1.38, defense: 18, range: 1, moveMul: 1.08, atkCd: 680, weight: 1.25, unlock: 8, weapon: "sword_shield", msg: "ウルトラ勇者が現れた ─ 剣と盾で押し込む", profile: "剣と盾を持つ上位前衛。攻撃と防御の両方が高い。" },
+  supermage: { name: "スーパー魔法使い", role: "caster", rank: 2, hpMul: 0.62, atkMul: 1.75, defense: -10, range: 3, moveMul: 1.0, atkCd: 880, weight: 0.75, unlock: 11, weapon: "gem_staff", msg: "スーパー魔法使いが現れた ─ 魔石の飛び道具が強い", profile: "魔石の杖で強い飛び道具を放つ後衛。" },
+  crossknight: { name: "十字騎士団", role: "fighter", rank: 4, hpMul: 1.55, atkMul: 1.55, defense: 28, range: 1, moveMul: 1.12, atkCd: 660, weight: 0.85, unlock: 14, weapon: "cross_shield", msg: "十字騎士団が現れた ─ 後半の重装部隊", profile: "十字盾を構えた後半の主力。攻守ともに高い。" },
+  saint: { name: "聖女", role: "healer", rank: 2, hpMul: 1.1, atkMul: 0.45, defense: 8, range: 1, moveMul: 1.08, atkCd: 1050, weight: 0.55, unlock: 16, weapon: "saint_rod", heal: true, healCd: 1100, healRange: 3, healMul: 2.25, msg: "聖女が現れた ─ 仲間を大きく癒やす", profile: "ローブ姿の上位回復役。広い範囲を大きく癒やす。" },
+  sage: { name: "賢者", role: "caster", rank: 3, hpMul: 0.72, atkMul: 1.95, defense: -8, range: 4, moveMul: 1.05, atkCd: 1050, weight: 0.45, unlock: 18, weapon: "glow_staff", areaAttack: true, areaScale: 0.65, areaMax: 3, msg: "賢者が現れた ─ 光る杖で列を薙ぐ", profile: "光る杖で射線上の複数の魔物を攻撃する後衛。" },
+  captain: { name: "騎士団長", role: "fighter", rank: 5, hpMul: 1.85, atkMul: 1.75, defense: 42, range: 1, moveMul: 1.0, atkCd: 600, weight: 0.35, unlock: 20, weapon: "gold_sword_shield", maxPerWave: 1, msg: "騎士団長が現れた ─ 金色の剣と盾を持つ強敵", profile: "金色の剣と盾を持つ最上位前衛。1ウェーブ最大1体。" },
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v14-green-slime-natural-ai";
+export const PIXEL_ASSET_VERSION = "v15-labyrinth-codex";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];

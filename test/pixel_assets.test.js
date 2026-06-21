@@ -129,6 +129,15 @@ function brightPixelsIn(img, pred) {
   return count;
 }
 
+function pixelsIn(img, pred) {
+  let count = 0;
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+    const i = (y * img.width + x) * 4;
+    if (img.data[i + 3] > 0 && pred(x, y, img.data[i], img.data[i + 1], img.data[i + 2], img.data[i + 3])) count++;
+  }
+  return count;
+}
+
 function brightFacePixels(img) {
   let count = 0;
   for (let y = 4; y < 23; y++) for (let x = 13; x < 35; x++) {
@@ -162,8 +171,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v14-green-slime-natural-ai");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v14-green-slime-natural-ai");
+    expect(PIXEL_ASSET_VERSION).toBe("v15-labyrinth-codex");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v15-labyrinth-codex");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -217,6 +226,27 @@ describe("ピクセル素材", () => {
       expect(brightFacePixels(front), name).toBeGreaterThan(brightFacePixels(back) + 8);
       expect(diffRatio(front, back), name).toBeGreaterThan(0.2);
     }
+  });
+
+  it("入口タイルは洞窟穴として読める暗い開口部を持つ", () => {
+    const surface = tileCrop("surface");
+    const darkOpening = pixelsIn(surface, (x, y, r, g, b) => x >= 10 && x <= 38 && y >= 24 && y <= 43 && r < 35 && g < 30 && b < 40);
+    const brightRim = pixelsIn(surface, (x, y, r, g, b) => y >= 14 && y <= 29 && r > 85 && g > 45 && b > 25);
+    expect(darkOpening).toBeGreaterThan(260);
+    expect(brightRim).toBeGreaterThan(70);
+  });
+
+  it("蜘蛛とゴーレムは判別しやすいシルエットを持つ", () => {
+    const spider = actorCrop("spitter", "idle", "s", 1);
+    const spiderBounds = alphaBounds(spider);
+    expect(spiderBounds.maxX - spiderBounds.minX + 1).toBeGreaterThanOrEqual(42);
+    expect(pixelsIn(spider, (x, y) => (x <= 6 || x >= 41) && y >= 8 && y <= 40)).toBeGreaterThan(8);
+
+    const golem = actorCrop("golem", "idle", "s", 1);
+    const golemBounds = alphaBounds(golem);
+    expect(golemBounds.count).toBeGreaterThan(520);
+    expect(brightPixelsIn(golem, (x, y) => x >= 14 && x <= 34 && y >= 4 && y <= 23)).toBeGreaterThan(4);
+    expect(pixelsIn(golem, (x, y, r, g, b) => x >= 10 && x <= 38 && y >= 16 && y <= 40 && b > r && b > g)).toBeGreaterThan(160);
   });
 
   it("卵は種別色のよくある卵シルエットになる", () => {

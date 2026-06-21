@@ -13,6 +13,11 @@ describe("Phaserアプリ構成", () => {
     const html = fs.readFileSync(path.join(repoDir, "index.html"), "utf8");
     expect(html).toContain('<div id="game-root"></div>');
     expect(html).toContain('<script type="module" src="/src/main.js"></script>');
+    expect(html).toContain('id="codexBtn"');
+    expect(html).toContain('id="codexPanel"');
+    expect(html).toContain("迷宮防衛指令");
+    expect(html).not.toContain("魔界");
+    expect(html).not.toContain("敗 北");
     expect(html).not.toContain("vendor/pixi");
     expect(html).not.toContain("hakaishin_dungeon");
   });
@@ -26,6 +31,18 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("Phaser.Scale.FIT");
     expect(src).toContain("crackGraphics");
     expect(src).toContain("DIG_BREAK");
+    expect(src).toContain('this.input.on("pointerup"');
+    expect(src).toContain("touch: { capture: false }");
+    expect(src).toContain("preventDefaultDown: false");
+    expect(src).toContain("renderCodex");
+    expect(src).toContain("codexOpen");
+  });
+
+  it("盤面上から縦スクロールできるCSSを持つ", () => {
+    const css = fs.readFileSync(path.join(repoDir, "src/style.css"), "utf8");
+    expect(css).toContain("touch-action: pan-y");
+    expect(css).toContain(".codex-card");
+    expect(css).toContain(".btn-codex");
   });
 
   it("ViteビルドはPages配下で読める相対baseを使う", () => {
@@ -40,7 +57,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v14-green-slime-natural-ai");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v15-labyrinth-codex");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

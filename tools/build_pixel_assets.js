@@ -122,12 +122,21 @@ function drawBedrock() {
 
 function drawSurface() {
   const img = image();
-  rect(img, 0, 0, CELL, CELL, "#1b1425");
-  rect(img, 0, 0, CELL, 17, "#34203a");
-  rect(img, 0, 16, CELL, 8, "#5a342e");
-  rect(img, 0, 24, CELL, 24, "#2c1b24");
-  for (let x = 5; x < CELL; x += 8) tri(img, x - 3, 16, x + 3, 16, x, 7, "#6fcf6f", 190);
-  noise(img, 13, ["#7a4b3a", "#221520", "#4b2e33"], 45, 130);
+  rect(img, 0, 0, CELL, CELL, "#1a1320");
+  rect(img, 0, 0, CELL, 16, "#2f2234");
+  rect(img, 0, 16, CELL, 10, "#573724");
+  rect(img, 0, 26, CELL, 22, "#2b1d20");
+  for (let x = 4; x < CELL; x += 8) tri(img, x - 3, 16, x + 3, 16, x, 7, "#6fcf6f", 160);
+  oval(img, 24, 29, 18, 15, "#0a0710", 255);
+  oval(img, 24, 31, 14, 11, "#17101c", 245);
+  rect(img, 10, 28, 28, 16, "#0b0710", 245);
+  line(img, 8, 28, 15, 17, "#6c4a33", 5, 220);
+  line(img, 40, 28, 33, 17, "#6c4a33", 5, 220);
+  line(img, 13, 17, 35, 17, "#7d5538", 5, 220);
+  line(img, 11, 25, 37, 25, "#2a1c24", 2, 190);
+  diamond(img, 17, 20, 2, "#b28a5c", 160);
+  diamond(img, 31, 19, 2, "#8f6c4d", 150);
+  noise(img, 13, ["#7a4b3a", "#221520", "#4b2e33"], 38, 120);
   return img;
 }
 
@@ -308,35 +317,46 @@ function drawDogBeast(img, pal, cx, cy, dx, dy, action, frame) {
 function drawSpider(img, pal, cx, cy, dx, dy, action, frame) {
   const cast = action === "cast" || action === "attack" ? frame : 0;
   const faceX = dx || 1;
-  const headX = dx === 0 ? cx : cx + faceX * 4;
-  const headY = dx === 0 ? cy + (dy >= 0 ? 8 : -4) : cy + 1;
-  oval(img, cx, cy + 5, 14, 9, pal.dark, 245);
-  oval(img, headX, headY, dx === 0 ? 9 : 10, 8, pal.mid, 245);
+  const headX = dx === 0 ? cx : cx + faceX * 8;
+  const headY = dx === 0 ? cy + (dy >= 0 ? 7 : -5) : cy + 1;
+  oval(img, cx, cy + 12, 18, 4, "#0c0812", 80);
+  oval(img, cx, cy + 4, 13, 11, pal.dark, 245);
+  oval(img, cx, cy + 4, 9, 8, pal.mid, 220);
+  oval(img, headX, headY, dx === 0 ? 9 : 8, 8, pal.mid, 250);
+  oval(img, headX, headY + 1, dx === 0 ? 6 : 5, 5, pal.light, 90);
   if (dy < 0 && dx === 0) {
-    line(img, cx - 8, cy + 4, cx + 8, cy + 2, pal.light, 2, 135);
-    diamond(img, cx, cy + 6, 4, pal.dark, 180);
+    line(img, cx - 8, cy + 2, cx + 8, cy, pal.light, 2, 130);
+    diamond(img, cx, cy + 5, 4, pal.dark, 180);
   }
-  for (const side of [-1, 1]) {
-    for (const [sx, reach] of [[-9, 15], [-4, 13], [3, 13], [8, 15]]) {
-      const rootX = cx + sx;
-      const rootY = cy + 4 + side;
-      const kneeX = rootX + Math.sign(sx || side) * 7;
-      const kneeY = rootY + side * (4 + (Math.abs(sx) % 3));
-      const footX = cx + Math.sign(sx || side) * reach;
-      const footY = cy + 8 + side * (7 + (Math.abs(sx) % 2));
-      line(img, rootX, rootY, kneeX, kneeY, pal.dark, 2, 225);
-      line(img, kneeX, kneeY, footX, footY, pal.dark, 2, 215);
-    }
+  const legs = [
+    [-10, -3, -20, -8, -22, -15],
+    [-8, 1, -20, 0, -23, -5],
+    [-6, 5, -18, 9, -20, 15],
+    [-3, 8, -13, 16, -11, 21],
+    [10, -3, 20, -8, 22, -15],
+    [8, 1, 20, 0, 23, -5],
+    [6, 5, 18, 9, 20, 15],
+    [3, 8, 13, 16, 11, 21],
+  ];
+  for (const [rx, ry, kx, ky, fx, fy] of legs) {
+    const lift = cast ? (rx < 0 ? -1 : 1) * (frame % 2) : 0;
+    line(img, cx + rx, cy + ry, cx + kx, cy + ky + lift, pal.dark, 3, 230);
+    line(img, cx + kx, cy + ky + lift, cx + fx, cy + fy, pal.dark, 2, 220);
+    diamond(img, cx + fx, cy + fy, 1, pal.light, 170);
   }
   if (dy >= 0 || dx !== 0) {
-    drawEye(img, headX + (dx === 0 ? -4 : faceX * 4), headY - 3 + Math.max(0, dy), pal);
-    drawEye(img, headX + (dx === 0 ? 4 : 0), headY - 3 + Math.max(0, dy), pal);
+    drawEye(img, headX + (dx === 0 ? -4 : faceX * 3), headY - 3 + Math.max(0, dy), pal);
+    drawEye(img, headX + (dx === 0 ? 4 : -faceX), headY - 3 + Math.max(0, dy), pal);
+    rect(img, headX - 4, headY + 4, 2, 4, pal.light, 210);
+    rect(img, headX + 2, headY + 4, 2, 4, pal.light, 210);
   }
   if (action === "cast") {
     const wx = dx === 0 ? cx : cx + faceX * (12 + frame * 2);
     const wy = dx === 0 ? cy + dy * (12 + frame * 2) : cy - 4 + dy * 8;
     diamond(img, wx, wy, 3 + frame, pal.eye, 150);
     line(img, headX, headY, wx, wy, pal.light, 1, 120);
+    line(img, headX - 4, headY + 2, wx - 5, wy + 2, pal.light, 1, 90);
+    line(img, headX + 4, headY + 2, wx + 5, wy + 2, pal.light, 1, 90);
   } else if (cast) {
     diamond(img, dx === 0 ? cx : cx + faceX * (10 + cast), dx === 0 ? cy + dy * (10 + cast) : cy - 2 + dy * 6, 3, pal.light, 150);
   }
@@ -344,27 +364,36 @@ function drawSpider(img, pal, cx, cy, dx, dy, action, frame) {
 
 function drawGolem(img, pal, cx, cy, dx, dy, action, frame) {
   const slam = action === "attack" || action === "dig" ? [0, 1, 4, 1][frame] : 0;
-  rect(img, cx - 12, cy - 7, 24, 22, pal.dark, 245);
-  rect(img, cx - 9, cy - 10, 18, 17, pal.mid, 245);
-  rect(img, cx - 7, cy - 18, 14, 10, pal.dark, 245);
-  rect(img, cx - 5, cy - 17, 10, 8, pal.mid, 245);
-  rect(img, cx - 17 - dx * slam, cy - 5 + slam, 7, 17, pal.dark, 245);
-  rect(img, cx + 10 + dx * slam, cy - 5 + slam, 7, 17, pal.dark, 245);
-  rect(img, cx - 10, cy + 14, 8, 8, pal.dark, 245);
-  rect(img, cx + 2, cy + 14, 8, 8, pal.dark, 245);
+  rect(img, cx - 15, cy - 5, 30, 23, pal.dark, 250);
+  rect(img, cx - 12, cy - 8, 24, 21, pal.mid, 245);
+  rect(img, cx - 8, cy - 19, 16, 13, pal.dark, 250);
+  rect(img, cx - 6, cy - 18, 12, 10, pal.mid, 245);
+  rect(img, cx - 20 - dx * slam, cy - 4 + slam, 8, 19, pal.dark, 245);
+  rect(img, cx - 19 - dx * slam, cy - 2 + slam, 6, 13, pal.mid, 225);
+  rect(img, cx + 12 + dx * slam, cy - 4 + slam, 8, 19, pal.dark, 245);
+  rect(img, cx + 13 + dx * slam, cy - 2 + slam, 6, 13, pal.mid, 225);
+  rect(img, cx - 12, cy + 15, 9, 8, pal.dark, 245);
+  rect(img, cx + 3, cy + 15, 9, 8, pal.dark, 245);
+  rect(img, cx - 10, cy + 15, 6, 5, pal.mid, 185);
+  rect(img, cx + 5, cy + 15, 6, 5, pal.mid, 185);
   if (dx !== 0) {
-    rect(img, cx + dx * 4, cy - 5, 8, 15, pal.light, 135);
-    rect(img, cx - dx * 11, cy - 3, 6, 13, "#151827", 160);
+    rect(img, cx + dx * 4, cy - 6, 9, 16, pal.light, 125);
+    rect(img, cx - dx * 12, cy - 3, 7, 14, "#151827", 155);
   }
   if (dy >= 0 || dx !== 0) {
-    diamond(img, cx + dx * 3, cy + 1 + dy, 5, pal.light, 115);
-    drawEye(img, cx - 4 + dx * 2, cy - 14 + dy, pal);
-    drawEye(img, cx + 4 + dx * 2, cy - 14 + dy, pal);
+    diamond(img, cx + dx * 3, cy + 2 + dy, 5, pal.light, 105);
+    rect(img, cx - 7 + dx * 2, cy - 15 + dy, 5, 3, pal.eye, 245);
+    rect(img, cx + 2 + dx * 2, cy - 15 + dy, 5, 3, pal.eye, 245);
+    line(img, cx - 6 + dx * 2, cy - 14 + dy, cx - 3 + dx * 2, cy - 14 + dy, "#ffffff", 2, 215);
+    line(img, cx + 3 + dx * 2, cy - 14 + dy, cx + 6 + dx * 2, cy - 14 + dy, "#ffffff", 2, 215);
   } else {
     rect(img, cx - 9, cy - 15, 18, 7, "#151827", 170);
     line(img, cx - 7, cy - 15, cx + 7, cy - 15, pal.light, 2, 160);
   }
-  line(img, cx - 9, cy - 1, cx + 8, cy + 1, pal.light, 1, 105);
+  line(img, cx - 11, cy - 2, cx - 3, cy + 5, "#151827", 2, 140);
+  line(img, cx + 4, cy - 6, cx + 10, cy + 3, "#151827", 2, 130);
+  line(img, cx - 4, cy + 8, cx + 6, cy + 10, pal.light, 1, 120);
+  diamond(img, cx + 12, cy - 3, 2, pal.light, 110);
 }
 
 function drawDragon(img, pal, cx, cy, dx, dy, action, frame) {
