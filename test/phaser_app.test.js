@@ -36,6 +36,8 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("preventDefaultDown: false");
     expect(src).toContain("renderCodex");
     expect(src).toContain("codexOpen");
+    expect(src).toContain("進化モンスター");
+    expect(src).not.toContain("上位モンスター");
   });
 
   it("盤面上から縦スクロールできるCSSを持つ", () => {
@@ -57,7 +59,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v15-labyrinth-codex");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v16-vein-eggs-codex");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

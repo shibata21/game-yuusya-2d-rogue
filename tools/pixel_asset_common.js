@@ -16,7 +16,7 @@ const ACTORS = [
   "superslime", "tarantula", "titan", "infernal",
   "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain",
   "priest", "saint", "mage", "supermage", "sage",
-  "egg_superslime", "egg_evolved", "egg_tarantula", "egg_titan", "egg_infernal",
+  "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal",
 ];
 const TILES = [
   "earth", "tunnel", "bedrock", "surface", "core",

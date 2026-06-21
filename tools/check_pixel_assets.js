@@ -8,6 +8,7 @@ const {
   readPng, spritePath,
 } = require("./pixel_asset_common");
 
+const EXPECTED_EGG_ACTORS = ["egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal"];
 let failed = false;
 function fail(msg) {
   failed = true;
@@ -53,6 +54,26 @@ function uniqueOpaqueColors(img) {
     if (img.data[i + 3] > 0) colors.add(img.data[i] + "," + img.data[i + 1] + "," + img.data[i + 2] + "," + img.data[i + 3]);
   }
   return colors.size;
+}
+function pixelsIn(img, pred) {
+  let count = 0;
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+    const i = (y * img.width + x) * 4;
+    if (img.data[i + 3] > 0 && pred(x, y, img.data[i], img.data[i + 1], img.data[i + 2], img.data[i + 3])) count++;
+  }
+  return count;
+}
+function eggMotifPixels(img) {
+  return pixelsIn(img, (x, y, r, g, b, a) => {
+    if (a <= 0 || x < 15 || x > 34 || y < 20 || y > 39) return false;
+    return Math.max(r, g, b) - Math.min(r, g, b) > 35 && Math.min(r, g, b) < 150;
+  });
+}
+function eggGlowPixels(img) {
+  return pixelsIn(img, (x, y, r, g, b, a) => {
+    if (a <= 0 || !(x <= 7 || x >= 41 || y <= 6 || y >= 46)) return false;
+    return r + g + b > 610;
+  });
 }
 
 function whiteEdgeCount(img) {
@@ -224,13 +245,20 @@ function validateElitePaletteVariants() {
 }
 function validateEggShapes() {
   const eggs = ACTORS.filter((n) => n.startsWith("egg_"));
+  if (JSON.stringify(eggs) !== JSON.stringify(EXPECTED_EGG_ACTORS)) fail("卵アクターの種類が不正です: " + eggs.join(","));
   for (const name of eggs) {
     const img = actorFrame(name, "idle", "s", 1);
     const b = alphaBounds(img);
     const w = b.maxX - b.minX + 1;
     const h = b.maxY - b.minY + 1;
-    if (b.count < 220) fail(name + " の卵が小さすぎます: " + b.count);
-    if (w < 17 || w > 29 || h < 24 || h > 38 || h <= w + 5) fail(name + " の卵シルエットが不正です: " + w + "x" + h);
+    if (b.count < 360) fail(name + " の卵が小さすぎます: " + b.count);
+    if (w < 29 || w > 35 || h < 36 || h > 42 || h <= w + 2) fail(name + " の卵シルエットが不正です: " + w + "x" + h);
+    if (eggMotifPixels(img) <= 20) fail(name + " の鉱脈マークが読みにくすぎます");
+    if (["egg_tarantula", "egg_titan", "egg_infernal"].includes(name)) {
+      if (eggGlowPixels(img) <= 8) fail(name + " の進化卵発光が弱すぎます");
+    } else if (eggGlowPixels(img) !== 0) {
+      fail(name + " は通常卵なのに外周発光があります");
+    }
   }
   for (let i = 1; i < eggs.length; i++) {
     const d = diffRatio(actorFrame(eggs[i - 1], "idle", "s", 1), actorFrame(eggs[i], "idle", "s", 1));

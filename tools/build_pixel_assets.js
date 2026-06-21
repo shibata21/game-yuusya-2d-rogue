@@ -39,11 +39,21 @@ const heroPalettes = {
 };
 
 const eggPalette = {
-  egg_superslime: ["#f7d4d7", "#e84a4a", "#fff5f5", "#8f2631"],
-  egg_evolved: ["#e0b4c4", "#9b2f4f", "#fff0f7", "#5a182c"],
+  egg_spitter: ["#eadbff", "#a64dff", "#fff7ff", "#3a195f"],
+  egg_golem: ["#d8e3ff", "#6f86c4", "#f8fbff", "#2b3854"],
+  egg_flame: ["#ffd6a3", "#ff8a3a", "#fff4bc", "#702b0a"],
   egg_tarantula: ["#ffd1c8", "#ff6b5a", "#fff7ef", "#873226"],
   egg_titan: ["#efe0bf", "#d9b27a", "#fff9dc", "#6c5430"],
   egg_infernal: ["#cae8ff", "#5ab0ff", "#f1fbff", "#185179"],
+};
+
+const eggMotif = {
+  egg_spitter: { base: "venom", evo: false },
+  egg_golem: { base: "stone", evo: false },
+  egg_flame: { base: "ember", evo: false },
+  egg_tarantula: { base: "venom", evo: true },
+  egg_titan: { base: "stone", evo: true },
+  egg_infernal: { base: "ember", evo: true },
 };
 
 const veinPalette = {
@@ -702,17 +712,55 @@ function drawHero(img, name, action, dir, frame) {
   }
 }
 
+function drawEggMotif(img, base, evo, bob) {
+  const pal = veinPalette[base] || veinPalette.venom;
+  if (base === "venom") {
+    tri(img, 19, 29 + bob, 24, 19 + bob, 29, 29 + bob, pal.dark, 190);
+    oval(img, 24, 31 + bob, 6, 7, pal.dark, 198);
+    tri(img, 21, 29 + bob, 24, 22 + bob, 27, 29 + bob, pal.mid, 232);
+    oval(img, 24, 31 + bob, 4, 5, pal.mid, 238);
+    diamond(img, 22, 28 + bob, 1, pal.spark, 190);
+    oval(img, 32, 34 + bob, 3, 2, pal.light, 174);
+    oval(img, 17, 34 + bob, 2, 2, pal.mid, 165);
+  } else if (base === "stone") {
+    diamond(img, 24, 29 + bob, 8, pal.dark, 210);
+    tri(img, 16, 29 + bob, 24, 20 + bob, 25, 29 + bob, pal.mid, 230);
+    tri(img, 25, 29 + bob, 33, 26 + bob, 26, 38 + bob, pal.light, 205);
+    tri(img, 17, 30 + bob, 24, 30 + bob, 22, 38 + bob, pal.mid, 190);
+    line(img, 20, 27 + bob, 28, 31 + bob, "#172137", 1, 155);
+    line(img, 26, 23 + bob, 24, 36 + bob, "#172137", 1, 130);
+  } else if (base === "ember") {
+    tri(img, 17, 38 + bob, 24, 19 + bob, 31, 38 + bob, pal.dark, 210);
+    tri(img, 19, 37 + bob, 26, 22 + bob, 32, 38 + bob, pal.mid, 235);
+    tri(img, 22, 36 + bob, 25, 27 + bob, 29, 38 + bob, pal.light, 222);
+    diamond(img, 16, 27 + bob, 2, pal.mid, 175);
+    diamond(img, 33, 25 + bob, 2, pal.light, 165);
+  }
+  if (evo) {
+    diamond(img, 15, 20 + bob, 2, pal.spark, 145);
+    diamond(img, 34, 36 + bob, 2, pal.spark, 140);
+  }
+}
+
 function drawEgg(img, name, frame) {
   const colors = eggPalette[name];
+  const meta = eggMotif[name] || { base: "venom", evo: false };
+  const pal = veinPalette[meta.base];
   const bob = [0, -1, 0, 1][frame];
-  oval(img, 24, 29 + bob, 12, 16, colors[3], 235);
-  oval(img, 24, 27 + bob, 10, 15, colors[0], 255);
-  oval(img, 25, 31 + bob, 8, 9, colors[1], 90);
-  oval(img, 20, 21 + bob, 3, 5, colors[2], 190);
-  diamond(img, 17, 31 + bob, 2, colors[1], 210);
-  diamond(img, 30, 25 + bob, 2, colors[1], 190);
-  diamond(img, 26, 37 + bob, 2, colors[3], 150);
-  line(img, 17, 33 + bob, 22, 39 + bob, colors[3], 1, 100);
+  if (meta.evo) {
+    oval(img, 24, 29 + bob, 17, 21, pal.spark, 72);
+    oval(img, 24, 29 + bob, 16, 20, pal.light, 58);
+  }
+  oval(img, 24, 31 + bob, 14, 4, "#0c0812", 72);
+  oval(img, 24, 29 + bob, 15, 18, colors[3], 238);
+  oval(img, 24, 26 + bob, 13, 17, colors[0], 255);
+  oval(img, 25, 31 + bob, 11, 10, colors[1], 78);
+  oval(img, 20, 18 + bob, 4, 6, colors[2], 192);
+  oval(img, 19, 28 + bob, 4, 3, pal.light, 128);
+  diamond(img, 30, 24 + bob, 2, colors[1], 185);
+  diamond(img, 27, 39 + bob, 2, colors[3], 145);
+  line(img, 16, 31 + bob, 21, 39 + bob, colors[3], 1, 105);
+  drawEggMotif(img, meta.base, meta.evo, bob);
 }
 
 function drawActor(name, frame, dir, action) {

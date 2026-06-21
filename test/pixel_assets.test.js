@@ -20,6 +20,7 @@ import {
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const meta = JSON.parse(fs.readFileSync(path.join(repoDir, "assets/pixel/sprites.json"), "utf8"));
 const pngCache = new Map();
+const EXPECTED_EGG_ACTORS = ["egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal"];
 
 function png(file) {
   if (!pngCache.has(file)) pngCache.set(file, PNG.sync.read(fs.readFileSync(path.join(repoDir, file))));
@@ -129,6 +130,20 @@ function brightPixelsIn(img, pred) {
   return count;
 }
 
+function eggMotifPixels(img) {
+  return pixelsIn(img, (x, y, r, g, b, a) => {
+    if (a <= 0 || x < 15 || x > 34 || y < 20 || y > 39) return false;
+    return Math.max(r, g, b) - Math.min(r, g, b) > 35 && Math.min(r, g, b) < 150;
+  });
+}
+
+function eggGlowPixels(img) {
+  return pixelsIn(img, (x, y, r, g, b, a) => {
+    if (a <= 0 || !(x <= 7 || x >= 41 || y <= 6 || y >= 46)) return false;
+    return r + g + b > 610;
+  });
+}
+
 function pixelsIn(img, pred) {
   let count = 0;
   for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
@@ -171,8 +186,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v15-labyrinth-codex");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v15-labyrinth-codex");
+    expect(PIXEL_ASSET_VERSION).toBe("v16-vein-eggs-codex");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v16-vein-eggs-codex");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -251,16 +266,24 @@ describe("ピクセル素材", () => {
 
   it("卵は種別色のよくある卵シルエットになる", () => {
     const eggs = PIXEL_ACTORS.filter((name) => name.startsWith("egg_"));
+    expect(eggs).toEqual(EXPECTED_EGG_ACTORS);
     for (const name of eggs) {
-      const b = alphaBounds(actorCrop(name, "idle", "s", 1));
+      const img = actorCrop(name, "idle", "s", 1);
+      const b = alphaBounds(img);
       const w = b.maxX - b.minX + 1;
       const h = b.maxY - b.minY + 1;
-      expect(b.count, name).toBeGreaterThan(220);
-      expect(w, name).toBeGreaterThanOrEqual(17);
-      expect(w, name).toBeLessThanOrEqual(29);
-      expect(h, name).toBeGreaterThanOrEqual(24);
-      expect(h, name).toBeLessThanOrEqual(38);
-      expect(h, name).toBeGreaterThan(w + 5);
+      expect(b.count, name).toBeGreaterThan(360);
+      expect(w, name).toBeGreaterThanOrEqual(29);
+      expect(w, name).toBeLessThanOrEqual(35);
+      expect(h, name).toBeGreaterThanOrEqual(36);
+      expect(h, name).toBeLessThanOrEqual(42);
+      expect(h, name).toBeGreaterThan(w + 2);
+      expect(eggMotifPixels(img), name).toBeGreaterThan(20);
+      if (["egg_tarantula", "egg_titan", "egg_infernal"].includes(name)) {
+        expect(eggGlowPixels(img), name).toBeGreaterThan(8);
+      } else {
+        expect(eggGlowPixels(img), name).toBe(0);
+      }
     }
     for (let i = 1; i < eggs.length; i++) {
       expect(diffRatio(actorCrop(eggs[i - 1], "idle", "s", 1), actorCrop(eggs[i], "idle", "s", 1)), `${eggs[i - 1]}/${eggs[i]}`).toBeGreaterThan(0.08);

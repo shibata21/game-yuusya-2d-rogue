@@ -298,7 +298,7 @@ function monsterUnlockLabel(kind) {
   for (const key in VEIN) {
     const v = VEIN[key];
     if (v.kind === kind) return `W${v.unlock}`;
-    if (v.evoKind === kind) return `上位${v.unlock}`;
+    if (v.evoKind === kind) return `進化W${v.unlock}`;
   }
   return "-";
 }
@@ -317,7 +317,7 @@ function statPill(label, value) {
 function monsterCard(kind) {
   const k = KINDS[kind];
   const name = k.name || kind;
-  const type = k.eliteOf ? "上位モンスター" : "通常モンスター";
+  const type = k.eliteOf ? "進化モンスター" : "通常モンスター";
   return `
     <article class="codex-card">
       <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(kind)}'></div></div>

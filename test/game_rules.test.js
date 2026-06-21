@@ -185,26 +185,60 @@ describe("ゲームルール", () => {
     expect(G.eggs).toHaveLength(0);
   });
 
-  it("上位モンスター1体は単独で卵を作り、卵は同じ上位種に孵化する", () => {
+  it("卵を産むのは毒蜘蛛以上で、スーパースライムと凶牙獣は産卵しない", () => {
     carveAll();
-    G.setRandom(() => 0);
-    G.spawnMonster("superslime", 5, 5);
+    for (const kind of ["superslime", "evolved"]) {
+      expect(G.canLayEgg(kind), kind).toBe(false);
+      expect(G.spawnEgg(kind, 1, 1), kind).toBe(false);
+    }
+    for (const [i, kind] of ["spitter", "golem", "flame", "tarantula", "titan", "infernal"].entries()) {
+      expect(G.canLayEgg(kind), kind).toBe(true);
+      expect(G.spawnEgg(kind, 2 + i, 2), kind).toBe(true);
+    }
+  });
+
+  it("産卵確率は種別ごとに変わり、強いモンスターほど低い", () => {
+    expect(KINDS.spitter.eggChance).toBeGreaterThan(KINDS.titan.eggChance);
+    carveAll();
+    G.setRandom(() => 0.19);
+    G.spawnMonster("spitter", 5, 5);
     G.monsters[0].eggCd = 0;
-    G.update(G.EGG_CHECK);
+    G.update(100);
     expect(G.eggs).toHaveLength(1);
-    expect(G.eggs[0].kind).toBe("superslime");
-    expect(Math.abs(G.eggs[0].col - 5) + Math.abs(G.eggs[0].row - 5)).toBe(1);
+    expect(G.eggs[0].kind).toBe("spitter");
+
+    G.resetGame(1);
+    carveAll();
+    G.setRandom(() => 0.07);
+    G.spawnMonster("titan", 5, 5);
+    G.monsters[0].eggCd = 0;
+    G.update(100);
+    expect(G.eggs).toHaveLength(0);
+
+    G.resetGame(1);
+    carveAll();
+    G.setRandom(() => 0.059);
+    G.spawnMonster("titan", 5, 5);
+    G.monsters[0].eggCd = 0;
+    G.update(100);
+    expect(G.eggs).toHaveLength(1);
+    expect(G.eggs[0].kind).toBe("titan");
+  });
+
+  it("卵は同じ種に孵化する", () => {
+    carveAll();
+    expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
     G.waveCountdown = 999999;
     G.monsters.forEach((m) => { m.eggCd = 999999; });
     G.setRandom(() => 0.99);
     G.update(G.EGG_HATCH);
     expect(G.eggs).toHaveLength(0);
-    expect(G.monsters.some((m) => m.kind === "superslime")).toBe(true);
+    expect(G.monsters.some((m) => m.kind === "spitter")).toBe(true);
   });
 
   it("卵は勇者の攻撃対象にならない", () => {
     carveAll();
-    expect(G.spawnEgg("superslime", 5, 5)).toBe(true);
+    expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
     G.heroes.push(hero("warrior", 5, 6, { atkCd: 0 }));
     G.update(500);
     expect(G.eggs).toHaveLength(1);

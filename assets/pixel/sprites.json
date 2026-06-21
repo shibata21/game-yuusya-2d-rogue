@@ -314,7 +314,7 @@
         36
       ]
     },
-    "egg_superslime": {
+    "egg_spitter": {
       "sheet": "actors",
       "x": 0,
       "y": 1008,
@@ -328,7 +328,7 @@
         36
       ]
     },
-    "egg_evolved": {
+    "egg_golem": {
       "sheet": "actors",
       "x": 0,
       "y": 1056,
@@ -342,7 +342,7 @@
         36
       ]
     },
-    "egg_tarantula": {
+    "egg_flame": {
       "sheet": "actors",
       "x": 0,
       "y": 1104,
@@ -356,7 +356,7 @@
         36
       ]
     },
-    "egg_titan": {
+    "egg_tarantula": {
       "sheet": "actors",
       "x": 0,
       "y": 1152,
@@ -370,10 +370,24 @@
         36
       ]
     },
-    "egg_infernal": {
+    "egg_titan": {
       "sheet": "actors",
       "x": 0,
       "y": 1200,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 6,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1248,
       "w": 48,
       "h": 48,
       "frames": 4,
