@@ -463,7 +463,7 @@ export function createGame(options = {}) {
     let bestGap = 0;
     const r = rankOf(m.kind);
     for (const p of monsters) {
-      if (p === m || cheb(p, m) > 1) continue;
+      if (p === m || !canAttackFrom(m.col, m.row, 1, p)) continue;
       const gap = r - rankOf(p.kind);
       if (gap <= 0) continue;
       if (!best || gap > bestGap || (gap === bestGap && p.hp < best.hp)) {
@@ -576,7 +576,20 @@ export function createGame(options = {}) {
 
   function canAttackFrom(col, row, range, target) {
     const d = cheb({ col, row }, target);
-    return d <= range && (range <= 1 || hasLOS(col, row, target.col, target.row));
+    if (d > range) return false;
+    if (range <= 1) return canMeleeFrom(col, row, target);
+    return hasLOS(col, row, target.col, target.row);
+  }
+
+  function canMeleeFrom(col, row, target) {
+    const dc = target.col - col;
+    const dr = target.row - row;
+    if (Math.max(Math.abs(dc), Math.abs(dr)) > 1) return false;
+    if (dc === 0 && dr === 0) return true;
+    if (dc === 0 || dr === 0) return hasLOS(col, row, target.col, target.row);
+    const sideA = inBounds(target.col, row) && OPEN.has(grid[row][target.col].t);
+    const sideB = inBounds(col, target.row) && OPEN.has(grid[target.row][col].t);
+    return sideA || sideB;
   }
 
   function moveToward(e, t, opts = {}) {
@@ -665,6 +678,7 @@ export function createGame(options = {}) {
       if (isMoving(h)) continue;
       const d = cheb(h, m);
       if (d > range) continue;
+      if (!hasLOS(m.col, m.row, h.col, h.row)) continue;
       const score = heroTargetScoreForMonster(m, h);
       if (score < bestScore) {
         best = h;
@@ -679,8 +693,7 @@ export function createGame(options = {}) {
     let bestScore = Infinity;
     for (const h of heroes) {
       if (isMoving(h)) continue;
-      if (cheb(h, m) > m.range) continue;
-      if (m.range > 1 && !hasLOS(m.col, m.row, h.col, h.row)) continue;
+      if (!canAttackFrom(m.col, m.row, m.range, h)) continue;
       const score = heroTargetScoreForMonster(m, h);
       if (score < bestScore) {
         best = h;
@@ -700,8 +713,7 @@ export function createGame(options = {}) {
     let bestScore = Infinity;
     for (const m of monsters) {
       if (isMoving(m)) continue;
-      if (cheb(m, h) > h.range) continue;
-      if (h.range > 1 && !hasLOS(h.col, h.row, m.col, m.row)) continue;
+      if (!canAttackFrom(h.col, h.row, h.range, m)) continue;
       const score = monsterTargetScoreForHero(h, m);
       if (score < bestScore) {
         best = m;
@@ -716,6 +728,7 @@ export function createGame(options = {}) {
     let bestScore = Infinity;
     for (const o of heroes) {
       if (o.hp >= o.maxHp || cheb(o, h) > c.healRange) continue;
+      if (!hasLOS(h.col, h.row, o.col, o.row)) continue;
       const score = hpRatio(o) * 100 + (o === h ? 3 : 0);
       if (score < bestScore) {
         best = o;
@@ -726,7 +739,7 @@ export function createGame(options = {}) {
   }
 
   function hasAdjacentMonster(h) {
-    return monsters.some((m) => !isMoving(m) && cheb(m, h) <= 1);
+    return monsters.some((m) => !isMoving(m) && canAttackFrom(h.col, h.row, 1, m));
   }
 
   function heroDamageTaken(raw, h) {

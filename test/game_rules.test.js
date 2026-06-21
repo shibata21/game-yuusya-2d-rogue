@@ -289,6 +289,45 @@ describe("ゲームルール", () => {
     expect(G.heroes[0].hp).toBe(60);
   });
 
+  it("角の壁を挟んだ斜め近接では互いに認識して戦闘しない", () => {
+    carveAll();
+    G.grid[5][5].t = "earth";
+    G.grid[6][6].t = "earth";
+    G.spawnMonster("slime", 5, 6);
+    const monster = G.monsters[0];
+    monster.atkCd = 0;
+    monster.moveCd = 999999;
+    monster.eatCd = 999999;
+    const adventurer = hero("warrior", 6, 5, { hp: 60, atkCd: 0, actCd: 999999 });
+    G.heroes.push(adventurer);
+
+    G.update(100);
+
+    expect(adventurer.hp).toBe(60);
+    expect(monster.hp).toBe(monster.maxHp);
+    expect(monster.actionType).not.toBe("attack");
+    expect(adventurer.actionType).not.toBe("attack");
+    expect(adventurer.blockedMs).toBe(0);
+  });
+
+  it("片側が開いた斜め近接では遮蔽物なしとして戦闘する", () => {
+    carveAll();
+    G.grid[5][5].t = "earth";
+    G.grid[6][6].t = "tunnel";
+    G.spawnMonster("slime", 5, 6);
+    const monster = G.monsters[0];
+    monster.atkCd = 0;
+    monster.moveCd = 999999;
+    monster.eatCd = 999999;
+    const adventurer = hero("warrior", 6, 5, { hp: 60, atkCd: 999999, actCd: 999999 });
+    G.heroes.push(adventurer);
+
+    G.update(100);
+
+    expect(adventurer.hp).toBeLessThan(60);
+    expect(monster.actionType).toBe("attack");
+  });
+
   it("移動中の対象は攻撃されない", () => {
     carveAll();
     G.spawnMonster("slime", 5, 5);
