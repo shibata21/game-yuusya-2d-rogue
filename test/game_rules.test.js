@@ -221,6 +221,18 @@ describe("ゲームルール", () => {
     expect(warrior.hp).toBeGreaterThan(20);
   });
 
+  it("回復役は絶対HPより負傷割合が大きい仲間を優先する", () => {
+    carveAll();
+    const priest = hero("priest", 5, 5, { hp: 100, maxHp: 100, healCd: 0 });
+    const badlyWounded = hero("warrior", 6, 5, { hp: 25, maxHp: 100 });
+    const lowTotalHp = hero("mage", 5, 6, { hp: 20, maxHp: 30 });
+    G.heroes.push(priest, badlyWounded, lowTotalHp);
+    G.update(100);
+    expect(badlyWounded.hp).toBeGreaterThan(25);
+    expect(lowTotalHp.hp).toBe(20);
+    expect(priest.faceDir).toBe("e");
+  });
+
   it("勇者の近接攻撃は本体を突進させず武器だけを振る", () => {
     const h = hero("warrior", 5, 5);
     G.setAction(h, "attack", G.cx(6), G.cy(5), G.ATK_ANIM);

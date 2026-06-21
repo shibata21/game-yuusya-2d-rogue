@@ -12,7 +12,7 @@ const dirVec = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: 
 const eliteBase = { superslime: "slime", evolved: "carniv", tarantula: "spitter", titan: "golem", infernal: "flame" };
 
 const monsterPalettes = {
-  slime: { dark: "#255d91", mid: "#5eb8ff", light: "#bfeaff", eye: "#101926" },
+  slime: { dark: "#24572b", mid: "#66bf68", light: "#c7f7c7", eye: "#101926" },
   superslime: { dark: "#7a1c28", mid: "#e84a4a", light: "#ffd0d0", eye: "#200a10" },
   carniv: { dark: "#5a2518", mid: "#c66a37", light: "#f2b078", eye: "#fff0c8" },
   evolved: { dark: "#391020", mid: "#9b2f4f", light: "#e392b0", eye: "#ffe4a8" },
@@ -452,34 +452,36 @@ function drawMonster(img, name, action, dir, frame) {
 }
 
 function drawSword(img, cx, cy, dx, dy, frame, pal) {
-  const vx = dx || (dy === 0 ? 1 : 0);
-  const vy = dy || 0;
-  const px = -vy;
-  const py = vx;
-  const swing = [-3, -1, 3, 1][frame];
-  const hiltX = cx + vx * 4 + px * swing;
-  const hiltY = cy + 4 + vy * 5 + py * swing;
-  const tipX = hiltX + vx * 10 + px * 4;
-  const tipY = hiltY + vy * 10 + py * 4;
+  const side = dx < 0 ? -1 : 1;
+  const swing = [-6, -2, 6, 2][frame];
+  const hiltX = cx + side * 5;
+  const hiltY = cy + 6;
+  const tipX = cx + side * (16 - Math.abs(swing) * 0.35);
+  const tipY = cy - 4 + swing;
+  const guardLift = swing > 0 ? 2 : -1;
   line(img, hiltX, hiltY, tipX, tipY, pal.dark, 5, 225);
   line(img, hiltX, hiltY, tipX, tipY, pal.metal, 3, 245);
-  line(img, hiltX - px, hiltY - py, tipX - px, tipY - py, "#ffffff", 1, 165);
-  line(img, hiltX - px * 4, hiltY - py * 4, hiltX + px * 4, hiltY + py * 4, pal.dark, 4, 225);
-  line(img, hiltX - px * 3, hiltY - py * 3, hiltX + px * 3, hiltY + py * 3, pal.accent, 2, 230);
-  line(img, hiltX - vx * 5, hiltY - vy * 5, hiltX, hiltY, "#6a4428", 3, 235);
+  line(img, hiltX - side, hiltY - 1, tipX - side, tipY - 1, "#ffffff", 1, 165);
+  line(img, hiltX - side * 4, hiltY + guardLift, hiltX + side * 4, hiltY - guardLift, pal.dark, 4, 225);
+  line(img, hiltX - side * 3, hiltY + guardLift, hiltX + side * 3, hiltY - guardLift, pal.accent, 2, 230);
+  line(img, hiltX - side * 6, hiltY + 3, hiltX, hiltY, "#6a4428", 3, 235);
   diamond(img, tipX, tipY, 2, pal.light, 210);
 }
 
 function drawSpear(img, cx, cy, dx, dy, frame, pal) {
-  const fx = dx || (dy === 0 ? 1 : 0);
-  const fy = dy || 0;
+  const side = dx < 0 ? -1 : 1;
+  const swing = [-5, -1, 5, 1][frame];
+  const baseX = cx - side * 9;
+  const baseY = cy + 10;
+  const tipX = cx + side * 17;
+  const tipY = cy - 8 + swing;
+  const vx = tipX - baseX;
+  const vy = tipY - baseY;
+  const len = Math.hypot(vx, vy) || 1;
+  const fx = vx / len;
+  const fy = vy / len;
   const px = -fy;
   const py = fx;
-  const thrust = [0, 1, 2, 1][frame];
-  const baseX = cx - fx * 8 - px + fx * thrust;
-  const baseY = cy + 7 - fy * 5 - py + fy * thrust;
-  const tipX = cx + fx * 15 + px + fx * thrust;
-  const tipY = cy + fy * 15 + py + fy * thrust;
   line(img, baseX, baseY, tipX, tipY, pal.dark, 4, 220);
   line(img, baseX, baseY, tipX, tipY, "#6a4428", 2, 245);
   tri(img,
@@ -492,7 +494,7 @@ function drawSpear(img, cx, cy, dx, dy, frame, pal) {
     tipX - fx * 2 + px * 3, tipY - fy * 2 + py * 3,
     tipX - fx * 2 - px * 3, tipY - fy * 2 - py * 3,
     pal.metal, 245);
-  diamond(img, cx + fx * 7 + fx * thrust, cy + fy * 7 + fy * thrust, 2, pal.accent, 180);
+  diamond(img, cx + side * 7, cy - 2 + swing * 0.35, 2, pal.accent, 180);
 }
 
 function drawShield(img, cx, cy, dx, dy, pal, kind, frame) {

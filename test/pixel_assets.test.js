@@ -109,6 +109,26 @@ function paletteStats(base, elite) {
   return { alphaDiff, colorRatio: union ? colorDiff / union : 0, redRatio: opaque ? redDominant / opaque : 0 };
 }
 
+function greenDominantRatio(img) {
+  let opaque = 0;
+  let green = 0;
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i + 3] <= 0) continue;
+    opaque++;
+    if (img.data[i + 1] > img.data[i] + 8 && img.data[i + 1] > img.data[i + 2] + 8) green++;
+  }
+  return opaque ? green / opaque : 0;
+}
+
+function brightPixelsIn(img, pred) {
+  let count = 0;
+  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
+    const i = (y * img.width + x) * 4;
+    if (img.data[i + 3] > 0 && img.data[i] >= 220 && img.data[i + 1] >= 220 && img.data[i + 2] >= 220 && pred(x, y)) count++;
+  }
+  return count;
+}
+
 function brightFacePixels(img) {
   let count = 0;
   for (let y = 4; y < 23; y++) for (let x = 13; x < 35; x++) {
@@ -142,8 +162,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v13-monster-front-back");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v13-monster-front-back");
+    expect(PIXEL_ASSET_VERSION).toBe("v14-green-slime-natural-ai");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v14-green-slime-natural-ai");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -158,6 +178,10 @@ describe("ピクセル素材", () => {
     const stats = paletteStats(actorCrop("slime", "idle", "s", 1), actorCrop("superslime", "idle", "s", 1));
     expect(stats.alphaDiff).toBe(0);
     expect(stats.redRatio).toBeGreaterThan(0.65);
+  });
+
+  it("スライムは苔脈に近い緑優勢になる", () => {
+    expect(greenDominantRatio(actorCrop("slime", "idle", "s", 1))).toBeGreaterThan(0.68);
   });
 
   it("方向と職業アクションの差分がある", () => {
@@ -178,6 +202,12 @@ describe("ピクセル素材", () => {
     expect(diffRatio(actorCrop("warrior", "attack", "e", 2), actorCrop("superwarrior", "attack", "e", 2))).toBeGreaterThan(0.16);
     expect(diffRatio(actorCrop("tank", "attack", "e", 2), actorCrop("crossknight", "attack", "e", 2))).toBeGreaterThan(0.16);
     expect(diffRatio(actorCrop("mage", "cast", "e", 2), actorCrop("supermage", "cast", "e", 2))).toBeGreaterThan(0.16);
+  });
+
+  it("下向き勇者の剣は下へ突き出さず体の前で振る", () => {
+    const attack = actorCrop("warrior", "attack", "s", 2);
+    expect(brightPixelsIn(attack, (x, y) => x >= 29 && y >= 12 && y <= 32)).toBeGreaterThan(8);
+    expect(brightPixelsIn(attack, (x, y) => y >= 36)).toBeLessThan(18);
   });
 
   it("獣とドラゴンは下向きで顔、上向きで背中が読める", () => {

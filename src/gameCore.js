@@ -37,7 +37,7 @@ export const VEIN_DECAY_TIME = 90000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 
 export const KINDS = {
-  slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#7fbaff" },
+  slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68" },
   carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣" },
   spitter: { hp: 16, atk: 6, range: 2, moveCd: 590, atkCd: 980, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, col: "#a64dff", name: "毒蜘蛛" },
   golem: { hp: 95, atk: 4, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#6f86c4", name: "ゴーレム" },
@@ -72,7 +72,7 @@ export const HERO_CLASSES = {
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v13-monster-front-back";
+export const PIXEL_ASSET_VERSION = "v14-green-slime-natural-ai";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -574,16 +574,26 @@ export function createGame(options = {}) {
     }
   }
 
-  function moveToward(e, t) {
+  function canAttackFrom(col, row, range, target) {
+    const d = cheb({ col, row }, target);
+    return d <= range && (range <= 1 || hasLOS(col, row, target.col, target.row));
+  }
+
+  function moveToward(e, t, opts = {}) {
     const nb = openFreeNeighbors(e.col, e.row);
     if (!nb.length) return;
     let best = nb[0];
-    let bestD = cheb(best, t);
+    let bestScore = Infinity;
     for (const n of nb) {
       const d = cheb(n, t);
-      if (d < bestD) {
+      let score = d * 24 + cardinalDist(n, t) * 4;
+      if (opts.attackRange && canAttackFrom(n.col, n.row, opts.attackRange, t)) score -= 80;
+      if (opts.preferLos && opts.attackRange && d <= opts.attackRange && !hasLOS(n.col, n.row, t.col, t.row)) score += 40;
+      if (e.dirX === Math.sign(n.col - e.col) && e.dirY === Math.sign(n.row - e.row)) score -= 1;
+      if (opts.homeLimit && e.homeCol !== undefined && cheb(n, { col: e.homeCol, row: e.homeRow }) > opts.homeLimit) score += 12;
+      if (score < bestScore) {
         best = n;
-        bestD = d;
+        bestScore = score;
       }
     }
     beginMove(e, best.col, best.row);
@@ -631,49 +641,88 @@ export function createGame(options = {}) {
     return true;
   }
 
-  function nearestHeroWithin(m, range) {
+  function hpRatio(e) {
+    return e.maxHp ? e.hp / e.maxHp : 1;
+  }
+
+  function heroPriority(h) {
+    const c = HERO_CLASSES[h.cls] || HERO_CLASSES.warrior;
+    if (c.heal) return 10;
+    if (c.areaAttack) return 8;
+    if (c.range >= 2) return 6;
+    if (c.role === "tank") return -3;
+    return 0;
+  }
+
+  function heroTargetScoreForMonster(m, h) {
+    return cheb(h, m) * 80 + hpRatio(h) * 24 - heroPriority(h);
+  }
+
+  function bestHeroWithin(m, range) {
     let best = null;
-    let bestD = 999;
+    let bestScore = Infinity;
     for (const h of heroes) {
       if (isMoving(h)) continue;
       const d = cheb(h, m);
-      if (d < bestD) {
+      if (d > range) continue;
+      const score = heroTargetScoreForMonster(m, h);
+      if (score < bestScore) {
         best = h;
-        bestD = d;
+        bestScore = score;
       }
-    }
-    return best && bestD <= range ? best : null;
-  }
-
-  function lowestHeroInRange(m) {
-    let best = null;
-    for (const h of heroes) {
-      if (isMoving(h)) continue;
-      if (cheb(h, m) > m.range) continue;
-      if (m.range > 1 && !hasLOS(m.col, m.row, h.col, h.row)) continue;
-      if (!best || h.hp < best.hp) best = h;
     }
     return best;
   }
 
-  function lowestMonsterInRange(h) {
+  function bestHeroInRange(m) {
     let best = null;
+    let bestScore = Infinity;
+    for (const h of heroes) {
+      if (isMoving(h)) continue;
+      if (cheb(h, m) > m.range) continue;
+      if (m.range > 1 && !hasLOS(m.col, m.row, h.col, h.row)) continue;
+      const score = heroTargetScoreForMonster(m, h);
+      if (score < bestScore) {
+        best = h;
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  function monsterTargetScoreForHero(h, m) {
+    const k = KINDS[m.kind] || KINDS.slime;
+    return cheb(m, h) * 80 + hpRatio(m) * 26 - Math.min(12, k.rank * 2 + k.atk * 0.15);
+  }
+
+  function bestMonsterInRange(h) {
+    let best = null;
+    let bestScore = Infinity;
     for (const m of monsters) {
       if (isMoving(m)) continue;
       if (cheb(m, h) > h.range) continue;
       if (h.range > 1 && !hasLOS(h.col, h.row, m.col, m.row)) continue;
-      if (!best || m.hp < best.hp) best = m;
+      const score = monsterTargetScoreForHero(h, m);
+      if (score < bestScore) {
+        best = m;
+        bestScore = score;
+      }
     }
     return best;
   }
 
   function heroHealTarget(h, c) {
     let best = null;
+    let bestScore = Infinity;
     for (const o of heroes) {
-      if (o === h || o.hp >= o.maxHp || cheb(o, h) > c.healRange) continue;
-      if (!best || o.hp < best.hp) best = o;
+      if (o.hp >= o.maxHp || cheb(o, h) > c.healRange) continue;
+      const score = hpRatio(o) * 100 + (o === h ? 3 : 0);
+      if (score < bestScore) {
+        best = o;
+        bestScore = score;
+      }
     }
-    return best || (h.hp < h.maxHp ? h : null);
+    return best;
   }
 
   function hasAdjacentMonster(h) {
@@ -830,7 +879,7 @@ export function createGame(options = {}) {
       m.actionTime = Math.max(0, (m.actionTime || 0) - dt);
       m.bornAnim = Math.max(0, (m.bornAnim || 0) - dt);
       if (isMoving(m)) continue;
-      const heroTarget = lowestHeroInRange(m);
+      const heroTarget = bestHeroInRange(m);
       if (heroTarget) {
         faceToward(m, heroTarget.px, heroTarget.py);
         if (m.atkCd <= 0) {
@@ -845,14 +894,14 @@ export function createGame(options = {}) {
         }
         continue;
       }
-      const aggroHero = nearestHeroWithin(m, k.aggro);
+      const aggroHero = bestHeroWithin(m, k.aggro);
       if (aggroHero) faceToward(m, aggroHero.px, aggroHero.py);
       if (!aggroHero && m.eatCd <= 0) {
         m.eatCd = EAT_CHECK * rnd(0.85, 1.25);
         if (tryEatLower(m)) continue;
       }
       if (m.moveCd <= 0) {
-        if (aggroHero) moveToward(m, aggroHero);
+        if (aggroHero) moveToward(m, aggroHero, { attackRange: k.range, preferLos: k.range > 1, homeLimit: 5 });
         else wanderHome(m);
         m.moveCd = k.moveCd + rnd(-80, 120);
       }
@@ -884,7 +933,7 @@ export function createGame(options = {}) {
           h.healCd = 300;
         }
       }
-      const monsterTarget = lowestMonsterInRange(h);
+      const monsterTarget = bestMonsterInRange(h);
       if (monsterTarget) faceToward(h, monsterTarget.px, monsterTarget.py);
       if (monsterTarget && h.atkCd <= 0) {
         h.atkCd = c.atkCd;
