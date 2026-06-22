@@ -9,7 +9,13 @@ const {
 
 const heroNames = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage"];
 const dirVec = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
-const eliteBase = { superslime: "slime", evolved: "carniv", tarantula: "spitter", titan: "golem", infernal: "flame" };
+const eliteBase = {
+  superslime: "slime", crownslime: "slime",
+  evolved: "carniv", direfang: "carniv",
+  tarantula: "spitter", goldweaver: "spitter",
+  titan: "golem", goldcore: "golem",
+  infernal: "flame", whiteflame: "flame",
+};
 
 const monsterPalettes = {
   slime: { dark: "#24572b", mid: "#66bf68", light: "#c7f7c7", eye: "#101926" },
@@ -22,6 +28,11 @@ const monsterPalettes = {
   titan: { dark: "#5e4527", mid: "#c29b61", light: "#f0d8a6", eye: "#fff6d8" },
   flame: { dark: "#7a1e08", mid: "#ff7a24", light: "#ffe06a", eye: "#fff7c2" },
   infernal: { dark: "#16345d", mid: "#4aa6ff", light: "#c9efff", eye: "#fff7d2" },
+  crownslime: { dark: "#6a4524", mid: "#d4a53d", light: "#fff0a6", eye: "#2a1608" },
+  direfang: { dark: "#221313", mid: "#5f2020", light: "#e8a978", eye: "#ffe4a8" },
+  goldweaver: { dark: "#3e2b18", mid: "#c6952c", light: "#ffe8a0", eye: "#c9ff9a" },
+  goldcore: { dark: "#4e3d1b", mid: "#d0a248", light: "#fff2aa", eye: "#fff6d8" },
+  whiteflame: { dark: "#154b56", mid: "#f3f7ff", light: "#fff6b7", eye: "#65f4ff" },
 };
 
 const heroPalettes = {
@@ -45,6 +56,9 @@ const eggPalette = {
   egg_tarantula: ["#ffd1c8", "#ff6b5a", "#fff7ef", "#873226"],
   egg_titan: ["#efe0bf", "#d9b27a", "#fff9dc", "#6c5430"],
   egg_infernal: ["#cae8ff", "#5ab0ff", "#f1fbff", "#185179"],
+  egg_goldweaver: ["#fff0c0", "#c6952c", "#fffaf0", "#5d3f12"],
+  egg_goldcore: ["#ffe8a8", "#d0a248", "#fff7d4", "#644a18"],
+  egg_whiteflame: ["#f2fbff", "#9ee8ff", "#fff9c8", "#1a5560"],
 };
 
 const eggMotif = {
@@ -54,6 +68,9 @@ const eggMotif = {
   egg_tarantula: { base: "venom", evo: true },
   egg_titan: { base: "stone", evo: true },
   egg_infernal: { base: "ember", evo: true },
+  egg_goldweaver: { base: "venom", evo: true },
+  egg_goldcore: { base: "stone", evo: true },
+  egg_whiteflame: { base: "ember", evo: true },
 };
 
 const veinPalette = {
@@ -161,7 +178,7 @@ function drawCoreTile() {
   return img;
 }
 
-function drawVeinMotif(img, base, evo) {
+function drawVeinMotif(img, base, stage) {
   const pal = veinPalette[base];
   oval(img, 24, 25, 14, 11, pal.light, 18);
   if (pal.shape === "spots") {
@@ -206,7 +223,7 @@ function drawVeinMotif(img, base, evo) {
   }
   diamond(img, 37, 14, 2, pal.spark, 115);
   diamond(img, 12, 34, 2, pal.spark, 100);
-  if (evo) {
+  if (stage >= 1) {
     line(img, 5, 7, 42, 7, pal.spark, 2, 155);
     line(img, 42, 7, 42, 40, pal.spark, 2, 140);
     line(img, 42, 40, 5, 40, pal.spark, 2, 125);
@@ -216,18 +233,39 @@ function drawVeinMotif(img, base, evo) {
     line(img, 39, 37, 8, 37, pal.light, 1, 90);
     line(img, 8, 37, 8, 10, pal.light, 1, 105);
   }
+  if (stage >= 2) {
+    line(img, 4, 5, 43, 5, "#ffcf4d", 2, 205);
+    line(img, 43, 5, 43, 42, "#ffcf4d", 2, 190);
+    line(img, 43, 42, 4, 42, "#ffcf4d", 2, 175);
+    line(img, 4, 42, 4, 5, "#ffcf4d", 2, 190);
+    line(img, 7, 8, 40, 8, "#fff1a6", 1, 150);
+    line(img, 40, 8, 40, 39, "#fff1a6", 1, 130);
+    line(img, 40, 39, 7, 39, "#fff1a6", 1, 120);
+    line(img, 7, 39, 7, 8, "#fff1a6", 1, 130);
+    for (const [x, y, r] of [[10, 9, 2], [38, 12, 2], [36, 37, 3], [12, 35, 2]]) {
+      diamond(img, x, y, r, "#ffcf4d", 185);
+      diamond(img, x, y, 1, "#fff7c8", 160);
+    }
+  }
 }
 
 function drawTile(name) {
-  const evo = name.endsWith("_evo");
-  const base = name.replace("_evo", "");
+  let stage = 0;
+  let base = name;
+  if (name.endsWith("_evo2")) {
+    stage = 2;
+    base = name.replace("_evo2", "");
+  } else if (name.endsWith("_evo")) {
+    stage = 1;
+    base = name.replace("_evo", "");
+  }
   if (base === "earth") return drawEarthBase();
   if (base === "tunnel") return drawTunnel();
   if (base === "bedrock") return drawBedrock();
   if (base === "surface") return drawSurface();
   if (base === "core") return drawCoreTile();
   const img = drawEarthBase();
-  drawVeinMotif(img, base, evo);
+  drawVeinMotif(img, base, stage);
   return img;
 }
 

@@ -8,7 +8,7 @@ const {
   readPng, spritePath,
 } = require("./pixel_asset_common");
 
-const EXPECTED_EGG_ACTORS = ["egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal"];
+const EXPECTED_EGG_ACTORS = ["egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
 let failed = false;
 function fail(msg) {
   failed = true;
@@ -232,7 +232,13 @@ function paletteStats(base, elite) {
   return { alphaDiff, colorRatio: union ? colorDiff / union : 0, redRatio: opaque ? redDominant / opaque : 0 };
 }
 function validateElitePaletteVariants() {
-  const pairs = [["slime", "superslime"], ["carniv", "evolved"], ["spitter", "tarantula"], ["golem", "titan"], ["flame", "infernal"]];
+  const pairs = [
+    ["slime", "superslime"], ["slime", "crownslime"],
+    ["carniv", "evolved"], ["carniv", "direfang"],
+    ["spitter", "tarantula"], ["spitter", "goldweaver"],
+    ["golem", "titan"], ["golem", "goldcore"],
+    ["flame", "infernal"], ["flame", "whiteflame"],
+  ];
   for (const pair of pairs) {
     for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) {
       const stats = paletteStats(actorFrame(pair[0], action, dir, f), actorFrame(pair[1], action, dir, f));
@@ -254,7 +260,7 @@ function validateEggShapes() {
     if (b.count < 360) fail(name + " の卵が小さすぎます: " + b.count);
     if (w < 29 || w > 35 || h < 36 || h > 42 || h <= w + 2) fail(name + " の卵シルエットが不正です: " + w + "x" + h);
     if (eggMotifPixels(img) <= 20) fail(name + " の鉱脈マークが読みにくすぎます");
-    if (["egg_tarantula", "egg_titan", "egg_infernal"].includes(name)) {
+    if (["egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"].includes(name)) {
       if (eggGlowPixels(img) <= 8) fail(name + " の進化卵発光が弱すぎます");
     } else if (eggGlowPixels(img) !== 0) {
       fail(name + " は通常卵なのに外周発光があります");
@@ -267,7 +273,7 @@ function validateEggShapes() {
   ok("モンスター別の卵シルエットと色差を検査しました");
 }
 function validateRichVeins() {
-  const veins = ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"];
+  const veins = ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
   const earth = readPng(spritePath("tiles", "earth"));
   for (const name of veins) {
     const img = readPng(spritePath("tiles", name));
@@ -279,10 +285,11 @@ function validateRichVeins() {
         if (x < 10 || x > 38 || y < 8 || y > 40) outside++;
       }
     }
-    const evo = name.endsWith("_evo");
+    const evo2 = name.endsWith("_evo2");
+    const evo = name.endsWith("_evo") || evo2;
     if (motif < (evo ? 420 : 95)) fail(name + " の鉱脈マークが単純すぎます: " + motif);
-    if (motif > (evo ? 1160 : 620)) fail(name + " の鉱脈マークが複雑すぎます: " + motif);
-    if (outside > (evo ? 360 : 145)) fail(name + " の鉱脈マークが広がりすぎています: " + outside);
+    if (motif > (evo2 ? 1320 : (evo ? 1160 : 620))) fail(name + " の鉱脈マークが複雑すぎます: " + motif);
+    if (outside > (evo2 ? 700 : (evo ? 360 : 145))) fail(name + " の鉱脈マークが広がりすぎています: " + outside);
   }
   ok("鉱脈の種別マークと進化枠発光を検査しました");
 }

@@ -20,7 +20,7 @@ import {
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const meta = JSON.parse(fs.readFileSync(path.join(repoDir, "assets/pixel/sprites.json"), "utf8"));
 const pngCache = new Map();
-const EXPECTED_EGG_ACTORS = ["egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal"];
+const EXPECTED_EGG_ACTORS = ["egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
 
 function png(file) {
   if (!pngCache.has(file)) pngCache.set(file, PNG.sync.read(fs.readFileSync(path.join(repoDir, file))));
@@ -186,12 +186,12 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v16-vein-eggs-codex");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v16-vein-eggs-codex");
+    expect(PIXEL_ASSET_VERSION).toBe("v17-soil-evo2");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v17-soil-evo2");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
-    for (const [base, elite] of [["slime", "superslime"], ["carniv", "evolved"], ["spitter", "tarantula"], ["golem", "titan"], ["flame", "infernal"]]) {
+    for (const [base, elite] of [["slime", "superslime"], ["slime", "crownslime"], ["carniv", "evolved"], ["carniv", "direfang"], ["spitter", "tarantula"], ["spitter", "goldweaver"], ["golem", "titan"], ["golem", "goldcore"], ["flame", "infernal"], ["flame", "whiteflame"]]) {
       const stats = paletteStats(actorCrop(base, "idle", "s", 1), actorCrop(elite, "idle", "s", 1));
       expect(stats.alphaDiff, `${base}/${elite}`).toBe(0);
       expect(stats.colorRatio, `${base}/${elite}`).toBeGreaterThan(0.08);
@@ -279,7 +279,7 @@ describe("ピクセル素材", () => {
       expect(h, name).toBeLessThanOrEqual(42);
       expect(h, name).toBeGreaterThan(w + 2);
       expect(eggMotifPixels(img), name).toBeGreaterThan(20);
-      if (["egg_tarantula", "egg_titan", "egg_infernal"].includes(name)) {
+      if (["egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"].includes(name)) {
         expect(eggGlowPixels(img), name).toBeGreaterThan(8);
       } else {
         expect(eggGlowPixels(img), name).toBe(0);
@@ -292,12 +292,13 @@ describe("ピクセル素材", () => {
 
   it("鉱脈タイルは種別マークを持ち、進化後は枠が光る", () => {
     const earth = tileCrop("earth");
-    for (const name of ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo"]) {
+    for (const name of ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"]) {
       const stats = tileMotifStats(tileCrop(name), earth);
-      const evo = name.endsWith("_evo");
+      const evo2 = name.endsWith("_evo2");
+      const evo = name.endsWith("_evo") || evo2;
       expect(stats.motif, name).toBeGreaterThan(evo ? 420 : 95);
-      expect(stats.motif, name).toBeLessThan(evo ? 1160 : 620);
-      expect(stats.outside, name).toBeLessThanOrEqual(evo ? 360 : 145);
+      expect(stats.motif, name).toBeLessThan(evo2 ? 1320 : (evo ? 1160 : 620));
+      expect(stats.outside, name).toBeLessThanOrEqual(evo2 ? 700 : (evo ? 360 : 145));
     }
   });
 

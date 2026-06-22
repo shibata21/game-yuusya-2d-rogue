@@ -103,6 +103,13 @@ describe("ゲームルール", () => {
     expect(G.monsters[0].kind).toBe("superslime");
   });
 
+  it("第二進化鉱脈から第二進化種が出る", () => {
+    G.grid[3][G.ENTRANCE_COL] = { t: "earth", sub: "moss", shade: 0, evoStage: 2, evo: true };
+    G.grid[2][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+    G.tryDig(G.ENTRANCE_COL, 3);
+    expect(G.monsters[0].kind).toBe("crownslime");
+  });
+
   it("鉱脈は時間ではなく魔物接触で進化する", () => {
     carveAll();
     const c = 5;
@@ -114,6 +121,21 @@ describe("ゲームルール", () => {
     G.update(100);
     expect(G.grid[r][c].evo).toBe(true);
     expect(G.grid[r][c].evoTouch).toBeGreaterThanOrEqual(VEIN.moss.touchNeed);
+  });
+
+  it("鉱脈は上位から第二進化へ進む", () => {
+    carveAll();
+    const c = 5;
+    const r = 5;
+    G.grid[r][c] = { t: "earth", sub: "moss", shade: 0, evo: false, evoStage: 1, evoTouch: 4, evoStageTouch: 7, evoTouching: {} };
+    G.spawnMonster("slime", c + 1, r);
+    G.update(100);
+    expect(G.grid[r][c].evoStage).toBe(2);
+    expect(G.grid[r][c].evo).toBe(true);
+
+    G.monsters.length = 0;
+    G.tryDig(c, r);
+    expect(G.monsters[0].kind).toBe("crownslime");
   });
 
   it("鉱脈進化は斜め接触を数えない", () => {
@@ -132,6 +154,45 @@ describe("ゲームルール", () => {
     expect(VEIN.meat.touchNeed).toBeLessThan(VEIN.venom.touchNeed);
     expect(VEIN.venom.touchNeed).toBeLessThan(VEIN.stone.touchNeed);
     expect(VEIN.stone.touchNeed).toBeLessThan(VEIN.ember.touchNeed);
+  });
+
+  it("魔物が通った周囲の土壁は7段階まで魔素を帯びる", () => {
+    carveAll();
+    G.grid[4][5] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
+    G.spawnMonster("slime", 5, 5);
+    const m = G.monsters[0];
+    for (let i = 0; i < G.SOIL_CHARGE_MOVES; i++) {
+      G.beginMove(m, i % 2 === 0 ? 6 : 5, 5);
+      m.moveAnim = 0;
+    }
+    expect(G.grid[4][5].soilMana).toBe(1);
+
+    G.monsters.length = 0;
+    G.grid[4][5].soilMana = 6;
+    G.spawnMonster("titan", 5, 5);
+    const titan = G.monsters[0];
+    for (let i = 0; i < G.SOIL_CHARGE_MOVES; i++) {
+      G.beginMove(titan, i % 2 === 0 ? 6 : 5, 5);
+      titan.moveAnim = 0;
+    }
+    expect(G.grid[4][5].soilMana).toBe(G.SOIL_MANA_MAX_STAGE);
+  });
+
+  it("掘った土壁は魔素を失い、魔素の高い鉱脈は早く進化する", () => {
+    G.grid[3][G.ENTRANCE_COL] = { t: "earth", sub: null, shade: 0, soilMana: 5 };
+    G.grid[2][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+    G.tryDig(G.ENTRANCE_COL, 3);
+    expect(G.grid[3][G.ENTRANCE_COL].t).toBe("tunnel");
+    expect(G.grid[3][G.ENTRANCE_COL].soilMana).toBe(0);
+
+    G.resetGame(1);
+    carveAll();
+    const c = 5;
+    const r = 5;
+    G.grid[r][c] = { t: "earth", sub: "moss", shade: 0, soilMana: 6, evo: false, evoStage: 0, evoTouch: 0, evoStageTouch: 0, evoTouching: {} };
+    for (const [col, row] of [[c + 1, r], [c - 1, r], [c, r + 1]]) G.spawnMonster("slime", col, row);
+    G.update(100);
+    expect(G.grid[r][c].evoStage).toBe(1);
   });
 
   it("掘られない鉱脈は薄くなる時間を経て消滅し、土に戻る", () => {
@@ -187,14 +248,21 @@ describe("ゲームルール", () => {
 
   it("卵を産むのは毒蜘蛛以上で、スーパースライムと凶牙獣は産卵しない", () => {
     carveAll();
-    for (const kind of ["superslime", "evolved"]) {
+    for (const kind of ["superslime", "evolved", "crownslime", "direfang"]) {
       expect(G.canLayEgg(kind), kind).toBe(false);
       expect(G.spawnEgg(kind, 1, 1), kind).toBe(false);
     }
-    for (const [i, kind] of ["spitter", "golem", "flame", "tarantula", "titan", "infernal"].entries()) {
+    for (const [i, kind] of ["spitter", "golem", "flame", "tarantula", "titan", "infernal", "goldweaver", "goldcore", "whiteflame"].entries()) {
       expect(G.canLayEgg(kind), kind).toBe(true);
-      expect(G.spawnEgg(kind, 2 + i, 2), kind).toBe(true);
+      expect(G.spawnEgg(kind, 1 + (i % 9), 2 + Math.floor(i / 9)), kind).toBe(true);
     }
+  });
+
+  it("毒蜘蛛系は中盤の攻撃で瞬殺されない耐久を持つ", () => {
+    const mageAtk = G.resolveHeroStats("mage", 5).atk;
+    const warriorAtk = G.resolveHeroStats("warrior", 5).atk;
+    expect(KINDS.spitter.hp).toBeGreaterThan(mageAtk);
+    expect(KINDS.tarantula.hp).toBeGreaterThan(warriorAtk * 4);
   });
 
   it("産卵確率は種別ごとに変わり、強いモンスターほど低い", () => {

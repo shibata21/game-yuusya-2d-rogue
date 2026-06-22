@@ -14,14 +14,17 @@ const SOURCE_DIR = path.join(OUT_DIR, "source", "v6-self-made");
 const ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",
   "superslime", "tarantula", "titan", "infernal",
+  "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame",
   "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain",
   "priest", "saint", "mage", "supermage", "sage",
   "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal",
+  "egg_goldweaver", "egg_goldcore", "egg_whiteflame",
 ];
 const TILES = [
   "earth", "tunnel", "bedrock", "surface", "core",
   "moss", "meat", "venom", "stone", "ember",
   "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo",
+  "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2",
 ];
 const EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 

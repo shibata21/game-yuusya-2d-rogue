@@ -36,13 +36,26 @@ exposeGameNamespace(gameApi);
 let codexOpen = false;
 let codexTab = "monster";
 
-const MONSTER_CODEX_ORDER = ["slime", "superslime", "carniv", "evolved", "spitter", "tarantula", "golem", "titan", "flame", "infernal"];
+const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage"];
+const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 
 function tileKey(tile) {
-  if (tile.t === "earth" && tile.sub) return `${tile.sub}${tile.evo ? "_evo" : ""}`;
+  if (tile.t === "earth" && tile.sub) {
+    const stage = evoStage(tile);
+    return `${tile.sub}${stage >= 2 ? "_evo2" : (stage >= 1 ? "_evo" : "")}`;
+  }
   if (["earth", "tunnel", "bedrock", "surface", "core"].includes(tile.t)) return tile.t;
   return "tunnel";
+}
+
+function evoStage(tile) {
+  const raw = tile.evoStage === undefined ? (tile.evo ? 1 : 0) : tile.evoStage;
+  return Math.max(0, Math.min(2, Math.floor(raw || 0)));
+}
+
+function soilStage(tile) {
+  return Math.max(0, Math.min(7, Math.floor((tile && tile.soilMana) || 0)));
 }
 
 function actorFrame(e, scene) {
@@ -76,6 +89,7 @@ class MainScene extends Phaser.Scene {
     this.veinSprites = [];
     this.actorSprites = [];
     this.effectSprites = [];
+    this.soilGraphics = null;
     this.crackGraphics = null;
     this.tapStart = null;
   }
@@ -120,6 +134,8 @@ class MainScene extends Phaser.Scene {
         this.veinSprites.push(vein);
       }
     }
+    this.soilGraphics = this.add.graphics();
+    this.soilGraphics.setDepth(15);
     this.crackGraphics = this.add.graphics();
     this.crackGraphics.setDepth(80);
   }
@@ -134,6 +150,7 @@ class MainScene extends Phaser.Scene {
   }
 
   syncTiles() {
+    if (this.soilGraphics) this.soilGraphics.clear();
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
         const tile = gameApi.grid[r][c];
@@ -157,6 +174,39 @@ class MainScene extends Phaser.Scene {
           overlay.setAlpha(1);
           overlay.clearTint();
         }
+        this.drawSoilMana(c, r, tile);
+      }
+    }
+  }
+
+  drawSoilMana(col, row, tile) {
+    if (!this.soilGraphics || tile.t !== "earth") return;
+    const stage = soilStage(tile);
+    const x = col * TILE;
+    const y = row * TILE;
+    if (stage > 0) {
+      const tint = SOIL_TINTS[stage - 1] || SOIL_TINTS[SOIL_TINTS.length - 1];
+      this.soilGraphics.fillStyle(tint, 0.03 + stage * 0.016);
+      this.soilGraphics.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
+      const sparkCount = Math.min(4, Math.ceil(stage / 2));
+      for (let i = 0; i < sparkCount; i++) {
+        const sx = x + 9 + ((col * 17 + row * 7 + i * 13) % 30);
+        const sy = y + 9 + ((col * 5 + row * 19 + i * 11) % 28);
+        const size = stage >= 6 && i === 0 ? 2 : 1;
+        this.soilGraphics.fillStyle(0xbffff0, 0.12 + stage * 0.025);
+        this.soilGraphics.fillRect(sx - size, sy, size * 2 + 1, 1);
+        this.soilGraphics.fillRect(sx, sy - size, 1, size * 2 + 1);
+      }
+    }
+    if (tile.sub && evoStage(tile) >= 2) {
+      this.soilGraphics.lineStyle(2, 0xffcf4d, 0.38);
+      this.soilGraphics.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
+      this.soilGraphics.lineStyle(1, 0xfff1a6, 0.24);
+      this.soilGraphics.strokeRect(x + 7, y + 7, TILE - 14, TILE - 14);
+      for (const [sx, sy] of [[10, 8], [38, 12], [36, 38], [12, 36]]) {
+        this.soilGraphics.fillStyle(0xffcf4d, 0.44);
+        this.soilGraphics.fillRect(x + sx - 1, y + sy, 3, 1);
+        this.soilGraphics.fillRect(x + sx, y + sy - 1, 1, 3);
       }
     }
   }
@@ -299,6 +349,7 @@ function monsterUnlockLabel(kind) {
     const v = VEIN[key];
     if (v.kind === kind) return `W${v.unlock}`;
     if (v.evoKind === kind) return `進化W${v.unlock}`;
+    if (v.finalKind === kind) return `二段進化W${v.unlock}`;
   }
   return "-";
 }
@@ -317,7 +368,7 @@ function statPill(label, value) {
 function monsterCard(kind) {
   const k = KINDS[kind];
   const name = k.name || kind;
-  const type = k.eliteOf ? "進化モンスター" : "通常モンスター";
+  const type = k.evoLevel >= 2 ? "第二進化モンスター" : (k.eliteOf ? "進化モンスター" : "通常モンスター");
   return `
     <article class="codex-card">
       <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(kind)}'></div></div>
