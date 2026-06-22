@@ -683,6 +683,21 @@ describe("ゲームルール", () => {
     expect(G.coreHP).toBeLessThan(before);
   });
 
+  it("勇者はコア斜め隣接から土壁を掘らずに攻撃する", () => {
+    carveAll();
+    const h = hero("warrior", G.CORE_COL - 1, G.CORE_ROW - 1, { actCd: 0, atk: 7, coreCd: 0 });
+    const blocker = hero("warrior", G.CORE_COL, G.CORE_ROW - 1, { actCd: 999999, atkCd: 999999 });
+    G.grid[G.CORE_ROW][G.CORE_COL - 1] = { t: "earth", sub: null, shade: 0 };
+    G.heroes.push(h, blocker);
+    const before = G.coreHP;
+    G.update(100);
+    expect(G.isCoreAttackCell(h.col, h.row)).toBe(true);
+    expect(G.isCoreAttackCell(G.CORE_COL, G.CORE_ROW)).toBe(false);
+    expect(G.grid[G.CORE_ROW][G.CORE_COL - 1].t).toBe("earth");
+    expect(G.grid[G.CORE_ROW][G.CORE_COL - 1].dig || 0).toBe(0);
+    expect(G.coreHP).toBeLessThan(before);
+  });
+
   it("魔物は占有中の勇者マスへ移動しない", () => {
     carveAll();
     G.spawnMonster("slime", 5, 5);
@@ -691,6 +706,58 @@ describe("ゲームルール", () => {
     G.monsters[0].moveCd = 0;
     G.update(100);
     expect(G.monsters[0].col === h.col && G.monsters[0].row === h.row).toBe(false);
+  });
+
+  it("魔物は分岐がある徘徊で直前マスへの即戻りを避ける", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.spawnMonster("slime", 5, 5);
+    const m = G.monsters[0];
+    m.prevCol = 5;
+    m.prevRow = 4;
+    m.moveCd = 0;
+    m.eatCd = 999999;
+    G.update(100);
+    expect(`${m.col},${m.row}`).not.toBe("5,4");
+  });
+
+  it("魔物は直前マスしかない狭所で毎回往復せず待機できる", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    G.grid[5][5] = { t: "tunnel", sub: null, shade: 0 };
+    G.grid[4][5] = { t: "tunnel", sub: null, shade: 0 };
+    G.setRandom(() => 0);
+    G.spawnMonster("slime", 5, 5);
+    const m = G.monsters[0];
+    m.prevCol = 5;
+    m.prevRow = 4;
+    m.moveCd = 0;
+    m.eatCd = 999999;
+    G.update(100);
+    expect(m.col).toBe(5);
+    expect(m.row).toBe(5);
+    expect(m.moveAnim).toBe(0);
+  });
+
+  it("モンスター同士は同じマスに滞在せず位置交換ですれ違う", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    for (const c of [5, 6, 7]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
+    G.spawnMonster("carniv", 5, 5);
+    G.spawnMonster("slime", 6, 5);
+    const hunter = G.monsters[0];
+    const blocker = G.monsters[1];
+    G.heroes.push(hero("warrior", 7, 5, { actCd: 999999, atkCd: 999999 }));
+    hunter.moveCd = 0;
+    hunter.eatCd = 999999;
+    blocker.moveCd = 999999;
+    blocker.eatCd = 999999;
+    G.update(100);
+    expect(hunter.col).toBe(6);
+    expect(hunter.row).toBe(5);
+    expect(blocker.col).toBe(5);
+    expect(blocker.row).toBe(5);
+    expect(new Set(G.monsters.map((m) => `${m.col},${m.row}`)).size).toBe(G.monsters.length);
+    expect(hunter.moveAnim).toBeGreaterThan(0);
+    expect(blocker.moveAnim).toBeGreaterThan(0);
   });
 
   it("魔物は勇者入場地帯とコアマスへ侵入・繁殖できない", () => {

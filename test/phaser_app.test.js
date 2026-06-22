@@ -25,6 +25,8 @@ describe("Phaserアプリ構成", () => {
   it("Phaserシーンは3枚のアトラスをspritesheetとして読む", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     expect(src).toContain('import Phaser from "phaser"');
+    expect(src).toContain("let gameApi = createGame();");
+    expect(src).not.toContain("let gameApi = createGame({ seed: 1 });");
     expect(src).toContain('this.load.spritesheet("tiles"');
     expect(src).toContain('this.load.spritesheet("actors"');
     expect(src).toContain('this.load.spritesheet("effects"');

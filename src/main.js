@@ -31,7 +31,7 @@ import {
 } from "./gameCore.js";
 import "./style.css";
 
-let gameApi = createGame({ seed: 1 });
+let gameApi = createGame();
 exposeGameNamespace(gameApi);
 let codexOpen = false;
 let codexTab = "monster";

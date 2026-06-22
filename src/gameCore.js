@@ -142,8 +142,12 @@ function mulberry32(seed) {
   };
 }
 
+function autoSeed() {
+  return (Date.now() ^ (Math.random() * 0xffffffff)) >>> 0;
+}
+
 export function createGame(options = {}) {
-  let random = typeof options.random === "function" ? options.random : mulberry32(options.seed ?? 1);
+  let random = typeof options.random === "function" ? options.random : mulberry32(options.seed ?? autoSeed());
   let grid = [];
   let monsters = [];
   let heroes = [];
@@ -172,10 +176,10 @@ export function createGame(options = {}) {
   const isEntranceCell = (col, row) => col === ENTRANCE_COL && row === 0;
   const isHeroEntryZone = (col, row) => ENTRY_ZONE_COLS.includes(col) && ENTRY_ZONE_ROWS.includes(row);
   const isMonsterForbiddenCell = (col, row) => isEntranceCell(col, row) || isHeroEntryZone(col, row) || isCoreCell(col, row);
-  const coreAttackCells = () => [[0, -1], [1, 0], [-1, 0], [0, 1]]
+  const coreAttackCells = () => [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
     .map(([dc, dr]) => ({ col: CORE_COL + dc, row: CORE_ROW + dr }))
     .filter((p) => inBounds(p.col, p.row) && grid[p.row][p.col].t !== "bedrock");
-  const isCoreAttackCell = (col, row) => cardinalDist({ col, row }, { col: CORE_COL, row: CORE_ROW }) === 1;
+  const isCoreAttackCell = (col, row) => cheb({ col, row }, { col: CORE_COL, row: CORE_ROW }) === 1;
 
   function digCost() {
     return DIG_COST;
@@ -377,6 +381,15 @@ export function createGame(options = {}) {
       heroes.some((h) => h.col === col && h.row === row);
   }
 
+  function monsterAt(col, row, except = null) {
+    return monsters.find((m) => m !== except && m.col === col && m.row === row) || null;
+  }
+
+  function heroOrEggOccupied(col, row) {
+    return heroes.some((h) => h.col === col && h.row === row) ||
+      eggs.some((e) => e.col === col && e.row === row);
+  }
+
   function openFreeNeighbors(col, row) {
     return openNeighbors(col, row).filter((n) => !isMonsterForbiddenCell(n.col, n.row) && !occupied(n.col, n.row));
   }
@@ -531,7 +544,7 @@ export function createGame(options = {}) {
       homeCol: col, homeRow: row, hp: k.hp, maxHp: k.hp, atk: k.atk, range: k.range,
       moveCd: rnd(0, k.moveCd), atkCd: 0, eggCd: EGG_CHECK * rnd(0.7, 1.3), eatCd: EAT_CHECK * rnd(0.6, 1.2),
       breedCd: k.breedEvery ? k.breedEvery * rnd(0.6, 1.2) : 0, breedLeft: k.breedEvery ? BREED_LIMIT : 0,
-      soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
+      prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
     });
   }
 
@@ -780,6 +793,10 @@ export function createGame(options = {}) {
     if (e.kind && isMonsterForbiddenCell(col, row)) return;
     const fromCol = e.col;
     const fromRow = e.row;
+    if (e.kind) {
+      e.prevCol = fromCol;
+      e.prevRow = fromRow;
+    }
     e.dirX = Math.sign(col - e.col);
     e.dirY = Math.sign(row - e.row);
     e.faceDir = dirFromDelta(col - e.col, row - e.row, e.faceDir);
@@ -865,25 +882,86 @@ export function createGame(options = {}) {
     return sideA || sideB;
   }
 
+  function isPrevCell(e, cell) {
+    return e.prevCol === cell.col && e.prevRow === cell.row;
+  }
+
+  function canSwapMonsters(a, b) {
+    if (!a || !b || a === b || !a.kind || !b.kind) return false;
+    if (isMoving(a) || isMoving(b)) return false;
+    if (cardinalDist(a, b) !== 1) return false;
+    if (isMonsterForbiddenCell(a.col, a.row) || isMonsterForbiddenCell(b.col, b.row)) return false;
+    if (!OPEN.has(grid[a.row][a.col].t) || !OPEN.has(grid[b.row][b.col].t)) return false;
+    if (heroOrEggOccupied(a.col, a.row) || heroOrEggOccupied(b.col, b.row)) return false;
+    return true;
+  }
+
+  function swapMoveCooldown(e) {
+    const k = KINDS[e.kind];
+    if (!k) return;
+    e.moveCd = Math.max(e.moveCd || 0, Math.round(k.moveCd * rnd(0.45, 0.75)));
+  }
+
+  function swapMonsters(a, b) {
+    if (!canSwapMonsters(a, b)) return false;
+    const aCol = a.col;
+    const aRow = a.row;
+    const bCol = b.col;
+    const bRow = b.row;
+    beginMove(a, bCol, bRow);
+    beginMove(b, aCol, aRow);
+    swapMoveCooldown(b);
+    return true;
+  }
+
+  function swappableMonsterNeighbors(m) {
+    const out = [];
+    for (const n of openNeighbors(m.col, m.row)) {
+      if (isMonsterForbiddenCell(n.col, n.row)) continue;
+      const other = monsterAt(n.col, n.row, m);
+      if (other && canSwapMonsters(m, other)) out.push({ col: n.col, row: n.row, swapWith: other });
+    }
+    return out;
+  }
+
+  function moveScore(e, n, t, opts = {}) {
+    const d = cheb(n, t);
+    const card = cardinalDist(n, t);
+    const currentD = cheb(e, t);
+    const currentCard = cardinalDist(e, t);
+    let score = d * 24 + card * 4;
+    const canAttack = opts.attackRange ? (opts.lineFire ? canLineFireFrom(n.col, n.row, t, opts.attackRange) : canAttackFrom(n.col, n.row, opts.attackRange, t)) : false;
+    if (opts.attackRange && canAttack) score -= 80;
+    if (opts.preferLos && opts.attackRange && d <= opts.attackRange && !canAttack) score += 40;
+    if (e.dirX === Math.sign(n.col - e.col) && e.dirY === Math.sign(n.row - e.row)) score -= 1;
+    if (isPrevCell(e, n) && d >= currentD && card >= currentCard) score += 44;
+    if (n.swapWith) score += 18;
+    if (opts.homeLimit && e.homeCol !== undefined && cheb(n, { col: e.homeCol, row: e.homeRow }) > opts.homeLimit) score += 12;
+    return score;
+  }
+
+  function applyMoveCandidate(e, candidate) {
+    if (!candidate) return false;
+    if (candidate.swapWith) return swapMonsters(e, candidate.swapWith);
+    beginMove(e, candidate.col, candidate.row);
+    return true;
+  }
+
   function moveToward(e, t, opts = {}) {
-    const nb = openFreeNeighbors(e.col, e.row);
-    if (!nb.length) return;
-    let best = nb[0];
+    const free = openFreeNeighbors(e.col, e.row);
+    const swaps = e.kind ? swappableMonsterNeighbors(e) : [];
+    const candidates = free.concat(swaps);
+    if (!candidates.length) return false;
+    let best = candidates[0];
     let bestScore = Infinity;
-    for (const n of nb) {
-      const d = cheb(n, t);
-      let score = d * 24 + cardinalDist(n, t) * 4;
-      const canAttack = opts.attackRange ? (opts.lineFire ? canLineFireFrom(n.col, n.row, t, opts.attackRange) : canAttackFrom(n.col, n.row, opts.attackRange, t)) : false;
-      if (opts.attackRange && canAttack) score -= 80;
-      if (opts.preferLos && opts.attackRange && d <= opts.attackRange && !canAttack) score += 40;
-      if (e.dirX === Math.sign(n.col - e.col) && e.dirY === Math.sign(n.row - e.row)) score -= 1;
-      if (opts.homeLimit && e.homeCol !== undefined && cheb(n, { col: e.homeCol, row: e.homeRow }) > opts.homeLimit) score += 12;
+    for (const n of candidates) {
+      const score = moveScore(e, n, t, opts);
       if (score < bestScore) {
         best = n;
         bestScore = score;
       }
     }
-    beginMove(e, best.col, best.row);
+    return applyMoveCandidate(e, best);
   }
 
   function wanderHome(m) {
@@ -891,10 +969,25 @@ export function createGame(options = {}) {
       moveToward(m, { col: m.homeCol, row: m.homeRow });
       return;
     }
-    const nb = openFreeNeighbors(m.col, m.row).filter((n) => m.homeCol === undefined || cheb(n, { col: m.homeCol, row: m.homeRow }) <= 3);
-    if (nb.length && random() < 0.82) {
-      const n = nb[ri(0, nb.length - 1)];
+    const inHomeRange = (n) => m.homeCol === undefined || cheb(n, { col: m.homeCol, row: m.homeRow }) <= 3;
+    const free = openFreeNeighbors(m.col, m.row).filter(inHomeRange);
+    const fresh = free.filter((n) => !isPrevCell(m, n));
+    if (fresh.length && random() < 0.82) {
+      const n = fresh[ri(0, fresh.length - 1)];
       beginMove(m, n.col, n.row);
+      return;
+    }
+    if (free.length) {
+      if (free.every((n) => isPrevCell(m, n)) && random() < 0.58) return;
+      if (random() < 0.82) {
+        const n = free[ri(0, free.length - 1)];
+        beginMove(m, n.col, n.row);
+      }
+      return;
+    }
+    const swaps = swappableMonsterNeighbors(m).filter(inHomeRange);
+    if (swaps.length && random() < 0.55) {
+      applyMoveCandidate(m, swaps[ri(0, swaps.length - 1)]);
     }
   }
 
@@ -1393,7 +1486,7 @@ export function createGame(options = {}) {
     }
   }
 
-  function resetGame(seed = options.seed ?? 1) {
+  function resetGame(seed = options.seed ?? autoSeed()) {
     random = typeof options.random === "function" ? options.random : mulberry32(seed);
     monsters = [];
     heroes = [];
