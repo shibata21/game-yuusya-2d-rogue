@@ -178,8 +178,22 @@ class MainScene extends Phaser.Scene {
           overlay.clearTint();
         }
         this.drawSoilMana(c, r, tile);
+        this.drawEntryZone(c, r);
       }
     }
+  }
+
+  drawEntryZone(col, row) {
+    if (!this.soilGraphics || !gameApi.isHeroEntryZone(col, row)) return;
+    const x = col * TILE;
+    const y = row * TILE;
+    this.soilGraphics.fillStyle(0x3f7a70, 0.18);
+    this.soilGraphics.fillRect(x + 3, y + 3, TILE - 6, TILE - 6);
+    this.soilGraphics.lineStyle(1, 0xffcf4d, 0.30);
+    this.soilGraphics.strokeRect(x + 6, y + 6, TILE - 12, TILE - 12);
+    this.soilGraphics.fillStyle(0xbff7ea, 0.20);
+    this.soilGraphics.fillRect(x + 12, y + 10, TILE - 24, 2);
+    this.soilGraphics.fillRect(x + 12, y + TILE - 12, TILE - 24, 2);
   }
 
   drawSoilMana(col, row, tile) {

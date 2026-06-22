@@ -54,12 +54,16 @@ describe("ゲームルール", () => {
     expect(G.grid).toHaveLength(G.ROWS);
     expect(G.grid[0]).toHaveLength(G.COLS);
     expect(G.grid[0][G.ENTRANCE_COL].t).toBe("surface");
+    expect(G.grid[0][G.ENTRANCE_COL - 1].t).toBe("bedrock");
+    expect(G.grid[0][G.ENTRANCE_COL + 1].t).toBe("bedrock");
+    expect(G.isHeroEntryZone(G.ENTRANCE_COL, 0)).toBe(false);
+    expect(G.isMonsterForbiddenCell(G.ENTRANCE_COL, 0)).toBe(true);
     for (const c of G.ENTRY_ZONE_COLS) {
-      expect(G.grid[0][c].t).toBe("surface");
-      expect(G.grid[1][c].t).toBe("tunnel");
-      expect(G.isHeroEntryZone(c, 0)).toBe(true);
-      expect(G.isHeroEntryZone(c, 1)).toBe(true);
-      expect(G.isMonsterForbiddenCell(c, 1)).toBe(true);
+      for (const r of G.ENTRY_ZONE_ROWS) {
+        expect(G.grid[r][c].t).toBe("tunnel");
+        expect(G.isHeroEntryZone(c, r)).toBe(true);
+        expect(G.isMonsterForbiddenCell(c, r)).toBe(true);
+      }
     }
     expect(G.grid[G.CORE_ROW][G.CORE_COL].t).toBe("core");
     expect(G.isMonsterForbiddenCell(G.CORE_COL, G.CORE_ROW)).toBe(true);
@@ -374,7 +378,7 @@ describe("ゲームルール", () => {
     }
     for (const [i, kind] of ["spitter", "golem", "flame", "tarantula", "titan", "infernal", "goldweaver", "goldcore", "whiteflame"].entries()) {
       expect(G.canLayEgg(kind), kind).toBe(true);
-      expect(G.spawnEgg(kind, 1 + (i % 9), 2 + Math.floor(i / 9)), kind).toBe(true);
+      expect(G.spawnEgg(kind, 1 + (i % 9), 4 + Math.floor(i / 9)), kind).toBe(true);
     }
   });
 
@@ -691,22 +695,25 @@ describe("ゲームルール", () => {
 
   it("魔物は勇者入場地帯とコアマスへ侵入・繁殖できない", () => {
     carveAll();
+    G.spawnMonster("slime", G.ENTRANCE_COL, 0);
     G.spawnMonster("slime", G.ENTRANCE_COL, 1);
+    G.spawnMonster("slime", G.ENTRANCE_COL, 2);
     G.spawnMonster("slime", G.CORE_COL, G.CORE_ROW);
     expect(G.monsters).toHaveLength(0);
 
-    G.spawnMonster("slime", G.ENTRANCE_COL, 2);
+    G.spawnMonster("slime", G.ENTRANCE_COL, 3);
     const m = G.monsters[0];
-    G.beginMove(m, G.ENTRANCE_COL, 1);
+    G.beginMove(m, G.ENTRANCE_COL, 2);
     expect(m.col).toBe(G.ENTRANCE_COL);
-    expect(m.row).toBe(2);
+    expect(m.row).toBe(3);
 
-    for (const [c, r] of [[4, 2], [6, 2], [5, 3]]) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    for (const [c, r] of [[4, 3], [6, 3], [5, 4]]) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
     m.breedCd = 0;
     G.update(100);
     expect(G.monsters).toHaveLength(1);
 
     expect(G.spawnEgg("spitter", G.ENTRANCE_COL, 1)).toBe(false);
+    expect(G.spawnEgg("spitter", G.ENTRANCE_COL, 2)).toBe(false);
     expect(G.spawnEgg("spitter", G.CORE_COL, G.CORE_ROW)).toBe(false);
     G.eggs.push({ kind: "spitter", col: G.CORE_COL, row: G.CORE_ROW, hatchCd: 0, bornAnim: 0 });
     G.update(100);
@@ -716,14 +723,15 @@ describe("ゲームルール", () => {
   it("勇者の壁掘りは一撃で壊れない", () => {
     for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
     G.grid[0][G.ENTRANCE_COL] = { t: "surface", sub: null, shade: 0 };
-    G.grid[1][G.ENTRANCE_COL] = { t: "earth", sub: null, shade: 0 };
-    for (let r = 2; r <= G.CORE_ROW; r++) G.grid[r][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+    for (const r of G.ENTRY_ZONE_ROWS) for (const c of G.ENTRY_ZONE_COLS) G.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
+    G.grid[3][G.ENTRANCE_COL] = { t: "earth", sub: null, shade: 0 };
+    for (let r = 4; r <= G.CORE_ROW; r++) G.grid[r][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
     G.grid[G.CORE_ROW][G.CORE_COL] = { t: "core", sub: null, shade: 0 };
-    G.spawnHero();
+    G.spawnHero("warrior", G.ENTRANCE_COL, 2);
     G.heroes[0].actCd = 0;
     G.update(10);
-    expect(G.grid[1][G.ENTRANCE_COL].t).toBe("earth");
-    expect(G.grid[1][G.ENTRANCE_COL].dig).toBeGreaterThan(0);
+    expect(G.grid[3][G.ENTRANCE_COL].t).toBe("earth");
+    expect(G.grid[3][G.ENTRANCE_COL].dig).toBeGreaterThan(0);
   });
 
   it("勇者職業の解禁と人数上限を守る", () => {
@@ -752,6 +760,12 @@ describe("ゲームルール", () => {
     G.resetGame(1);
     G.wave = 30;
     G.startWave();
+    expect(G.spawnQueue).toHaveLength(G.HEROES_PER_WAVE_CAP);
+    expect(G.heroes).toHaveLength(0);
+    G.update(1);
+    expect(G.heroes).toHaveLength(1);
+    expect(G.spawnQueue).toHaveLength(G.HEROES_PER_WAVE_CAP - 1);
+    for (let i = 1; i < G.HEROES_PER_WAVE_CAP; i++) G.update(G.HERO_STAGGER);
     expect(G.spawnQueue).toHaveLength(0);
     expect(G.heroes).toHaveLength(G.HEROES_PER_WAVE_CAP);
     expect(new Set(G.heroes.map((h) => `${h.col},${h.row}`)).size).toBe(G.heroes.length);
@@ -805,11 +819,13 @@ describe("ゲームルール", () => {
     G.spawnQueue.push({ delay: 10000, cls: "warrior" });
     G.spawnMonster("spitter", 2, 5);
     const m = G.monsters[0];
-    const h = hero("warrior", 4, 5, { hp: 60, atkCd: 0 });
+    const h = hero("warrior", 4, 5, { hp: 60, atkCd: 0, actCd: 0 });
     G.heroes.push(h);
     m.atkCd = 0;
     G.update(100);
     expect(h.hp).toBe(60);
+    expect(h.col).toBe(4);
+    expect(h.row).toBe(5);
     expect(m.hp).toBe(m.maxHp);
   });
 
@@ -831,6 +847,7 @@ describe("ゲームルール", () => {
     G.wave = HERO_CLASSES.captain.unlock - 1;
     G.startWave();
     expect(G.wave).toBe(HERO_CLASSES.captain.unlock);
+    while (G.spawnQueue.length) G.update(G.HERO_STAGGER);
     expect(G.heroes.filter((h) => h.cls === "captain")).toHaveLength(1);
   });
 

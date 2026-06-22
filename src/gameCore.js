@@ -7,7 +7,7 @@ export const W = COLS * TILE;
 export const H = ROWS * TILE;
 export const ENTRANCE_COL = 5;
 export const ENTRY_ZONE_COLS = [4, 5, 6];
-export const ENTRY_ZONE_ROWS = [0, 1];
+export const ENTRY_ZONE_ROWS = [1, 2];
 export const CORE_COL = 5;
 export const CORE_ROW = ROWS - 2;
 
@@ -20,7 +20,7 @@ export const MAX_HEROES = 8;
 export const HEROES_PER_WAVE_CAP = 5;
 export const WAVE_INTERVAL = 10000;
 export const FIRST_GRACE = 27000;
-export const HERO_STAGGER = 2200;
+export const HERO_STAGGER = 520;
 export const VEIN_CAP = 44;
 export const VEIN_SPAWN_TICK = 1000;
 export const VEIN_SPAWN_BASE_CHANCE = 0.0006;
@@ -169,8 +169,9 @@ export function createGame(options = {}) {
   const cardinalDist = (a, b) => Math.abs(a.col - b.col) + Math.abs(a.row - b.row);
   const isMoving = (e) => (e.moveAnim || 0) > 0;
   const isCoreCell = (col, row) => col === CORE_COL && row === CORE_ROW;
+  const isEntranceCell = (col, row) => col === ENTRANCE_COL && row === 0;
   const isHeroEntryZone = (col, row) => ENTRY_ZONE_COLS.includes(col) && ENTRY_ZONE_ROWS.includes(row);
-  const isMonsterForbiddenCell = (col, row) => isHeroEntryZone(col, row) || isCoreCell(col, row);
+  const isMonsterForbiddenCell = (col, row) => isEntranceCell(col, row) || isHeroEntryZone(col, row) || isCoreCell(col, row);
   const coreAttackCells = () => [[0, -1], [1, 0], [-1, 0], [0, 1]]
     .map(([dc, dr]) => ({ col: CORE_COL + dc, row: CORE_ROW + dr }))
     .filter((p) => inBounds(p.col, p.row) && grid[p.row][p.col].t !== "bedrock");
@@ -222,8 +223,8 @@ export function createGame(options = {}) {
       for (let c = 0; c < COLS; c++) {
         let t = "earth";
         if (c === 0 || c === COLS - 1 || r === ROWS - 1) t = "bedrock";
-        else if (r === 0) t = ENTRY_ZONE_COLS.includes(c) ? "surface" : "bedrock";
-        else if (r === 1 && ENTRY_ZONE_COLS.includes(c)) t = "tunnel";
+        else if (r === 0) t = c === ENTRANCE_COL ? "surface" : "bedrock";
+        else if (ENTRY_ZONE_ROWS.includes(r) && ENTRY_ZONE_COLS.includes(c)) t = "tunnel";
         row.push({ t, sub: null, shade: random() });
       }
       grid.push(row);
@@ -712,7 +713,8 @@ export function createGame(options = {}) {
     cls = HERO_CLASSES[cls] ? cls : pickHeroClass();
     if (col === null || row === null) {
       const cells = heroEntryCells();
-      const spot = cells.length ? cells[0] : { col: ENTRANCE_COL, row: 0 };
+      if (!cells.length) return false;
+      const spot = cells[0];
       col = spot.col;
       row = spot.row;
     }
@@ -724,6 +726,7 @@ export function createGame(options = {}) {
       coreCd: 0, actCd: 300, healCd: 800, blockedMs: 0, atkAnim: 0, atkTX: 0, atkTY: 0,
       bob: rnd(0, 6.28), actionType: "idle", actionTime: 0, moveAnim: 0,
     });
+    return true;
   }
 
   function startWave() {
@@ -740,13 +743,9 @@ export function createGame(options = {}) {
       if (c.unlock === wave && c.unlock > 1 && c.msg) banner(c.msg);
     }
     let count = Math.min(1 + Math.floor(wave / 2), HEROES_PER_WAVE_CAP);
-    const room = Math.min(MAX_HEROES - heroes.length - spawnQueue.length, heroEntryCells().length);
+    const room = Math.min(MAX_HEROES - heroes.length - spawnQueue.length, heroEntryCells().length - spawnQueue.length);
     count = Math.max(0, Math.min(count, room));
-    for (let i = 0; i < count; i++) {
-      const cells = heroEntryCells();
-      if (!cells.length) break;
-      spawnHero(pickHeroClass(), cells[0].col, cells[0].row);
-    }
+    for (let i = 0; i < count; i++) spawnQueue.push({ delay: i * HERO_STAGGER, cls: pickHeroClass() });
     waveCountdown = WAVE_INTERVAL;
   }
 
@@ -1266,8 +1265,9 @@ export function createGame(options = {}) {
       updateVisualPosition(h, dt);
       h.atkAnim = Math.max(0, (h.atkAnim || 0) - dt);
       h.actionTime = Math.max(0, (h.actionTime || 0) - dt);
+      if (entryPending) continue;
       if (isMoving(h)) continue;
-      if (!entryPending && c.heal && h.healCd <= 0) {
+      if (c.heal && h.healCd <= 0) {
         const target = heroHealTarget(h, c);
         if (target) {
           const amount = resolveHeroStats(h.cls, h.wave).heal;
@@ -1280,7 +1280,7 @@ export function createGame(options = {}) {
           h.healCd = 300;
         }
       }
-      const monsterTarget = entryPending ? null : bestMonsterInRange(h);
+      const monsterTarget = bestMonsterInRange(h);
       if (monsterTarget) faceToward(h, monsterTarget.px, monsterTarget.py);
       if (monsterTarget && h.atkCd <= 0) {
         h.atkCd = c.atkCd;
@@ -1317,7 +1317,7 @@ export function createGame(options = {}) {
         continue;
       }
       h.blockedMs = 0;
-      if (!entryPending && isCoreAttackCell(h.col, h.row)) {
+      if (isCoreAttackCell(h.col, h.row)) {
         if (h.coreCd <= 0) {
           coreHP -= h.atk;
           popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `-${h.atk}`, "#e0556b");
@@ -1370,8 +1370,7 @@ export function createGame(options = {}) {
     for (let i = spawnQueue.length - 1; i >= 0; i--) {
       spawnQueue[i].delay -= dt;
       if (spawnQueue[i].delay <= 0) {
-        if (heroes.length < MAX_HEROES) {
-          spawnHero(spawnQueue[i].cls);
+        if (heroes.length < MAX_HEROES && spawnHero(spawnQueue[i].cls)) {
           spawnQueue.splice(i, 1);
         } else {
           spawnQueue[i].delay = 800;

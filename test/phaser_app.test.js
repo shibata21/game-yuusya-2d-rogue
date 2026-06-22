@@ -31,6 +31,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("Phaser.Scale.FIT");
     expect(src).toContain("crackGraphics");
     expect(src).toContain("DIG_BREAK");
+    expect(src).toContain("drawEntryZone");
     expect(src).toContain('this.input.on("pointerup"');
     expect(src).toContain("touch: { capture: false }");
     expect(src).toContain("preventDefaultDown: false");
