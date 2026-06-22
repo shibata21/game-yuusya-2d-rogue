@@ -15,10 +15,15 @@ export const CORE_MAX = 150;
 export const MONSTER_CAP = 48;
 export const BREED_LIMIT = 3;
 export const MAX_HEROES = 8;
-export const WAVE_INTERVAL = 29000;
+export const HEROES_PER_WAVE_CAP = 5;
+export const WAVE_INTERVAL = 18000;
 export const FIRST_GRACE = 27000;
 export const HERO_STAGGER = 2200;
 export const VEIN_CAP = 44;
+export const VEIN_SPAWN_TICK = 1000;
+export const VEIN_SPAWN_BASE_CHANCE = 0.0006;
+export const VEIN_SPAWN_SOIL_WEIGHT = 0.45;
+export const VEIN_SPAWN_BURST_CAP = 2;
 export const EGG_HATCH = 40000;
 export const EGG_CHECK = 10000;
 export const EGG_CHANCE = 0.20;
@@ -45,25 +50,25 @@ export const KINDS = {
   carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣", profile: "首輪はないが飼われている顔をしている。褒められると通路を余計に走る。" },
   spitter: { hp: 34, atk: 8, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "毒蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
   golem: { hp: 125, atk: 5, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.14, col: "#6f86c4", name: "ゴーレム", profile: "動き出すまでが長い。動き出してからも長い。本人は慎重派と言っている。" },
-  flame: { hp: 84, atk: 18, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.10, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
+  flame: { hp: 84, atk: 18, range: 5, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.10, lineFire: true, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
   superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 1, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム", profile: "ぷるぷる界の御曹司。怒ると少し赤くなるが、照れても同じ色になる。" },
   evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣", profile: "牙の手入れにうるさい。鏡がないので、水たまりの前でよく止まる。" },
   tarantula: { hp: 108, atk: 19, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
   titan: { hp: 285, atk: 16, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "昔は山だったと言い張る。否定すると返事が翌朝まで返ってこない。" },
-  infernal: { hp: 195, atk: 34, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.05, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
+  infernal: { hp: 195, atk: 34, range: 5, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.05, lineFire: true, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
   crownslime: { hp: 112, atk: 14, range: 1, moveCd: 500, atkCd: 650, aggro: 2, rank: 4, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
   direfang: { hp: 178, atk: 30, range: 1, moveCd: 610, atkCd: 640, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, col: "#5f2020", eliteOf: "evolved", evoLevel: 2, name: "裂牙獣", profile: "走るたびに地面へ爪痕を残す。本人は道しるべのつもりらしい。" },
   goldweaver: { hp: 205, atk: 36, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
   goldcore: { hp: 540, atk: 31, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.025, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
-  whiteflame: { hp: 390, atk: 62, range: 1, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.02, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
+  whiteflame: { hp: 390, atk: 62, range: 5, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.02, lineFire: true, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
 };
 
 export const VEIN = {
-  moss: { kind: "slime", evoKind: "superslime", finalKind: "crownslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", finalEvoName: "王冠苔脈", touchNeed: 4, finalTouchNeed: 12 },
-  meat: { kind: "carniv", evoKind: "evolved", finalKind: "direfang", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", finalEvoName: "裂牙脈", touchNeed: 7, finalTouchNeed: 18 },
-  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", finalEvoName: "金糸毒脈", touchNeed: 10, finalTouchNeed: 25, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
-  stone: { kind: "golem", evoKind: "titan", finalKind: "goldcore", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", finalEvoName: "金核石脈", touchNeed: 13, finalTouchNeed: 32, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
-  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", finalEvoName: "白炎火脈", touchNeed: 16, finalTouchNeed: 40, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
+  moss: { kind: "slime", evoKind: "superslime", finalKind: "crownslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", finalEvoName: "王冠苔脈", touchNeed: 4, finalTouchNeed: 12, spawnWeight: 3.0 },
+  meat: { kind: "carniv", evoKind: "evolved", finalKind: "direfang", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", finalEvoName: "裂牙脈", touchNeed: 7, finalTouchNeed: 18, spawnWeight: 1.6 },
+  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", finalEvoName: "金糸毒脈", touchNeed: 10, finalTouchNeed: 25, spawnWeight: 1.1, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
+  stone: { kind: "golem", evoKind: "titan", finalKind: "goldcore", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", finalEvoName: "金核石脈", touchNeed: 13, finalTouchNeed: 32, spawnWeight: 0.8, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
+  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", finalEvoName: "白炎火脈", touchNeed: 16, finalTouchNeed: 40, spawnWeight: 0.7, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
 };
 
 export const HERO_CLASSES = {
@@ -89,6 +94,7 @@ export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat"];
 export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage", "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
+const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 
 export function pixelAssetUrl(name) {
   return `${PIXEL_ASSET_PATH}${name}?v=${PIXEL_ASSET_VERSION}`;
@@ -148,6 +154,7 @@ export function createGame(options = {}) {
   let score = 0;
   let kills = 0;
   let waveCountdown = FIRST_GRACE;
+  let veinSpawnTimer = 0;
   let idc = 0;
   let gameState = "title";
 
@@ -223,6 +230,25 @@ export function createGame(options = {}) {
     return n;
   }
 
+  function canHostVein(col, row, tile = grid[row] && grid[row][col]) {
+    if (!tile || tile.t !== "earth" || tile.sub) return false;
+    if (col === CORE_COL && row === CORE_ROW) return false;
+    if (col === ENTRANCE_COL && row <= 2) return false;
+    return true;
+  }
+
+  function placeVein(tile, type) {
+    if (!VEIN[type]) return false;
+    tile.sub = type;
+    tile.age = 0;
+    setEvoStage(tile, 0);
+    tile.evoChecked = false;
+    tile.evoTouch = 0;
+    tile.evoStageTouch = 0;
+    tile.evoTouching = {};
+    return true;
+  }
+
   function seedType(type, n, rMin, rMax) {
     while (n > 0 && veinCount() < VEIN_CAP) {
       const cand = [];
@@ -230,10 +256,8 @@ export function createGame(options = {}) {
       for (let r = rMin; r <= rMax; r++) for (let c = 1; c < COLS - 1; c++) {
         if (!inBounds(c, r)) continue;
         const tile = grid[r][c];
-        if (tile.t !== "earth" || tile.sub) continue;
-        if (c === CORE_COL && r === CORE_ROW) continue;
-        if (c === ENTRANCE_COL && r <= 2) continue;
-        const weight = 1 + soilManaOf(tile) * 0.45;
+        if (!canHostVein(c, r, tile)) continue;
+        const weight = 1 + soilManaOf(tile) * VEIN_SPAWN_SOIL_WEIGHT;
         cand.push({ c, r, tile, weight });
         totalWeight += weight;
       }
@@ -248,23 +272,59 @@ export function createGame(options = {}) {
         }
       }
       const { tile } = chosen;
-      tile.sub = type;
-      tile.age = 0;
-      setEvoStage(tile, 0);
-      tile.evoChecked = false;
-      tile.evoTouch = 0;
-      tile.evoStageTouch = 0;
-      tile.evoTouching = {};
+      placeVein(tile, type);
       n--;
     }
   }
 
-  function seedVeins(wv) {
-    seedType("moss", 3, 1, CORE_ROW);
-    seedType("meat", 1 + (wv >= 5 ? 1 : 0), 1, CORE_ROW);
-    if (wv >= 3) seedType("venom", 1 + (wv >= 7 ? 1 : 0), 1, CORE_ROW);
-    if (wv >= 6) seedType("stone", 1, 1, CORE_ROW);
-    if (wv >= 9) seedType("ember", 1, 1, CORE_ROW);
+  function availableVeinTypes() {
+    return Object.keys(VEIN).filter((key) => unlocked.has(key) || wave >= VEIN[key].unlock);
+  }
+
+  function pickVeinTypeForSpawn() {
+    const types = availableVeinTypes();
+    let total = 0;
+    for (const type of types) total += VEIN[type].spawnWeight || 1;
+    if (total <= 0) return null;
+    let pick = rnd(0, total);
+    for (const type of types) {
+      pick -= VEIN[type].spawnWeight || 1;
+      if (pick <= 0) return type;
+    }
+    return types[types.length - 1] || null;
+  }
+
+  function veinSpawnChance(tile) {
+    if (!tile || tile.t !== "earth" || tile.sub) return 0;
+    return VEIN_SPAWN_BASE_CHANCE * (1 + soilManaOf(tile) * VEIN_SPAWN_SOIL_WEIGHT);
+  }
+
+  function runVeinSpawnTick() {
+    if (veinCount() >= VEIN_CAP || availableVeinTypes().length === 0) return 0;
+    let spawned = 0;
+    for (let r = 1; r < ROWS - 1; r++) {
+      for (let c = 1; c < COLS - 1; c++) {
+        if (spawned >= VEIN_SPAWN_BURST_CAP || veinCount() >= VEIN_CAP) return spawned;
+        const tile = grid[r][c];
+        if (!canHostVein(c, r, tile)) continue;
+        if (random() >= veinSpawnChance(tile)) continue;
+        const type = pickVeinTypeForSpawn();
+        if (!type || !placeVein(tile, type)) continue;
+        spawned++;
+        effects.push({ type: "puff", x: cx(c), y: cy(r), life: 320, max: 320, color: VEIN[type].color });
+      }
+    }
+    return spawned;
+  }
+
+  function updateVeinSpawning(dt) {
+    veinSpawnTimer += dt;
+    let spawned = 0;
+    while (veinSpawnTimer >= VEIN_SPAWN_TICK) {
+      veinSpawnTimer -= VEIN_SPAWN_TICK;
+      spawned += runVeinSpawnTick();
+    }
+    return spawned;
   }
 
   function openNeighbors(col, row) {
@@ -602,13 +662,12 @@ export function createGame(options = {}) {
         if (v.unlock > 1) banner(v.unlockMsg);
       }
     }
-    seedVeins(wave);
     for (const key in HERO_CLASSES) {
       const c = HERO_CLASSES[key];
       if (c.unlock === wave && c.unlock > 1 && c.msg) banner(c.msg);
     }
-    let count = Math.min(1 + Math.floor(wave / 2), 5);
-    const room = (MAX_HEROES + 4) - heroes.length - spawnQueue.length;
+    let count = Math.min(1 + Math.floor(wave / 2), HEROES_PER_WAVE_CAP);
+    const room = MAX_HEROES - heroes.length - spawnQueue.length;
     count = Math.max(0, Math.min(count, room));
     for (let i = 0; i < count; i++) spawnQueue.push({ delay: i * HERO_STAGGER, cls: pickHeroClass() });
     waveCountdown = WAVE_INTERVAL;
@@ -679,6 +738,46 @@ export function createGame(options = {}) {
     return hasLOS(col, row, target.col, target.row);
   }
 
+  function dragonFireCells(m, dir) {
+    const vec = DIR_VECTORS[dir];
+    if (!vec) return [];
+    const [dc, dr] = vec;
+    const range = Math.max(1, Math.floor(m.range || (KINDS[m.kind] && KINDS[m.kind].range) || 5));
+    const cells = [];
+    let prevCol = m.col;
+    let prevRow = m.row;
+    for (let step = 1; step <= range; step++) {
+      const col = m.col + dc * step;
+      const row = m.row + dr * step;
+      if (!inBounds(col, row)) break;
+      if (dc !== 0 && dr !== 0) {
+        if (!inBounds(col, prevRow) || !inBounds(prevCol, row)) break;
+        if (!OPEN.has(grid[prevRow][col].t) || !OPEN.has(grid[row][prevCol].t)) break;
+      }
+      if (!OPEN.has(grid[row][col].t)) break;
+      cells.push({ col, row });
+      prevCol = col;
+      prevRow = row;
+    }
+    return cells;
+  }
+
+  function lineFireDirForTarget(col, row, target, range) {
+    const dc = target.col - col;
+    const dr = target.row - row;
+    const dist = Math.max(Math.abs(dc), Math.abs(dr));
+    if (dist <= 0 || dist > range) return null;
+    if (!(dc === 0 || dr === 0 || Math.abs(dc) === Math.abs(dr))) return null;
+    const dir = dirFromDelta(dc, dr, null);
+    if (!dir) return null;
+    const cells = dragonFireCells({ col, row, range }, dir);
+    return cells.some((cell) => cell.col === target.col && cell.row === target.row) ? dir : null;
+  }
+
+  function canLineFireFrom(col, row, target, range = 5) {
+    return !!lineFireDirForTarget(col, row, target, range);
+  }
+
   function canMeleeFrom(col, row, target) {
     const dc = target.col - col;
     const dr = target.row - row;
@@ -698,8 +797,9 @@ export function createGame(options = {}) {
     for (const n of nb) {
       const d = cheb(n, t);
       let score = d * 24 + cardinalDist(n, t) * 4;
-      if (opts.attackRange && canAttackFrom(n.col, n.row, opts.attackRange, t)) score -= 80;
-      if (opts.preferLos && opts.attackRange && d <= opts.attackRange && !hasLOS(n.col, n.row, t.col, t.row)) score += 40;
+      const canAttack = opts.attackRange ? (opts.lineFire ? canLineFireFrom(n.col, n.row, t, opts.attackRange) : canAttackFrom(n.col, n.row, opts.attackRange, t)) : false;
+      if (opts.attackRange && canAttack) score -= 80;
+      if (opts.preferLos && opts.attackRange && d <= opts.attackRange && !canAttack) score += 40;
       if (e.dirX === Math.sign(n.col - e.col) && e.dirY === Math.sign(n.row - e.row)) score -= 1;
       if (opts.homeLimit && e.homeCol !== undefined && cheb(n, { col: e.homeCol, row: e.homeRow }) > opts.homeLimit) score += 12;
       if (score < bestScore) {
@@ -799,6 +899,51 @@ export function createGame(options = {}) {
       }
     }
     return best;
+  }
+
+  function heroesInFireCells(cells) {
+    const keys = new Set(cells.map((cell) => `${cell.col},${cell.row}`));
+    return heroes.filter((h) => !isMoving(h) && keys.has(`${h.col},${h.row}`));
+  }
+
+  function bestDragonFireAttack(m) {
+    let best = null;
+    let bestScore = Infinity;
+    for (const dir of PIXEL_DIRS) {
+      const cells = dragonFireCells(m, dir);
+      if (!cells.length) continue;
+      const victims = heroesInFireCells(cells);
+      if (!victims.length) continue;
+      let primary = victims[0];
+      let primaryScore = heroTargetScoreForMonster(m, primary);
+      for (const h of victims.slice(1)) {
+        const score = heroTargetScoreForMonster(m, h);
+        if (score < primaryScore) {
+          primary = h;
+          primaryScore = score;
+        }
+      }
+      const score = primaryScore - (victims.length - 1) * 70;
+      if (score < bestScore) {
+        best = { dir, cells, victims, target: primary };
+        bestScore = score;
+      }
+    }
+    return best;
+  }
+
+  function breatheDragonFire(m, attack, k) {
+    const end = attack.cells[attack.cells.length - 1];
+    m.atkCd = k.atkCd;
+    setAction(m, "cast", cx(end.col), cy(end.row), ATK_ANIM);
+    effects.push({ type: "flameLine", sx: m.px, sy: m.py - 4, tx: cx(end.col), ty: cy(end.row), x: cx(end.col), y: cy(end.row), color: k.col, life: 260, max: 260, cells: attack.cells });
+    for (const h of [...attack.victims]) {
+      if (!heroes.includes(h)) continue;
+      const dmg = heroDamageTaken(m.atk, h);
+      h.hp -= dmg;
+      popDmg(h.px, h.py, `-${dmg}`, "#ffcf4d");
+      if (h.hp <= 0) killHero(h);
+    }
   }
 
   function monsterTargetScoreForHero(h, m) {
@@ -990,18 +1135,23 @@ export function createGame(options = {}) {
       m.actionTime = Math.max(0, (m.actionTime || 0) - dt);
       m.bornAnim = Math.max(0, (m.bornAnim || 0) - dt);
       if (isMoving(m)) continue;
-      const heroTarget = bestHeroInRange(m);
+      const fireAttack = k.lineFire ? bestDragonFireAttack(m) : null;
+      const heroTarget = fireAttack ? fireAttack.target : bestHeroInRange(m);
       if (heroTarget) {
         faceToward(m, heroTarget.px, heroTarget.py);
         if (m.atkCd <= 0) {
-          const dmg = heroDamageTaken(m.atk, heroTarget);
-          heroTarget.hp -= dmg;
-          popDmg(heroTarget.px, heroTarget.py, `-${dmg}`, m.kind === "spitter" ? "#b6ff7a" : "#ff8a8a");
-          m.atkCd = k.atkCd;
-          setAction(m, m.range >= 2 ? "cast" : "attack", heroTarget.px, heroTarget.py, ATK_ANIM);
-          if (m.range >= 2) shoot(m.px, m.py - 4, heroTarget.px, heroTarget.py, "#9bff5a");
-          else slash(heroTarget.px, heroTarget.py, "#ffd0d0");
-          if (heroTarget.hp <= 0) killHero(heroTarget);
+          if (fireAttack) {
+            breatheDragonFire(m, fireAttack, k);
+          } else {
+            const dmg = heroDamageTaken(m.atk, heroTarget);
+            heroTarget.hp -= dmg;
+            popDmg(heroTarget.px, heroTarget.py, `-${dmg}`, m.kind === "spitter" ? "#b6ff7a" : "#ff8a8a");
+            m.atkCd = k.atkCd;
+            setAction(m, m.range >= 2 ? "cast" : "attack", heroTarget.px, heroTarget.py, ATK_ANIM);
+            if (m.range >= 2) shoot(m.px, m.py - 4, heroTarget.px, heroTarget.py, "#9bff5a");
+            else slash(heroTarget.px, heroTarget.py, "#ffd0d0");
+            if (heroTarget.hp <= 0) killHero(heroTarget);
+          }
         }
         continue;
       }
@@ -1012,7 +1162,7 @@ export function createGame(options = {}) {
         if (tryEatLower(m)) continue;
       }
       if (m.moveCd <= 0) {
-        if (aggroHero) moveToward(m, aggroHero, { attackRange: k.range, preferLos: k.range > 1, homeLimit: 5 });
+        if (aggroHero) moveToward(m, aggroHero, { attackRange: k.range, preferLos: k.range > 1, lineFire: !!k.lineFire, homeLimit: 5 });
         else wanderHome(m);
         m.moveCd = k.moveCd + rnd(-80, 120);
       }
@@ -1143,6 +1293,7 @@ export function createGame(options = {}) {
       }
     }
     updateVeinTouchEvolution();
+    updateVeinSpawning(dt);
     updateVeinAging(dt);
     updateEggs(dt);
     updateEliteEggBreeding(dt);
@@ -1170,6 +1321,7 @@ export function createGame(options = {}) {
     score = 0;
     kills = 0;
     waveCountdown = FIRST_GRACE;
+    veinSpawnTimer = 0;
     idc = 0;
     unlocked = new Set(Object.keys(VEIN).filter((key) => VEIN[key].unlock <= 1));
     gameState = "playing";
@@ -1259,12 +1411,13 @@ export function createGame(options = {}) {
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
     update, resetGame, startGame, gameOver, tryDig, startWave, tauntEarly,
-    updateVeinTouchEvolution, updateVeinAging, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
+    updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
-    pickHeroClass, heroStep, openNeighbors, openFreeNeighbors, hasLOS, occupied, actorOccupied,
+    pickHeroClass, heroStep, openNeighbors, openFreeNeighbors, hasLOS, dragonFireCells, occupied, actorOccupied,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken,
-    KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
+    KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HEROES_PER_WAVE_CAP,
+    VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
     MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
@@ -1274,7 +1427,8 @@ export function createGame(options = {}) {
 }
 
 export const Core = {
-  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER,
+  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HEROES_PER_WAVE_CAP,
+  VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
   MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,

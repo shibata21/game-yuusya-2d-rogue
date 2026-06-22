@@ -219,6 +219,46 @@ describe("ゲームルール", () => {
     expect(G.grid[r][c].evoStage).toBe(1);
   });
 
+  it("ウェーブ開始では鉱脈を補充せず、時間経過で自然発生する", () => {
+    const before = G.grid.flat().filter((t) => t.sub).length;
+    G.startWave();
+    expect(G.grid.flat().filter((t) => t.sub)).toHaveLength(before);
+
+    carveAll();
+    G.grid[5][5] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
+    G.setRandom(() => 0);
+    expect(G.updateVeinSpawning(G.VEIN_SPAWN_TICK)).toBe(1);
+    expect(G.grid[5][5].sub).toBe("moss");
+  });
+
+  it("魔素の高い土壌ほど鉱脈が自然発生しやすい", () => {
+    expect(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 7 })).toBeGreaterThan(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 0 }));
+    expect(G.veinSpawnChance({ t: "tunnel", sub: null, soilMana: 7 })).toBe(0);
+    expect(G.veinSpawnChance({ t: "earth", sub: "moss", soilMana: 7 })).toBe(0);
+  });
+
+  it("自然発生する鉱脈は解禁と上限を守る", () => {
+    carveAll();
+    G.wave = 2;
+    G.grid[5][5] = { t: "earth", sub: null, shade: 0, soilMana: 7 };
+    G.setRandom(() => 0);
+    G.updateVeinSpawning(G.VEIN_SPAWN_TICK);
+    expect(["moss", "meat"]).toContain(G.grid[5][5].sub);
+
+    G.resetGame(1);
+    carveAll();
+    let placed = 0;
+    for (let r = 1; r < G.ROWS - 1; r++) for (let c = 1; c < G.COLS - 1; c++) {
+      if (placed >= G.VEIN_CAP) continue;
+      G.grid[r][c] = { t: "earth", sub: "moss", shade: 0 };
+      placed++;
+    }
+    G.grid[14][9] = { t: "earth", sub: null, shade: 0, soilMana: 7 };
+    G.setRandom(() => 0);
+    expect(G.updateVeinSpawning(G.VEIN_SPAWN_TICK)).toBe(0);
+    expect(G.grid[14][9].sub).toBe(null);
+  });
+
   it("掘られない鉱脈は薄くなる時間を経て消滅し、土に戻る", () => {
     carveAll();
     G.waveCountdown = 999999;
@@ -421,6 +461,35 @@ describe("ゲームルール", () => {
     expect(G.heroes[0].hp).toBe(60);
   });
 
+  it("ドラゴンの炎は5マス直線上の勇者全員へ当たる", () => {
+    carveAll();
+    G.spawnMonster("flame", 2, 5);
+    const near = hero("warrior", 4, 5, { hp: 60, atkCd: 999999 });
+    const far = hero("mage", 6, 5, { hp: 60, atkCd: 999999 });
+    const offLine = hero("warrior", 4, 6, { hp: 60, atkCd: 999999 });
+    G.heroes.push(near, far, offLine);
+    G.monsters[0].atkCd = 0;
+    G.update(100);
+    expect(near.hp).toBeLessThan(60);
+    expect(far.hp).toBeLessThan(60);
+    expect(offLine.hp).toBe(60);
+    expect(G.effects.some((e) => e.type === "flameLine")).toBe(true);
+    expect(G.dragonFireCells(G.monsters[0], "e")).toHaveLength(5);
+  });
+
+  it("ドラゴンの炎は壁で止まり、壁の先へ届かない", () => {
+    carveAll();
+    G.spawnMonster("flame", 2, 5);
+    G.grid[5][4].t = "earth";
+    const blocked = hero("warrior", 5, 5, { hp: 60, atkCd: 999999 });
+    G.heroes.push(blocked);
+    G.monsters[0].atkCd = 0;
+    G.monsters[0].moveCd = 999999;
+    G.update(100);
+    expect(blocked.hp).toBe(60);
+    expect(G.dragonFireCells(G.monsters[0], "e")).toEqual([{ col: 3, row: 5 }]);
+  });
+
   it("近接攻撃は非隣接対象に当たらない", () => {
     carveAll();
     G.spawnMonster("slime", 2, 5);
@@ -543,6 +612,12 @@ describe("ゲームルール", () => {
     G.startWave();
     for (let i = 0; i < 20; i++) G.update(G.HERO_STAGGER);
     expect(G.heroes).toHaveLength(G.MAX_HEROES);
+
+    G.resetGame(1);
+    G.wave = 30;
+    G.startWave();
+    expect(G.spawnQueue).toHaveLength(G.HEROES_PER_WAVE_CAP);
+    expect(G.HEROES_PER_WAVE_CAP).toBe(5);
   });
 
   it("勇者が全滅するまで次ウェーブのカウントを止める", () => {
@@ -688,7 +763,12 @@ describe("ゲームルール", () => {
     expect(G.DIG_COST).toBe(1);
     expect(G.START_NUT).toBe(25);
     expect(G.FIRST_GRACE).toBe(27000);
-    expect(G.WAVE_INTERVAL).toBe(29000);
+    expect(G.WAVE_INTERVAL).toBe(18000);
+    expect(G.HEROES_PER_WAVE_CAP).toBe(5);
+    expect(G.VEIN_SPAWN_TICK).toBe(1000);
+    expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0006);
+    expect(G.VEIN_SPAWN_SOIL_WEIGHT).toBeCloseTo(0.45);
+    expect(G.VEIN_SPAWN_BURST_CAP).toBe(2);
     expect(G.VEIN_FADE_START).toBe(120000);
     expect(G.VEIN_DECAY_TIME).toBe(240000);
     expect(KINDS.slime.breedEvery).toBe(14000);

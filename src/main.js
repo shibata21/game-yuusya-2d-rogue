@@ -91,6 +91,7 @@ class MainScene extends Phaser.Scene {
     this.effectSprites = [];
     this.soilGraphics = null;
     this.crackGraphics = null;
+    this.flameGraphics = null;
     this.tapStart = null;
   }
 
@@ -138,6 +139,8 @@ class MainScene extends Phaser.Scene {
     this.soilGraphics.setDepth(15);
     this.crackGraphics = this.add.graphics();
     this.crackGraphics.setDepth(80);
+    this.flameGraphics = this.add.graphics();
+    this.flameGraphics.setDepth(490);
   }
 
   update(_time, delta) {
@@ -290,6 +293,7 @@ class MainScene extends Phaser.Scene {
   }
 
   syncEffects() {
+    this.drawFlameLines();
     const drawable = gameApi.effects.filter((f) => PIXEL_EFFECTS.includes(f.type));
     while (this.effectSprites.length < drawable.length) {
       const sprite = this.add.image(0, 0, "effects", 0);
@@ -321,6 +325,26 @@ class MainScene extends Phaser.Scene {
       if (tint === null) sprite.clearTint();
       else sprite.setTint(tint);
       sprite.setDepth(500 + i);
+    }
+  }
+
+  drawFlameLines() {
+    if (!this.flameGraphics) return;
+    this.flameGraphics.clear();
+    for (const f of gameApi.effects) {
+      if (f.type !== "flameLine") continue;
+      const alpha = Math.max(0, Math.min(1, f.life / f.max));
+      const color = tintFromColor(f.color) || 0xff8a3a;
+      this.flameGraphics.lineStyle(14, color, 0.16 * alpha);
+      this.flameGraphics.lineBetween(f.sx, f.sy, f.tx, f.ty);
+      this.flameGraphics.lineStyle(8, color, 0.32 * alpha);
+      this.flameGraphics.lineBetween(f.sx, f.sy, f.tx, f.ty);
+      this.flameGraphics.lineStyle(3, 0xfff1a6, 0.64 * alpha);
+      this.flameGraphics.lineBetween(f.sx, f.sy, f.tx, f.ty);
+      for (const cell of f.cells || []) {
+        this.flameGraphics.fillStyle(color, 0.18 * alpha);
+        this.flameGraphics.fillCircle(gameApi.cx(cell.col), gameApi.cy(cell.row), 15);
+      }
     }
   }
 }
