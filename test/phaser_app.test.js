@@ -59,7 +59,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v17-soil-evo2");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v18-wave-evo2-entry");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

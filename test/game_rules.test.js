@@ -127,7 +127,7 @@ describe("ゲームルール", () => {
     carveAll();
     const c = 5;
     const r = 5;
-    G.grid[r][c] = { t: "earth", sub: "moss", shade: 0, evo: false, evoStage: 1, evoTouch: 4, evoStageTouch: 7, evoTouching: {} };
+    G.grid[r][c] = { t: "earth", sub: "moss", shade: 0, evo: false, evoStage: 1, evoTouch: 4, evoStageTouch: VEIN.moss.finalTouchNeed - 1, evoTouching: {} };
     G.spawnMonster("slime", c + 1, r);
     G.update(100);
     expect(G.grid[r][c].evoStage).toBe(2);
@@ -154,6 +154,30 @@ describe("ゲームルール", () => {
     expect(VEIN.meat.touchNeed).toBeLessThan(VEIN.venom.touchNeed);
     expect(VEIN.venom.touchNeed).toBeLessThan(VEIN.stone.touchNeed);
     expect(VEIN.stone.touchNeed).toBeLessThan(VEIN.ember.touchNeed);
+  });
+
+  it("第二進化は専用の重い接触数を要求する", () => {
+    expect(VEIN.moss.finalTouchNeed).toBeGreaterThan(VEIN.moss.touchNeed + 4);
+    expect(VEIN.meat.finalTouchNeed).toBeGreaterThan(VEIN.meat.touchNeed + 4);
+    expect(VEIN.venom.finalTouchNeed).toBeGreaterThan(VEIN.venom.touchNeed + 4);
+    expect(VEIN.stone.finalTouchNeed).toBeGreaterThan(VEIN.stone.touchNeed + 4);
+    expect(VEIN.ember.finalTouchNeed).toBeGreaterThan(VEIN.ember.touchNeed + 4);
+
+    carveAll();
+    const c = 5;
+    const r = 5;
+    G.grid[r][c] = { t: "earth", sub: "moss", shade: 0, evo: true, evoStage: 1, evoTouch: 0, evoStageTouch: VEIN.moss.finalTouchNeed - 2, evoTouching: {} };
+    expect(G.veinNextTouchNeed("moss", G.grid[r][c])).toBe(VEIN.moss.finalTouchNeed);
+    G.spawnMonster("slime", c + 1, r);
+    G.update(100);
+    expect(G.grid[r][c].evoStage).toBe(1);
+
+    G.monsters.length = 0;
+    G.grid[r][c].evoStageTouch = VEIN.moss.finalTouchNeed - 1;
+    G.grid[r][c].evoTouching = {};
+    G.spawnMonster("slime", c - 1, r);
+    G.update(100);
+    expect(G.grid[r][c].evoStage).toBe(2);
   });
 
   it("魔物が通った周囲の土壁は7段階まで魔素を帯びる", () => {
@@ -506,6 +530,34 @@ describe("ゲームルール", () => {
     expect(G.heroes).toHaveLength(G.MAX_HEROES);
   });
 
+  it("勇者が全滅するまで次ウェーブのカウントを止める", () => {
+    carveAll();
+    G.wave = 1;
+    G.waveCountdown = 1000;
+    G.heroes.push(hero("warrior", 5, 5));
+    G.update(2000);
+    expect(G.wave).toBe(1);
+    expect(G.waveCountdown).toBe(1000);
+
+    G.heroes.length = 0;
+    G.update(999);
+    expect(G.wave).toBe(1);
+    expect(G.waveCountdown).toBe(1);
+    G.update(1);
+    expect(G.wave).toBe(2);
+    expect(G.spawnQueue.length + G.heroes.length).toBeGreaterThan(0);
+  });
+
+  it("出現待ちが残る間も次の襲来カウントを止める", () => {
+    G.wave = 1;
+    G.waveCountdown = 500;
+    G.spawnQueue.push({ delay: 10000, cls: "warrior" });
+    G.update(1000);
+    expect(G.wave).toBe(1);
+    expect(G.waveCountdown).toBe(500);
+    expect(G.spawnQueue[0].delay).toBe(9000);
+  });
+
   it("後半役職は指定ウェーブまで出現せず、騎士団長は1ウェーブ最大1体", () => {
     const late = new Set(["crossknight", "captain", "saint", "sage"]);
     G.wave = 13;
@@ -539,6 +591,14 @@ describe("ゲームルール", () => {
     expect(s("priest").heal).toBeLessThan(s("saint").heal);
     expect(s("warrior").hp).toBeLessThan(s("ultrawarrior").hp);
     expect(s("crossknight").defense).toBeLessThan(s("captain").defense);
+  });
+
+  it("第二進化種は上位種より主戦闘値が高い", () => {
+    for (const [elite, final] of [["superslime", "crownslime"], ["evolved", "direfang"], ["tarantula", "goldweaver"], ["titan", "goldcore"], ["infernal", "whiteflame"]]) {
+      expect(KINDS[final].hp, final).toBeGreaterThan(KINDS[elite].hp);
+      expect(KINDS[final].atk, final).toBeGreaterThan(KINDS[elite].atk);
+      expect(KINDS[final].rank, final).toBeGreaterThan(KINDS[elite].rank);
+    }
   });
 
   it("防御は勇者への被ダメージを軽減し、低防御職は重く受ける", () => {

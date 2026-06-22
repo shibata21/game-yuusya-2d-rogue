@@ -149,21 +149,20 @@ function drawBedrock() {
 
 function drawSurface() {
   const img = image();
-  rect(img, 0, 0, CELL, CELL, "#1a1320");
-  rect(img, 0, 0, CELL, 16, "#2f2234");
-  rect(img, 0, 16, CELL, 10, "#573724");
-  rect(img, 0, 26, CELL, 22, "#2b1d20");
-  for (let x = 4; x < CELL; x += 8) tri(img, x - 3, 16, x + 3, 16, x, 7, "#6fcf6f", 160);
-  oval(img, 24, 29, 18, 15, "#0a0710", 255);
-  oval(img, 24, 31, 14, 11, "#17101c", 245);
-  rect(img, 10, 28, 28, 16, "#0b0710", 245);
-  line(img, 8, 28, 15, 17, "#6c4a33", 5, 220);
-  line(img, 40, 28, 33, 17, "#6c4a33", 5, 220);
-  line(img, 13, 17, 35, 17, "#7d5538", 5, 220);
-  line(img, 11, 25, 37, 25, "#2a1c24", 2, 190);
-  diamond(img, 17, 20, 2, "#b28a5c", 160);
-  diamond(img, 31, 19, 2, "#8f6c4d", 150);
-  noise(img, 13, ["#7a4b3a", "#221520", "#4b2e33"], 38, 120);
+  rect(img, 0, 0, CELL, CELL, "#141018");
+  rect(img, 0, 0, CELL, 11, "#1f1b24");
+  rect(img, 0, 11, CELL, 37, "#25242b");
+  rect(img, 3, 15, 42, 33, "#17141b");
+  oval(img, 24, 30, 18, 18, "#07060b", 255);
+  rect(img, 10, 27, 28, 20, "#07060b", 255);
+  line(img, 9, 29, 15, 16, "#55515a", 3, 230);
+  line(img, 39, 29, 33, 16, "#55515a", 3, 230);
+  line(img, 15, 16, 33, 16, "#6b6670", 3, 225);
+  line(img, 12, 27, 36, 27, "#201d25", 2, 210);
+  line(img, 10, 45, 38, 45, "#3a3540", 2, 160);
+  diamond(img, 18, 20, 1, "#8a838e", 130);
+  diamond(img, 31, 21, 1, "#7a7480", 120);
+  noise(img, 10, ["#302d35", "#1a171f", "#403b45"], 34, 105);
   return img;
 }
 

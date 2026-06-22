@@ -435,15 +435,25 @@ function updateHud() {
   document.getElementById("scoreNum").textContent = gameApi.score;
   document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
-  const seconds = queue.length ? Math.ceil(Math.max(0, Math.min(...queue.map((s) => s.delay))) / 1000) : Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000);
-  document.getElementById("waveLabel").textContent = queue.length ? "次の勇者まで" : "次の襲来まで";
-  document.getElementById("waveTimer").textContent = `${seconds} 秒`;
+  const activeHeroes = gameApi.heroes.length + queue.length;
+  let waveLabel = "次の襲来まで";
+  let waveTimer = `${Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000)} 秒`;
+  if (gameApi.heroes.length > 0) {
+    waveLabel = "勇者殲滅まで";
+    waveTimer = `あと ${activeHeroes} 体`;
+  } else if (queue.length > 0) {
+    const seconds = Math.ceil(Math.max(0, Math.min(...queue.map((s) => s.delay))) / 1000);
+    waveLabel = "次の勇者まで";
+    waveTimer = `${seconds} 秒`;
+  }
+  document.getElementById("waveLabel").textContent = waveLabel;
+  document.getElementById("waveTimer").textContent = waveTimer;
   document.getElementById("startOverlay").classList.toggle("hidden", gameApi.gameState !== "title");
   document.getElementById("deadOverlay").classList.toggle("hidden", gameApi.gameState !== "dead");
   document.getElementById("deadWave").textContent = gameApi.wave;
   document.getElementById("deadKills").textContent = gameApi.kills;
   document.getElementById("deadScore").textContent = gameApi.score;
-  document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || queue.length > 0 || gameApi.waveCountdown <= 3000;
+  document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveCountdown <= 3000;
 }
 
 function startGame() {

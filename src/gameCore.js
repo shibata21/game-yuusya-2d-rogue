@@ -51,19 +51,19 @@ export const KINDS = {
   tarantula: { hp: 78, atk: 15, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
   titan: { hp: 220, atk: 13, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "昔は山だったと言い張る。否定すると返事が翌朝まで返ってこない。" },
   infernal: { hp: 150, atk: 28, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.05, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
-  crownslime: { hp: 84, atk: 10, range: 1, moveCd: 500, atkCd: 650, aggro: 2, rank: 3, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
-  direfang: { hp: 132, atk: 22, range: 1, moveCd: 610, atkCd: 640, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, col: "#5f2020", eliteOf: "evolved", evoLevel: 2, name: "裂牙獣", profile: "走るたびに地面へ爪痕を残す。本人は道しるべのつもりらしい。" },
-  goldweaver: { hp: 112, atk: 21, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 6, breedEvery: 0, breedCap: 1, eggChance: 0.08, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
-  goldcore: { hp: 310, atk: 18, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 8, breedEvery: 0, breedCap: 1, eggChance: 0.035, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
-  whiteflame: { hp: 215, atk: 38, range: 1, moveCd: 550, atkCd: 720, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, eggChance: 0.03, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
+  crownslime: { hp: 112, atk: 14, range: 1, moveCd: 500, atkCd: 650, aggro: 2, rank: 4, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
+  direfang: { hp: 178, atk: 30, range: 1, moveCd: 610, atkCd: 640, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, col: "#5f2020", eliteOf: "evolved", evoLevel: 2, name: "裂牙獣", profile: "走るたびに地面へ爪痕を残す。本人は道しるべのつもりらしい。" },
+  goldweaver: { hp: 150, atk: 29, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
+  goldcore: { hp: 430, atk: 25, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.025, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
+  whiteflame: { hp: 300, atk: 52, range: 1, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.02, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
 };
 
 export const VEIN = {
-  moss: { kind: "slime", evoKind: "superslime", finalKind: "crownslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", finalEvoName: "王冠苔脈", touchNeed: 4 },
-  meat: { kind: "carniv", evoKind: "evolved", finalKind: "direfang", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", finalEvoName: "裂牙脈", touchNeed: 7 },
-  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", finalEvoName: "金糸毒脈", touchNeed: 10, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
-  stone: { kind: "golem", evoKind: "titan", finalKind: "goldcore", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", finalEvoName: "金核石脈", touchNeed: 13, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
-  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", finalEvoName: "白炎火脈", touchNeed: 16, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
+  moss: { kind: "slime", evoKind: "superslime", finalKind: "crownslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", finalEvoName: "王冠苔脈", touchNeed: 4, finalTouchNeed: 12 },
+  meat: { kind: "carniv", evoKind: "evolved", finalKind: "direfang", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", finalEvoName: "裂牙脈", touchNeed: 7, finalTouchNeed: 18 },
+  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", finalEvoName: "金糸毒脈", touchNeed: 10, finalTouchNeed: 25, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
+  stone: { kind: "golem", evoKind: "titan", finalKind: "goldcore", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", finalEvoName: "金核石脈", touchNeed: 13, finalTouchNeed: 32, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
+  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", finalEvoName: "白炎火脈", touchNeed: 16, finalTouchNeed: 40, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
 };
 
 export const HERO_CLASSES = {
@@ -81,7 +81,7 @@ export const HERO_CLASSES = {
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v17-soil-evo2";
+export const PIXEL_ASSET_VERSION = "v18-wave-evo2-entry";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -486,7 +486,8 @@ export function createGame(options = {}) {
 
   function veinNextTouchNeed(type, tile) {
     const stage = evoStageOf(tile);
-    const base = veinTouchNeed(type) + (stage >= 1 ? 4 : 0);
+    const vein = VEIN[type] || {};
+    const base = stage >= 1 ? (vein.finalTouchNeed || veinTouchNeed(type) + 4) : veinTouchNeed(type);
     return Math.max(3, base - soilManaEvoBonus(tile));
   }
 
@@ -614,7 +615,7 @@ export function createGame(options = {}) {
   }
 
   function tauntEarly() {
-    if (gameState !== "playing" || spawnQueue.length > 0 || waveCountdown <= 3000) return;
+    if (gameState !== "playing" || spawnQueue.length > 0 || heroes.length > 0 || waveCountdown <= 3000) return;
     waveCountdown = 250;
     toast(ENTRANCE_COL, 0, "襲来", "#ffcf4d");
   }
@@ -1126,8 +1127,10 @@ export function createGame(options = {}) {
 
   function update(dt) {
     if (gameState !== "playing") return;
-    waveCountdown -= dt;
-    if (spawnQueue.length === 0 && waveCountdown <= 0) startWave();
+    if (spawnQueue.length === 0 && heroes.length === 0) {
+      waveCountdown -= dt;
+      if (waveCountdown <= 0) startWave();
+    }
     for (let i = spawnQueue.length - 1; i >= 0; i--) {
       spawnQueue[i].delay -= dt;
       if (spawnQueue[i].delay <= 0) {

@@ -186,8 +186,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v17-soil-evo2");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v17-soil-evo2");
+    expect(PIXEL_ASSET_VERSION).toBe("v18-wave-evo2-entry");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v18-wave-evo2-entry");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -243,12 +243,14 @@ describe("ピクセル素材", () => {
     }
   });
 
-  it("入口タイルは洞窟穴として読める暗い開口部を持つ", () => {
+  it("入口タイルはシンプルな石造りの暗い開口部を持つ", () => {
     const surface = tileCrop("surface");
-    const darkOpening = pixelsIn(surface, (x, y, r, g, b) => x >= 10 && x <= 38 && y >= 24 && y <= 43 && r < 35 && g < 30 && b < 40);
-    const brightRim = pixelsIn(surface, (x, y, r, g, b) => y >= 14 && y <= 29 && r > 85 && g > 45 && b > 25);
-    expect(darkOpening).toBeGreaterThan(260);
-    expect(brightRim).toBeGreaterThan(70);
+    const darkOpening = pixelsIn(surface, (x, y, r, g, b) => x >= 10 && x <= 38 && y >= 24 && y <= 45 && r < 25 && g < 25 && b < 32);
+    const stoneRim = pixelsIn(surface, (x, y, r, g, b) => x >= 8 && x <= 40 && y >= 14 && y <= 31 && r >= 70 && r <= 130 && Math.abs(r - g) < 16 && Math.abs(g - b) < 20);
+    const greenDecor = pixelsIn(surface, (_x, _y, r, g, b) => g > 145 && g > r + 35 && g > b + 20);
+    expect(darkOpening).toBeGreaterThan(360);
+    expect(stoneRim).toBeGreaterThan(36);
+    expect(greenDecor).toBeLessThan(8);
   });
 
   it("蜘蛛とゴーレムは判別しやすいシルエットを持つ", () => {
