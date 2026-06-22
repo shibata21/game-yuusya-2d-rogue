@@ -160,6 +160,7 @@ export function createGame(options = {}) {
   let wave = 0;
   let score = 0;
   let kills = 0;
+  let playerDigCount = 0;
   let waveCountdown = FIRST_GRACE;
   let veinSpawnTimer = 0;
   let idc = 0;
@@ -495,20 +496,25 @@ export function createGame(options = {}) {
     effects.push({ type: "bite", sx, sy, tx, ty, x: tx, y: ty, color, life: 260, max: 260 });
   }
 
-  function tryDig(col, row) {
-    if (gameState !== "playing" || !inBounds(col, row)) return;
+  function isDigTarget(col, row) {
+    if (!inBounds(col, row)) return false;
     const tile = grid[row][col];
-    if (tile.t === "bedrock" || tile.t !== "earth") return;
-    let touch = false;
+    if (!tile || tile.t !== "earth") return false;
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nc = col + dc;
       const nr = row + dr;
-      if (inBounds(nc, nr) && OPEN.has(grid[nr][nc].t)) {
-        touch = true;
-        break;
-      }
+      if (inBounds(nc, nr) && OPEN.has(grid[nr][nc].t)) return true;
     }
-    if (!touch) return;
+    return false;
+  }
+
+  function isDiggable(col, row) {
+    return gameState === "playing" && isDigTarget(col, row) && nutrients >= digCost(row);
+  }
+
+  function tryDig(col, row) {
+    if (gameState !== "playing" || !isDigTarget(col, row)) return;
+    const tile = grid[row][col];
     const cost = digCost(row);
     if (nutrients < cost) {
       toast(col, row, "不足", "#ffb84d");
@@ -532,6 +538,7 @@ export function createGame(options = {}) {
       tile.t = "tunnel";
       clearVein(tile, true);
     }
+    playerDigCount++;
     effects.push({ type: "dig", x: cx(col), y: cy(row), life: 340, max: 340 });
   }
 
@@ -1498,6 +1505,7 @@ export function createGame(options = {}) {
     wave = 0;
     score = 0;
     kills = 0;
+    playerDigCount = 0;
     waveCountdown = FIRST_GRACE;
     veinSpawnTimer = 0;
     idc = 0;
@@ -1583,12 +1591,13 @@ export function createGame(options = {}) {
     set nutrients(v) { nutrients = v; },
     get score() { return score; },
     get kills() { return kills; },
+    get playerDigCount() { return playerDigCount; },
     get waveCountdown() { return waveCountdown; },
     set waveCountdown(v) { waveCountdown = v; },
     get gameState() { return gameState; },
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, startWave, tauntEarly,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, hasLOS, dragonFireCells, occupied, actorOccupied,

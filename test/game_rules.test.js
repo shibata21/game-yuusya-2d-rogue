@@ -68,6 +68,8 @@ describe("ゲームルール", () => {
     expect(G.grid[G.CORE_ROW][G.CORE_COL].t).toBe("core");
     expect(G.isMonsterForbiddenCell(G.CORE_COL, G.CORE_ROW)).toBe(true);
     expect(G.nutrients).toBe(G.START_NUT);
+    expect(G.playerDigCount).toBe(0);
+    expect(G.isDiggable(G.ENTRANCE_COL, 3)).toBe(true);
     expect(G.grid.flat().filter((t) => t.sub === "moss")).toHaveLength(8);
     expect(G.grid.flat().filter((t) => t.sub === "meat")).toHaveLength(3);
   });
@@ -101,11 +103,14 @@ describe("ゲームルール", () => {
   it("鉱脈を掘ると魔物が出て固定コストを消費する", () => {
     G.grid[3][G.ENTRANCE_COL] = { t: "earth", sub: "moss", shade: 0, evo: false };
     G.grid[2][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+    expect(G.isDiggable(G.ENTRANCE_COL, 3)).toBe(true);
     G.tryDig(G.ENTRANCE_COL, 3);
     expect(G.grid[3][G.ENTRANCE_COL].t).toBe("tunnel");
     expect(G.monsters).toHaveLength(1);
     expect(G.monsters[0].kind).toBe("slime");
     expect(G.nutrients).toBe(G.START_NUT - G.DIG_COST);
+    expect(G.playerDigCount).toBe(1);
+    expect(G.isDiggable(G.ENTRANCE_COL, 3)).toBe(false);
   });
 
   it("上位鉱脈から上位種が出る", () => {

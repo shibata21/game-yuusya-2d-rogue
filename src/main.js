@@ -179,8 +179,29 @@ class MainScene extends Phaser.Scene {
         }
         this.drawSoilMana(c, r, tile);
         this.drawEntryZone(c, r);
+        this.drawInitialDigHint(c, r);
       }
     }
+  }
+
+  drawInitialDigHint(col, row) {
+    if (!this.soilGraphics || gameApi.playerDigCount > 0 || gameApi.gameState !== "playing" || !gameApi.isDiggable(col, row)) return;
+    const x = col * TILE;
+    const y = row * TILE;
+    const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 360 + col * 0.7 + row * 0.35);
+    this.soilGraphics.fillStyle(0x9fe8d8, 0.055 + pulse * 0.035);
+    this.soilGraphics.fillRect(x + 4, y + 4, TILE - 8, TILE - 8);
+    this.soilGraphics.lineStyle(1, 0xbff7ea, 0.30 + pulse * 0.16);
+    this.soilGraphics.strokeRect(x + 8, y + 8, TILE - 16, TILE - 16);
+    this.soilGraphics.fillStyle(0xffcf4d, 0.32 + pulse * 0.18);
+    for (const [sx, sy] of [[10, 10], [TILE - 10, 10], [10, TILE - 10], [TILE - 10, TILE - 10]]) {
+      this.soilGraphics.fillRect(x + sx - 2, y + sy, 5, 1);
+      this.soilGraphics.fillRect(x + sx, y + sy - 2, 1, 5);
+    }
+    this.soilGraphics.lineStyle(2, 0xeafcf5, 0.45 + pulse * 0.22);
+    this.soilGraphics.lineBetween(x + TILE - 17, y + TILE - 12, x + TILE - 9, y + TILE - 20);
+    this.soilGraphics.lineStyle(2, 0xffcf4d, 0.42 + pulse * 0.18);
+    this.soilGraphics.lineBetween(x + TILE - 22, y + TILE - 23, x + TILE - 12, y + TILE - 13);
   }
 
   drawEntryZone(col, row) {
