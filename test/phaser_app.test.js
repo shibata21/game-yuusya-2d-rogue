@@ -15,7 +15,7 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('<script type="module" src="/src/main.js"></script>');
     expect(html).toContain('id="codexBtn"');
     expect(html).toContain('id="codexPanel"');
-    expect(html).toContain("迷宮防衛指令");
+    expect(html).not.toContain("迷宮防衛指令");
     expect(html).not.toContain("魔界");
     expect(html).not.toContain("敗 北");
     expect(html).not.toContain("vendor/pixi");

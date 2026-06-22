@@ -23,7 +23,8 @@ export const VEIN_CAP = 44;
 export const VEIN_SPAWN_TICK = 1000;
 export const VEIN_SPAWN_BASE_CHANCE = 0.0006;
 export const VEIN_SPAWN_SOIL_WEIGHT = 0.45;
-export const VEIN_SPAWN_BURST_CAP = 2;
+export const VEIN_SPAWN_SOIL_CHANCES = [0.0006, 0.0010, 0.0018, 0.0032, 0.007, 0.014, 0.026, 0.045];
+export const VEIN_SPAWN_BURST_CAP = 3;
 export const EGG_HATCH = 40000;
 export const EGG_CHECK = 10000;
 export const EGG_CHANCE = 0.20;
@@ -31,7 +32,7 @@ export const EGG_KIND_CAP = 2;
 export const EAT_CHECK = 2600;
 export const EAT_CHANCE_STEP = 0.09;
 export const SOIL_MANA_MAX_STAGE = 7;
-export const SOIL_CHARGE_MOVES = 5;
+export const SOIL_CHARGE_MOVES = 10;
 export const SOIL_MANA_EVO_STEP = 3;
 export const SOIL_MANA_EVO_MAX = 2;
 export const EFFECT_CAP = 90;
@@ -64,11 +65,11 @@ export const KINDS = {
 };
 
 export const VEIN = {
-  moss: { kind: "slime", evoKind: "superslime", finalKind: "crownslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", finalEvoName: "王冠苔脈", touchNeed: 4, finalTouchNeed: 12, spawnWeight: 3.0 },
-  meat: { kind: "carniv", evoKind: "evolved", finalKind: "direfang", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", finalEvoName: "裂牙脈", touchNeed: 7, finalTouchNeed: 18, spawnWeight: 1.6 },
-  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", finalEvoName: "金糸毒脈", touchNeed: 10, finalTouchNeed: 25, spawnWeight: 1.1, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
-  stone: { kind: "golem", evoKind: "titan", finalKind: "goldcore", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", finalEvoName: "金核石脈", touchNeed: 13, finalTouchNeed: 32, spawnWeight: 0.8, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
-  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", finalEvoName: "白炎火脈", touchNeed: 16, finalTouchNeed: 40, spawnWeight: 0.7, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
+  moss: { kind: "slime", evoKind: "superslime", finalKind: "crownslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", finalEvoName: "王冠苔脈", touchNeed: 4, finalTouchNeed: 12, spawnWeight: 3.0, soilAffinity: 0 },
+  meat: { kind: "carniv", evoKind: "evolved", finalKind: "direfang", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", finalEvoName: "裂牙脈", touchNeed: 7, finalTouchNeed: 18, spawnWeight: 1.6, soilAffinity: 1 },
+  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", finalEvoName: "金糸毒脈", touchNeed: 10, finalTouchNeed: 25, spawnWeight: 1.1, soilAffinity: 3, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
+  stone: { kind: "golem", evoKind: "titan", finalKind: "goldcore", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", finalEvoName: "金核石脈", touchNeed: 13, finalTouchNeed: 32, spawnWeight: 0.8, soilAffinity: 5, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
+  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", finalEvoName: "白炎火脈", touchNeed: 16, finalTouchNeed: 40, spawnWeight: 0.7, soilAffinity: 6, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
 };
 
 export const HERO_CLASSES = {
@@ -281,14 +282,26 @@ export function createGame(options = {}) {
     return Object.keys(VEIN).filter((key) => unlocked.has(key) || wave >= VEIN[key].unlock);
   }
 
-  function pickVeinTypeForSpawn() {
+  function veinTypeSpawnWeight(type, tile) {
+    const vein = VEIN[type];
+    if (!vein) return 0;
+    const stage = soilManaOf(tile);
+    const affinity = Math.max(0, Math.min(SOIL_MANA_MAX_STAGE, vein.soilAffinity ?? 0));
+    const distanceFit = Math.max(0.2, 1 - Math.abs(stage - affinity) * 0.12);
+    const growthFit = stage >= affinity
+      ? 1 + affinity * affinity * 0.28 + Math.min(2, stage - affinity) * 0.25
+      : Math.max(0.18, 1 - (affinity - stage) * 0.28);
+    return (vein.spawnWeight || 1) * distanceFit * growthFit;
+  }
+
+  function pickVeinTypeForSpawn(tile = null) {
     const types = availableVeinTypes();
     let total = 0;
-    for (const type of types) total += VEIN[type].spawnWeight || 1;
+    for (const type of types) total += veinTypeSpawnWeight(type, tile);
     if (total <= 0) return null;
     let pick = rnd(0, total);
     for (const type of types) {
-      pick -= VEIN[type].spawnWeight || 1;
+      pick -= veinTypeSpawnWeight(type, tile);
       if (pick <= 0) return type;
     }
     return types[types.length - 1] || null;
@@ -296,23 +309,29 @@ export function createGame(options = {}) {
 
   function veinSpawnChance(tile) {
     if (!tile || tile.t !== "earth" || tile.sub) return 0;
-    return VEIN_SPAWN_BASE_CHANCE * (1 + soilManaOf(tile) * VEIN_SPAWN_SOIL_WEIGHT);
+    const stage = soilManaOf(tile);
+    return VEIN_SPAWN_SOIL_CHANCES[stage] ?? VEIN_SPAWN_SOIL_CHANCES[VEIN_SPAWN_SOIL_CHANCES.length - 1];
   }
 
   function runVeinSpawnTick() {
     if (veinCount() >= VEIN_CAP || availableVeinTypes().length === 0) return 0;
     let spawned = 0;
+    const candidates = [];
     for (let r = 1; r < ROWS - 1; r++) {
       for (let c = 1; c < COLS - 1; c++) {
-        if (spawned >= VEIN_SPAWN_BURST_CAP || veinCount() >= VEIN_CAP) return spawned;
         const tile = grid[r][c];
         if (!canHostVein(c, r, tile)) continue;
         if (random() >= veinSpawnChance(tile)) continue;
-        const type = pickVeinTypeForSpawn();
-        if (!type || !placeVein(tile, type)) continue;
-        spawned++;
-        effects.push({ type: "puff", x: cx(c), y: cy(r), life: 320, max: 320, color: VEIN[type].color });
+        candidates.push({ c, r, tile, soil: soilManaOf(tile) });
       }
+    }
+    candidates.sort((a, b) => b.soil - a.soil || a.r - b.r || a.c - b.c);
+    for (const item of candidates) {
+      if (spawned >= VEIN_SPAWN_BURST_CAP || veinCount() >= VEIN_CAP) return spawned;
+      const type = pickVeinTypeForSpawn(item.tile);
+      if (!type || !placeVein(item.tile, type)) continue;
+      spawned++;
+      effects.push({ type: "puff", x: cx(item.c), y: cy(item.r), life: 320, max: 320, color: VEIN[type].color });
     }
     return spawned;
   }
@@ -364,6 +383,17 @@ export function createGame(options = {}) {
 
   function isElite(kind) {
     return !!(KINDS[kind] && KINDS[kind].eliteOf);
+  }
+
+  function evoLevelOf(kind) {
+    return (KINDS[kind] && KINDS[kind].evoLevel) || 0;
+  }
+
+  function canBeEatenBy(eater, prey) {
+    if (!eater || !prey || !KINDS[eater.kind] || !KINDS[prey.kind]) return false;
+    if (evoLevelOf(prey.kind) >= 2) return false;
+    if (isElite(prey.kind) && !isElite(eater.kind)) return false;
+    return rankOf(eater.kind) > rankOf(prey.kind);
   }
 
   function canLayEgg(kind) {
@@ -598,6 +628,7 @@ export function createGame(options = {}) {
     const r = rankOf(m.kind);
     for (const p of monsters) {
       if (p === m || !canAttackFrom(m.col, m.row, 1, p)) continue;
+      if (!canBeEatenBy(m, p)) continue;
       const gap = r - rankOf(p.kind);
       if (gap <= 0) continue;
       if (!best || gap > bestGap || (gap === bestGap && p.hp < best.hp)) {
@@ -695,9 +726,8 @@ export function createGame(options = {}) {
     e.soilSteps = (e.soilSteps || 0) + 1;
     if (e.soilSteps < SOIL_CHARGE_MOVES) return;
     e.soilSteps = 0;
-    const amount = isElite(e.kind) || rankOf(e.kind) >= 4 ? 2 : 1;
-    chargeSoilAround(fromCol, fromRow, amount);
-    chargeSoilAround(toCol, toRow, amount);
+    chargeSoilAround(fromCol, fromRow, 1);
+    chargeSoilAround(toCol, toRow, 1);
   }
 
   function beginMove(e, col, row, duration = MOVE_ANIM) {
@@ -1411,13 +1441,13 @@ export function createGame(options = {}) {
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
     update, resetGame, startGame, gameOver, tryDig, startWave, tauntEarly,
-    updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
+    updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroStep, openNeighbors, openFreeNeighbors, hasLOS, dragonFireCells, occupied, actorOccupied,
-    countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, canLayEgg, rankOf,
+    countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken,
     KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HEROES_PER_WAVE_CAP,
-    VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_BURST_CAP,
+    VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
     MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
@@ -1428,7 +1458,7 @@ export function createGame(options = {}) {
 
 export const Core = {
   VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HEROES_PER_WAVE_CAP,
-  VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_BURST_CAP,
+  VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
   MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,

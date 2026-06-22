@@ -192,12 +192,22 @@ describe("ゲームルール", () => {
     expect(G.grid[4][5].soilMana).toBe(1);
 
     G.monsters.length = 0;
-    G.grid[4][5].soilMana = 6;
+    G.grid[4][5].soilMana = 5;
     G.spawnMonster("titan", 5, 5);
     const titan = G.monsters[0];
     for (let i = 0; i < G.SOIL_CHARGE_MOVES; i++) {
       G.beginMove(titan, i % 2 === 0 ? 6 : 5, 5);
       titan.moveAnim = 0;
+    }
+    expect(G.grid[4][5].soilMana).toBe(6);
+
+    G.monsters.length = 0;
+    G.grid[4][5].soilMana = 6;
+    G.spawnMonster("slime", 5, 5);
+    const capper = G.monsters[0];
+    for (let i = 0; i < G.SOIL_CHARGE_MOVES; i++) {
+      G.beginMove(capper, i % 2 === 0 ? 6 : 5, 5);
+      capper.moveAnim = 0;
     }
     expect(G.grid[4][5].soilMana).toBe(G.SOIL_MANA_MAX_STAGE);
   });
@@ -232,9 +242,44 @@ describe("ゲームルール", () => {
   });
 
   it("魔素の高い土壌ほど鉱脈が自然発生しやすい", () => {
+    expect(G.VEIN_SPAWN_SOIL_CHANCES).toHaveLength(G.SOIL_MANA_MAX_STAGE + 1);
     expect(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 7 })).toBeGreaterThan(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 0 }));
     expect(G.veinSpawnChance({ t: "tunnel", sub: null, soilMana: 7 })).toBe(0);
     expect(G.veinSpawnChance({ t: "earth", sub: "moss", soilMana: 7 })).toBe(0);
+
+    carveAll();
+    G.grid[5][5] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
+    G.setRandom(() => 0.01);
+    expect(G.updateVeinSpawning(G.VEIN_SPAWN_TICK)).toBe(0);
+
+    G.resetGame(1);
+    carveAll();
+    G.grid[5][5] = { t: "earth", sub: null, shade: 0, soilMana: 5 };
+    G.setRandom(() => 0.01);
+    expect(G.updateVeinSpawning(G.VEIN_SPAWN_TICK)).toBe(1);
+    expect(G.grid[5][5].sub).not.toBe(null);
+  });
+
+  it("魔素の高い土壌ほど強い鉱脈が選ばれやすい", () => {
+    const low = { t: "earth", sub: null, soilMana: 0 };
+    const high = { t: "earth", sub: null, soilMana: 7 };
+    expect(G.veinTypeSpawnWeight("moss", low)).toBeGreaterThan(G.veinTypeSpawnWeight("ember", low));
+    expect(G.veinTypeSpawnWeight("ember", high)).toBeGreaterThan(G.veinTypeSpawnWeight("moss", high));
+    expect(G.veinTypeSpawnWeight("stone", high)).toBeGreaterThan(G.veinTypeSpawnWeight("stone", low));
+  });
+
+  it("自然発生候補は魔素の高い土から優先して鉱脈化する", () => {
+    carveAll();
+    G.grid[5][2] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
+    G.grid[5][3] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
+    G.grid[5][4] = { t: "earth", sub: null, shade: 0, soilMana: 6 };
+    G.grid[5][5] = { t: "earth", sub: null, shade: 0, soilMana: 7 };
+    G.setRandom(() => 0);
+    expect(G.updateVeinSpawning(G.VEIN_SPAWN_TICK)).toBe(G.VEIN_SPAWN_BURST_CAP);
+    expect(G.grid[5][4].sub).not.toBe(null);
+    expect(G.grid[5][5].sub).not.toBe(null);
+    const lowSpawns = [G.grid[5][2], G.grid[5][3]].filter((t) => t.sub).length;
+    expect(lowSpawns).toBe(1);
   });
 
   it("自然発生する鉱脈は解禁と上限を守る", () => {
@@ -435,6 +480,32 @@ describe("ゲームルール", () => {
     expect(eater.hp).toBeGreaterThan(10);
     expect(eater.actionType).toBe("eat");
     expect(G.effects.some((e) => e.type === "bite")).toBe(true);
+  });
+
+  it("通常モンスターは上位モンスターを捕食できない", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.spawnMonster("flame", 5, 5);
+    const eater = G.monsters[0];
+    eater.eatCd = 0;
+    G.spawnMonster("superslime", 5, 6);
+    G.update(100);
+    expect(G.monsters.map((m) => m.kind).sort()).toEqual(["flame", "superslime"]);
+    expect(eater.actionType).not.toBe("eat");
+    expect(G.effects.some((e) => e.type === "bite")).toBe(false);
+  });
+
+  it("第二進化モンスターは捕食されない", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.spawnMonster("evolved", 5, 5);
+    const eater = G.monsters[0];
+    eater.eatCd = 0;
+    G.spawnMonster("crownslime", 5, 6);
+    G.update(100);
+    expect(G.monsters.map((m) => m.kind).sort()).toEqual(["crownslime", "evolved"]);
+    expect(eater.actionType).not.toBe("eat");
+    expect(G.canBeEatenBy(eater, G.monsters.find((m) => m.kind === "crownslime"))).toBe(false);
   });
 
   it("遠距離LOSは壁と斜め壁角で遮断される", () => {
@@ -768,9 +839,11 @@ describe("ゲームルール", () => {
     expect(G.VEIN_SPAWN_TICK).toBe(1000);
     expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0006);
     expect(G.VEIN_SPAWN_SOIL_WEIGHT).toBeCloseTo(0.45);
-    expect(G.VEIN_SPAWN_BURST_CAP).toBe(2);
+    expect(G.VEIN_SPAWN_SOIL_CHANCES[0]).toBeCloseTo(G.VEIN_SPAWN_BASE_CHANCE);
+    expect(G.VEIN_SPAWN_BURST_CAP).toBe(3);
     expect(G.VEIN_FADE_START).toBe(120000);
     expect(G.VEIN_DECAY_TIME).toBe(240000);
+    expect(G.SOIL_CHARGE_MOVES).toBe(10);
     expect(KINDS.slime.breedEvery).toBe(14000);
     expect(G.monsterIncomeRate()).toBeCloseTo(0.045);
   });
