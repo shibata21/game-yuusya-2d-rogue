@@ -223,10 +223,13 @@ describe("ゲームルール", () => {
     carveAll();
     G.waveCountdown = 999999;
     G.grid[5][5] = { t: "earth", sub: "moss", shade: 0, evo: false, age: 0, evoTouch: 0, evoTouching: {} };
-    G.update(G.VEIN_FADE_START + 1);
+    G.update(G.VEIN_FADE_START - 1);
+    expect(G.grid[5][5].sub).toBe("moss");
+    expect(G.grid[5][5].age).toBeLessThan(G.VEIN_FADE_START);
+    G.update(2);
     expect(G.grid[5][5].sub).toBe("moss");
     expect(G.grid[5][5].age).toBeGreaterThan(G.VEIN_FADE_START);
-    G.update(G.VEIN_DECAY_TIME - G.VEIN_FADE_START - 2);
+    G.update(G.VEIN_DECAY_TIME - G.VEIN_FADE_START - 3);
     expect(G.grid[5][5].sub).toBe("moss");
     G.update(2);
     expect(G.grid[5][5].t).toBe("earth");
@@ -285,8 +288,20 @@ describe("ゲームルール", () => {
   it("毒蜘蛛系は中盤の攻撃で瞬殺されない耐久を持つ", () => {
     const mageAtk = G.resolveHeroStats("mage", 5).atk;
     const warriorAtk = G.resolveHeroStats("warrior", 5).atk;
-    expect(KINDS.spitter.hp).toBeGreaterThan(mageAtk);
+    expect(KINDS.spitter.hp).toBeGreaterThan(mageAtk * 2);
     expect(KINDS.tarantula.hp).toBeGreaterThan(warriorAtk * 4);
+  });
+
+  it("蜘蛛以降のモンスターは中強化したステータスを持つ", () => {
+    expect(KINDS.spitter).toMatchObject({ hp: 34, atk: 8 });
+    expect(KINDS.golem).toMatchObject({ hp: 125, atk: 5 });
+    expect(KINDS.flame).toMatchObject({ hp: 84, atk: 18 });
+    expect(KINDS.tarantula).toMatchObject({ hp: 108, atk: 19 });
+    expect(KINDS.titan).toMatchObject({ hp: 285, atk: 16 });
+    expect(KINDS.infernal).toMatchObject({ hp: 195, atk: 34 });
+    expect(KINDS.goldweaver).toMatchObject({ hp: 205, atk: 36 });
+    expect(KINDS.goldcore).toMatchObject({ hp: 540, atk: 31 });
+    expect(KINDS.whiteflame).toMatchObject({ hp: 390, atk: 62 });
   });
 
   it("産卵確率は種別ごとに変わり、強いモンスターほど低い", () => {
@@ -674,6 +689,8 @@ describe("ゲームルール", () => {
     expect(G.START_NUT).toBe(25);
     expect(G.FIRST_GRACE).toBe(27000);
     expect(G.WAVE_INTERVAL).toBe(29000);
+    expect(G.VEIN_FADE_START).toBe(120000);
+    expect(G.VEIN_DECAY_TIME).toBe(240000);
     expect(KINDS.slime.breedEvery).toBe(14000);
     expect(G.monsterIncomeRate()).toBeCloseTo(0.045);
   });

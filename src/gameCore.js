@@ -36,26 +36,26 @@ export const DIG_BREAK = 140;
 export const DIG_CD = 780;
 export const BORN_ANIM = 320;
 export const EVO_TIME = 65000;
-export const VEIN_FADE_START = 45000;
-export const VEIN_DECAY_TIME = 90000;
+export const VEIN_FADE_START = 120000;
+export const VEIN_DECAY_TIME = 240000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 
 export const KINDS = {
   slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68", name: "スライム", profile: "迷宮の湿気が集まると出てくる。本人たちは採用面接に受かったと思っている。" },
   carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣", profile: "首輪はないが飼われている顔をしている。褒められると通路を余計に走る。" },
-  spitter: { hp: 24, atk: 6, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "毒蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
-  golem: { hp: 95, atk: 4, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.14, col: "#6f86c4", name: "ゴーレム", profile: "動き出すまでが長い。動き出してからも長い。本人は慎重派と言っている。" },
-  flame: { hp: 64, atk: 15, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.10, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
+  spitter: { hp: 34, atk: 8, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "毒蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
+  golem: { hp: 125, atk: 5, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.14, col: "#6f86c4", name: "ゴーレム", profile: "動き出すまでが長い。動き出してからも長い。本人は慎重派と言っている。" },
+  flame: { hp: 84, atk: 18, range: 1, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.10, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
   superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 1, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム", profile: "ぷるぷる界の御曹司。怒ると少し赤くなるが、照れても同じ色になる。" },
   evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣", profile: "牙の手入れにうるさい。鏡がないので、水たまりの前でよく止まる。" },
-  tarantula: { hp: 78, atk: 15, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
-  titan: { hp: 220, atk: 13, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "昔は山だったと言い張る。否定すると返事が翌朝まで返ってこない。" },
-  infernal: { hp: 150, atk: 28, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.05, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
+  tarantula: { hp: 108, atk: 19, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
+  titan: { hp: 285, atk: 16, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "昔は山だったと言い張る。否定すると返事が翌朝まで返ってこない。" },
+  infernal: { hp: 195, atk: 34, range: 1, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.05, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
   crownslime: { hp: 112, atk: 14, range: 1, moveCd: 500, atkCd: 650, aggro: 2, rank: 4, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
   direfang: { hp: 178, atk: 30, range: 1, moveCd: 610, atkCd: 640, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, col: "#5f2020", eliteOf: "evolved", evoLevel: 2, name: "裂牙獣", profile: "走るたびに地面へ爪痕を残す。本人は道しるべのつもりらしい。" },
-  goldweaver: { hp: 150, atk: 29, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
-  goldcore: { hp: 430, atk: 25, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.025, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
-  whiteflame: { hp: 300, atk: 52, range: 1, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.02, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
+  goldweaver: { hp: 205, atk: 36, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
+  goldcore: { hp: 540, atk: 31, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.025, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
+  whiteflame: { hp: 390, atk: 62, range: 1, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.02, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
 };
 
 export const VEIN = {
