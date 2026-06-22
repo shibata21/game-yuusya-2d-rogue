@@ -54,7 +54,15 @@ describe("ゲームルール", () => {
     expect(G.grid).toHaveLength(G.ROWS);
     expect(G.grid[0]).toHaveLength(G.COLS);
     expect(G.grid[0][G.ENTRANCE_COL].t).toBe("surface");
+    for (const c of G.ENTRY_ZONE_COLS) {
+      expect(G.grid[0][c].t).toBe("surface");
+      expect(G.grid[1][c].t).toBe("tunnel");
+      expect(G.isHeroEntryZone(c, 0)).toBe(true);
+      expect(G.isHeroEntryZone(c, 1)).toBe(true);
+      expect(G.isMonsterForbiddenCell(c, 1)).toBe(true);
+    }
     expect(G.grid[G.CORE_ROW][G.CORE_COL].t).toBe("core");
+    expect(G.isMonsterForbiddenCell(G.CORE_COL, G.CORE_ROW)).toBe(true);
     expect(G.nutrients).toBe(G.START_NUT);
     expect(G.grid.flat().filter((t) => t.sub === "moss")).toHaveLength(8);
     expect(G.grid.flat().filter((t) => t.sub === "meat")).toHaveLength(3);
@@ -157,11 +165,11 @@ describe("ゲームルール", () => {
   });
 
   it("第二進化は専用の重い接触数を要求する", () => {
-    expect(VEIN.moss.finalTouchNeed).toBeGreaterThan(VEIN.moss.touchNeed + 4);
-    expect(VEIN.meat.finalTouchNeed).toBeGreaterThan(VEIN.meat.touchNeed + 4);
-    expect(VEIN.venom.finalTouchNeed).toBeGreaterThan(VEIN.venom.touchNeed + 4);
-    expect(VEIN.stone.finalTouchNeed).toBeGreaterThan(VEIN.stone.touchNeed + 4);
-    expect(VEIN.ember.finalTouchNeed).toBeGreaterThan(VEIN.ember.touchNeed + 4);
+    expect(VEIN.moss.finalTouchNeed).toBe(14);
+    expect(VEIN.meat.finalTouchNeed).toBe(22);
+    expect(VEIN.venom.finalTouchNeed).toBe(34);
+    expect(VEIN.stone.finalTouchNeed).toBe(50);
+    expect(VEIN.ember.finalTouchNeed).toBe(70);
 
     carveAll();
     const c = 5;
@@ -380,17 +388,23 @@ describe("ゲームルール", () => {
   it("蜘蛛以降のモンスターは中強化したステータスを持つ", () => {
     expect(KINDS.spitter).toMatchObject({ hp: 34, atk: 8 });
     expect(KINDS.golem).toMatchObject({ hp: 125, atk: 5 });
-    expect(KINDS.flame).toMatchObject({ hp: 84, atk: 18 });
+    expect(KINDS.flame).toMatchObject({ hp: 84, atk: 18, range: 3 });
     expect(KINDS.tarantula).toMatchObject({ hp: 108, atk: 19 });
     expect(KINDS.titan).toMatchObject({ hp: 285, atk: 16 });
-    expect(KINDS.infernal).toMatchObject({ hp: 195, atk: 34 });
+    expect(KINDS.infernal).toMatchObject({ hp: 195, atk: 34, range: 3 });
     expect(KINDS.goldweaver).toMatchObject({ hp: 205, atk: 36 });
     expect(KINDS.goldcore).toMatchObject({ hp: 540, atk: 31 });
-    expect(KINDS.whiteflame).toMatchObject({ hp: 390, atk: 62 });
+    expect(KINDS.whiteflame).toMatchObject({ hp: 390, atk: 62, range: 3 });
   });
 
   it("産卵確率は種別ごとに変わり、強いモンスターほど低い", () => {
     expect(KINDS.spitter.eggChance).toBeGreaterThan(KINDS.titan.eggChance);
+    expect(KINDS.golem.eggChance).toBeCloseTo(0.08);
+    expect(KINDS.titan.eggChance).toBeCloseTo(0.035);
+    expect(KINDS.goldcore.eggChance).toBeCloseTo(0.012);
+    expect(KINDS.flame.eggChance).toBeCloseTo(0.055);
+    expect(KINDS.infernal.eggChance).toBeCloseTo(0.025);
+    expect(KINDS.whiteflame.eggChance).toBeCloseTo(0.01);
     carveAll();
     G.setRandom(() => 0.19);
     G.spawnMonster("spitter", 5, 5);
@@ -401,7 +415,7 @@ describe("ゲームルール", () => {
 
     G.resetGame(1);
     carveAll();
-    G.setRandom(() => 0.07);
+    G.setRandom(() => 0.04);
     G.spawnMonster("titan", 5, 5);
     G.monsters[0].eggCd = 0;
     G.update(100);
@@ -409,7 +423,7 @@ describe("ゲームルール", () => {
 
     G.resetGame(1);
     carveAll();
-    G.setRandom(() => 0.059);
+    G.setRandom(() => 0.034);
     G.spawnMonster("titan", 5, 5);
     G.monsters[0].eggCd = 0;
     G.update(100);
@@ -532,20 +546,47 @@ describe("ゲームルール", () => {
     expect(G.heroes[0].hp).toBe(60);
   });
 
-  it("ドラゴンの炎は5マス直線上の勇者全員へ当たる", () => {
+  it("飛び道具を受けても勇者の移動待ちは増えない", () => {
+    carveAll();
+    G.spawnMonster("spitter", 2, 5);
+    const h = hero("warrior", 4, 5, { hp: 60, actCd: 1200, atkCd: 999999, moveAnim: 0 });
+    G.heroes.push(h);
+    G.monsters[0].atkCd = 0;
+    G.monsters[0].moveCd = 999999;
+    G.update(100);
+    expect(h.hp).toBeLessThan(60);
+    expect(h.actCd).toBe(1100);
+    expect(h.moveAnim).toBe(0);
+  });
+
+  it("ドラゴンの炎は3マス直線上の勇者全員へ当たる", () => {
     carveAll();
     G.spawnMonster("flame", 2, 5);
     const near = hero("warrior", 4, 5, { hp: 60, atkCd: 999999 });
-    const far = hero("mage", 6, 5, { hp: 60, atkCd: 999999 });
+    const far = hero("mage", 5, 5, { hp: 60, atkCd: 999999 });
+    const outOfRange = hero("warrior", 6, 5, { hp: 60, atkCd: 999999 });
     const offLine = hero("warrior", 4, 6, { hp: 60, atkCd: 999999 });
-    G.heroes.push(near, far, offLine);
+    G.heroes.push(near, far, outOfRange, offLine);
     G.monsters[0].atkCd = 0;
     G.update(100);
     expect(near.hp).toBeLessThan(60);
     expect(far.hp).toBeLessThan(60);
+    expect(outOfRange.hp).toBe(60);
     expect(offLine.hp).toBe(60);
     expect(G.effects.some((e) => e.type === "flameLine")).toBe(true);
-    expect(G.dragonFireCells(G.monsters[0], "e")).toHaveLength(5);
+    expect(G.dragonFireCells(G.monsters[0], "e")).toHaveLength(3);
+  });
+
+  it("ドラゴンの炎は縦横斜め以外へ通常遠距離攻撃しない", () => {
+    carveAll();
+    G.spawnMonster("flame", 2, 5);
+    const offLine = hero("warrior", 3, 3, { hp: 60, atkCd: 999999 });
+    G.heroes.push(offLine);
+    G.monsters[0].atkCd = 0;
+    G.monsters[0].moveCd = 999999;
+    G.update(100);
+    expect(offLine.hp).toBe(60);
+    expect(G.effects.some((e) => e.type === "flameLine" || e.type === "shot")).toBe(false);
   });
 
   it("ドラゴンの炎は壁で止まり、壁の先へ届かない", () => {
@@ -627,14 +668,14 @@ describe("ゲームルール", () => {
     expect(h.hp).toBe(60);
   });
 
-  it("勇者は開いた経路を進みコア上でだけ攻撃する", () => {
+  it("勇者はコアに入らず隣接マスから攻撃する", () => {
     carveAll();
     const h = hero("warrior", G.CORE_COL, 1, { actCd: 0, atk: 7, coreCd: 0 });
     G.heroes.push(h);
     const before = G.coreHP;
     for (let i = 0; i < 80 && G.coreHP === before; i++) G.update(250);
-    expect(h.col).toBe(G.CORE_COL);
-    expect(h.row).toBe(G.CORE_ROW);
+    expect(G.isCoreAttackCell(h.col, h.row)).toBe(true);
+    expect(h.col === G.CORE_COL && h.row === G.CORE_ROW).toBe(false);
     expect(G.coreHP).toBeLessThan(before);
   });
 
@@ -646,6 +687,30 @@ describe("ゲームルール", () => {
     G.monsters[0].moveCd = 0;
     G.update(100);
     expect(G.monsters[0].col === h.col && G.monsters[0].row === h.row).toBe(false);
+  });
+
+  it("魔物は勇者入場地帯とコアマスへ侵入・繁殖できない", () => {
+    carveAll();
+    G.spawnMonster("slime", G.ENTRANCE_COL, 1);
+    G.spawnMonster("slime", G.CORE_COL, G.CORE_ROW);
+    expect(G.monsters).toHaveLength(0);
+
+    G.spawnMonster("slime", G.ENTRANCE_COL, 2);
+    const m = G.monsters[0];
+    G.beginMove(m, G.ENTRANCE_COL, 1);
+    expect(m.col).toBe(G.ENTRANCE_COL);
+    expect(m.row).toBe(2);
+
+    for (const [c, r] of [[4, 2], [6, 2], [5, 3]]) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    m.breedCd = 0;
+    G.update(100);
+    expect(G.monsters).toHaveLength(1);
+
+    expect(G.spawnEgg("spitter", G.ENTRANCE_COL, 1)).toBe(false);
+    expect(G.spawnEgg("spitter", G.CORE_COL, G.CORE_ROW)).toBe(false);
+    G.eggs.push({ kind: "spitter", col: G.CORE_COL, row: G.CORE_ROW, hatchCd: 0, bornAnim: 0 });
+    G.update(100);
+    expect(G.monsters).toHaveLength(1);
   });
 
   it("勇者の壁掘りは一撃で壊れない", () => {
@@ -687,8 +752,24 @@ describe("ゲームルール", () => {
     G.resetGame(1);
     G.wave = 30;
     G.startWave();
-    expect(G.spawnQueue).toHaveLength(G.HEROES_PER_WAVE_CAP);
+    expect(G.spawnQueue).toHaveLength(0);
+    expect(G.heroes).toHaveLength(G.HEROES_PER_WAVE_CAP);
+    expect(new Set(G.heroes.map((h) => `${h.col},${h.row}`)).size).toBe(G.heroes.length);
+    expect(G.heroes.every((h) => G.isHeroEntryZone(h.col, h.row))).toBe(true);
     expect(G.HEROES_PER_WAVE_CAP).toBe(5);
+  });
+
+  it("後半ウェーブほど上位勇者が優先され普通勇者は候補から外れる", () => {
+    G.wave = 30;
+    expect(G.heroClassWeightForWave("warrior", 30)).toBe(0);
+    expect(G.heroClassWeightForWave("tank", 30)).toBe(0);
+    expect(G.heroClassWeightForWave("captain", 30)).toBeGreaterThan(0);
+    for (let i = 0; i < 80; i++) {
+      G.heroes.length = 0;
+      G.spawnQueue.length = 0;
+      G.spawnHero();
+      expect(["warrior", "tank", "mage", "priest"]).not.toContain(G.heroes[0].cls);
+    }
   });
 
   it("勇者が全滅するまで次ウェーブのカウントを止める", () => {
@@ -719,6 +800,19 @@ describe("ゲームルール", () => {
     expect(G.spawnQueue[0].delay).toBe(9000);
   });
 
+  it("出現待ちが残る間は勇者と魔物がお互い攻撃しない", () => {
+    carveAll();
+    G.spawnQueue.push({ delay: 10000, cls: "warrior" });
+    G.spawnMonster("spitter", 2, 5);
+    const m = G.monsters[0];
+    const h = hero("warrior", 4, 5, { hp: 60, atkCd: 0 });
+    G.heroes.push(h);
+    m.atkCd = 0;
+    G.update(100);
+    expect(h.hp).toBe(60);
+    expect(m.hp).toBe(m.maxHp);
+  });
+
   it("後半役職は指定ウェーブまで出現せず、騎士団長は1ウェーブ最大1体", () => {
     const late = new Set(["crossknight", "captain", "saint", "sage"]);
     G.wave = 13;
@@ -737,7 +831,7 @@ describe("ゲームルール", () => {
     G.wave = HERO_CLASSES.captain.unlock - 1;
     G.startWave();
     expect(G.wave).toBe(HERO_CLASSES.captain.unlock);
-    expect(G.spawnQueue.filter((q) => q.cls === "captain")).toHaveLength(1);
+    expect(G.heroes.filter((h) => h.cls === "captain")).toHaveLength(1);
   });
 
   it("同系統の下位勇者は同ウェーブの上位役職を主要数値で越えない", () => {
@@ -834,7 +928,7 @@ describe("ゲームルール", () => {
     expect(G.DIG_COST).toBe(1);
     expect(G.START_NUT).toBe(25);
     expect(G.FIRST_GRACE).toBe(27000);
-    expect(G.WAVE_INTERVAL).toBe(18000);
+    expect(G.WAVE_INTERVAL).toBe(10000);
     expect(G.HEROES_PER_WAVE_CAP).toBe(5);
     expect(G.VEIN_SPAWN_TICK).toBe(1000);
     expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0006);
