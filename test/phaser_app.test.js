@@ -35,6 +35,9 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("DIG_BREAK");
     expect(src).toContain("drawEntryZone");
     expect(src).toContain("drawInitialDigHint");
+    expect(src).toContain("coreShock");
+    expect(src).toContain("healArea");
+    expect(src).toContain("core-alert");
     expect(src).toContain('this.input.on("pointerup"');
     expect(src).toContain("touch: { capture: false }");
     expect(src).toContain("preventDefaultDown: false");
@@ -49,6 +52,7 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain("touch-action: pan-y");
     expect(css).toContain(".codex-card");
     expect(css).toContain(".btn-codex");
+    expect(css).toContain(".core-line.core-alert");
   });
 
   it("ViteビルドはPages配下で読める相対baseを使う", () => {

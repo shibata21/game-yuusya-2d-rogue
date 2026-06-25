@@ -125,6 +125,24 @@ body {
   text-shadow: 0 1px 0 #000;
 }
 
+.core-line.core-alert {
+  animation: core-alert-shake 0.18s steps(2, end) infinite;
+}
+
+.core-line.core-alert .bar {
+  box-shadow: 0 0 0 1px rgba(224, 85, 107, 0.75), 0 0 12px rgba(224, 85, 107, 0.55);
+}
+
+.core-line.core-alert .bar > i {
+  background: linear-gradient(90deg, #ff5a6b, #ffcf4d);
+}
+
+@keyframes core-alert-shake {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+  100% { transform: translateX(-1px); }
+}
+
 .stats {
   display: flex;
   gap: 14px;

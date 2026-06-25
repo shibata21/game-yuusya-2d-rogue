@@ -82,6 +82,15 @@ function tintFromColor(color) {
   return Number.parseInt(color.slice(1), 16);
 }
 
+function effectLevel(type) {
+  let level = 0;
+  for (const f of gameApi.effects) {
+    if (f.type !== type || !f.max) continue;
+    level = Math.max(level, Math.max(0, Math.min(1, f.life / f.max)));
+  }
+  return level;
+}
+
 class MainScene extends Phaser.Scene {
   constructor() {
     super("MainScene");
@@ -164,6 +173,14 @@ class MainScene extends Phaser.Scene {
         sprite.setFrame(idx >= 0 ? idx : 1);
         sprite.setAlpha(1);
         sprite.clearTint();
+        if (tile.t === "core") {
+          const hit = Math.max(effectLevel("corehit"), effectLevel("coreShock"));
+          if (hit > 0) {
+            const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 40);
+            sprite.setTint(pulse > 0.35 ? 0xff4a5f : 0xffcf4d);
+            sprite.setAlpha(0.72 + hit * 0.28);
+          }
+        }
         if (tile.t === "earth" && tile.sub) {
           const veinIdx = PIXEL_TILES.indexOf(tileKey(tile));
           const fade = Math.max(0, Math.min(1, ((tile.age || 0) - VEIN_FADE_START) / (VEIN_DECAY_TIME - VEIN_FADE_START)));
@@ -367,9 +384,25 @@ class MainScene extends Phaser.Scene {
     if (!this.flameGraphics) return;
     this.flameGraphics.clear();
     for (const f of gameApi.effects) {
-      if (f.type !== "flameLine") continue;
       const alpha = Math.max(0, Math.min(1, f.life / f.max));
       const color = tintFromColor(f.color) || 0xff8a3a;
+      if (f.type === "healArea") {
+        const p = 1 - alpha;
+        this.flameGraphics.lineStyle(2, color, 0.34 * alpha);
+        this.flameGraphics.strokeCircle(f.x, f.y, (f.radius || TILE * 2) * (0.72 + p * 0.28));
+        this.flameGraphics.lineStyle(1, 0xffffff, 0.18 * alpha);
+        this.flameGraphics.strokeCircle(f.x, f.y, (f.radius || TILE * 2) * (0.42 + p * 0.18));
+        continue;
+      }
+      if (f.type === "coreShock") {
+        const p = 1 - alpha;
+        this.flameGraphics.lineStyle(5, color, 0.42 * alpha);
+        this.flameGraphics.strokeCircle(f.x, f.y, 12 + p * 74);
+        this.flameGraphics.fillStyle(color, 0.10 * alpha);
+        this.flameGraphics.fillCircle(f.x, f.y, 10 + p * 34);
+        continue;
+      }
+      if (f.type !== "flameLine") continue;
       this.flameGraphics.lineStyle(14, color, 0.16 * alpha);
       this.flameGraphics.lineBetween(f.sx, f.sy, f.tx, f.ty);
       this.flameGraphics.lineStyle(8, color, 0.32 * alpha);
@@ -488,6 +521,8 @@ function updateHud() {
   const ratio = Math.max(0, Math.min(1, gameApi.coreHP / CORE_MAX));
   document.getElementById("coreFill").style.width = `${ratio * 100}%`;
   document.getElementById("coreNum").textContent = `${Math.ceil(gameApi.coreHP)} / ${CORE_MAX}`;
+  const coreLine = document.querySelector(".core-line");
+  if (coreLine) coreLine.classList.toggle("core-alert", effectLevel("corehit") > 0 || effectLevel("coreShock") > 0);
   document.getElementById("nutNum").textContent = Math.floor(gameApi.nutrients);
   document.getElementById("waveNum").textContent = gameApi.wave;
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;

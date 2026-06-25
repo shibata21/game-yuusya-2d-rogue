@@ -459,6 +459,49 @@ describe("ゲームルール", () => {
     expect(G.eggs).toHaveLength(1);
   });
 
+  it("卵は勇者と魔物が通過できる床上オブジェクトになる", () => {
+    carveAll();
+    expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
+    expect(G.occupied(5, 5)).toBe(false);
+    expect(G.eggOccupied(5, 5)).toBe(true);
+    const adventurer = hero("warrior", 5, 4, { actCd: 0, atkCd: 999999 });
+    G.heroes.push(adventurer);
+    G.update(100);
+    expect(adventurer.col).toBe(5);
+    expect(adventurer.row).toBe(5);
+    expect(G.eggs).toHaveLength(1);
+    expect(G.occupied(5, 5)).toBe(true);
+
+    G.heroes.length = 0;
+    G.spawnMonster("carniv", 5, 4);
+    const beast = G.monsters[0];
+    G.heroes.push(hero("warrior", 5, 6, { actCd: 999999, atkCd: 999999 }));
+    beast.moveCd = 0;
+    beast.eatCd = 999999;
+    G.update(100);
+    expect(beast.col).toBe(5);
+    expect(beast.row).toBe(5);
+  });
+
+  it("卵は孵化時に埋まっていれば近くの空き通路へずれ、空きがなければ待つ", () => {
+    carveAll();
+    expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
+    G.spawnMonster("slime", 5, 5);
+    G.update(G.EGG_HATCH);
+    expect(G.eggs).toHaveLength(0);
+    expect(G.monsters.some((m) => m.kind === "spitter" && !(m.col === 5 && m.row === 5))).toBe(true);
+
+    G.resetGame(1);
+    carveAll();
+    expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
+    for (let r = 3; r <= 7; r++) for (let c = 3; c <= 7; c++) {
+      if (Math.abs(c - 5) + Math.abs(r - 5) <= 2) G.spawnMonster("slime", c, r);
+    }
+    G.update(G.EGG_HATCH);
+    expect(G.eggs).toHaveLength(1);
+    expect(G.monsters.some((m) => m.kind === "spitter")).toBe(false);
+  });
+
   it("僧侶は回復アクションで対象方向を向く", () => {
     carveAll();
     const priest = hero("priest", 5, 5, { healCd: 0 });
@@ -470,7 +513,7 @@ describe("ゲームルール", () => {
     expect(warrior.hp).toBeGreaterThan(20);
   });
 
-  it("回復役は絶対HPより負傷割合が大きい仲間を優先する", () => {
+  it("回復役は負傷割合が大きい仲間を向き、範囲内の複数勇者を回復する", () => {
     carveAll();
     const priest = hero("priest", 5, 5, { hp: 100, maxHp: 100, healCd: 0 });
     const badlyWounded = hero("warrior", 6, 5, { hp: 25, maxHp: 100 });
@@ -478,8 +521,9 @@ describe("ゲームルール", () => {
     G.heroes.push(priest, badlyWounded, lowTotalHp);
     G.update(100);
     expect(badlyWounded.hp).toBeGreaterThan(25);
-    expect(lowTotalHp.hp).toBe(20);
+    expect(lowTotalHp.hp).toBeGreaterThan(20);
     expect(priest.faceDir).toBe("e");
+    expect(G.effects.some((e) => e.type === "healArea")).toBe(true);
   });
 
   it("勇者の近接攻撃は本体を突進させず武器だけを振る", () => {
@@ -503,6 +547,18 @@ describe("ゲームルール", () => {
     expect(eater.hp).toBeGreaterThan(10);
     expect(eater.actionType).toBe("eat");
     expect(G.effects.some((e) => e.type === "bite")).toBe(true);
+  });
+
+  it("HP満タンの魔物は下位魔物を捕食しない", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.spawnMonster("carniv", 5, 5);
+    const eater = G.monsters[0];
+    eater.eatCd = 0;
+    G.spawnMonster("slime", 5, 6);
+    G.update(100);
+    expect(G.monsters.map((m) => m.kind).sort()).toEqual(["carniv", "slime"]);
+    expect(eater.actionType).not.toBe("eat");
   });
 
   it("通常モンスターは上位モンスターを捕食できない", () => {
@@ -686,6 +742,8 @@ describe("ゲームルール", () => {
     expect(G.isCoreAttackCell(h.col, h.row)).toBe(true);
     expect(h.col === G.CORE_COL && h.row === G.CORE_ROW).toBe(false);
     expect(G.coreHP).toBeLessThan(before);
+    expect(G.effects.some((e) => e.type === "corehit")).toBe(true);
+    expect(G.effects.some((e) => e.type === "coreShock")).toBe(true);
   });
 
   it("勇者はコア斜め隣接から土壁を掘らずに攻撃する", () => {
@@ -701,6 +759,15 @@ describe("ゲームルール", () => {
     expect(G.grid[G.CORE_ROW][G.CORE_COL - 1].t).toBe("earth");
     expect(G.grid[G.CORE_ROW][G.CORE_COL - 1].dig || 0).toBe(0);
     expect(G.coreHP).toBeLessThan(before);
+  });
+
+  it("コア隣接だけの土はプレイヤー採掘可能にならない", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    G.grid[G.CORE_ROW][G.CORE_COL] = { t: "core", sub: null, shade: 0 };
+    G.grid[G.CORE_ROW][G.CORE_COL - 1] = { t: "earth", sub: null, shade: 0 };
+    expect(G.isDiggable(G.CORE_COL - 1, G.CORE_ROW)).toBe(false);
+    G.grid[G.CORE_ROW - 1][G.CORE_COL - 1] = { t: "tunnel", sub: null, shade: 0 };
+    expect(G.isDiggable(G.CORE_COL - 1, G.CORE_ROW)).toBe(true);
   });
 
   it("魔物は占有中の勇者マスへ移動しない", () => {
@@ -743,14 +810,33 @@ describe("ゲームルール", () => {
     expect(m.moveAnim).toBe(0);
   });
 
+  it("魔物はホームから3マスより遠い接続通路にも通常徘徊で到達できる", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    for (let c = 1; c <= 8; c++) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
+    G.setRandom(() => 0.99);
+    G.spawnMonster("slime", 1, 5);
+    const m = G.monsters[0];
+    m.eatCd = 999999;
+    for (let i = 0; i < 24; i++) {
+      m.moveCd = 0;
+      G.update(260);
+      m.moveAnim = 0;
+      m.px = G.cx(m.col);
+      m.py = G.cy(m.row);
+      if (Math.abs(m.col - m.homeCol) > 3) break;
+    }
+    expect(Math.abs(m.col - m.homeCol)).toBeGreaterThan(3);
+    expect(G.reachableMonsterCells(1, 5).some((cell) => cell.col === 8 && cell.row === 5)).toBe(true);
+  });
+
   it("モンスター同士は同じマスに滞在せず位置交換ですれ違う", () => {
     for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
-    for (const c of [5, 6, 7]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
+    for (const c of [5, 6, 7, 8]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
     G.spawnMonster("carniv", 5, 5);
     G.spawnMonster("slime", 6, 5);
     const hunter = G.monsters[0];
     const blocker = G.monsters[1];
-    G.heroes.push(hero("warrior", 7, 5, { actCd: 999999, atkCd: 999999 }));
+    G.heroes.push(hero("warrior", 8, 5, { actCd: 999999, atkCd: 999999 }));
     hunter.moveCd = 0;
     hunter.eatCd = 999999;
     blocker.moveCd = 999999;
@@ -763,6 +849,25 @@ describe("ゲームルール", () => {
     expect(new Set(G.monsters.map((m) => `${m.col},${m.row}`)).size).toBe(G.monsters.length);
     expect(hunter.moveAnim).toBeGreaterThan(0);
     expect(blocker.moveAnim).toBeGreaterThan(0);
+  });
+
+  it("攻撃射程内の魔物は他魔物との位置交換で攻撃位置を譲らない", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    for (const c of [5, 6, 7]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
+    G.spawnMonster("carniv", 5, 5);
+    G.spawnMonster("slime", 6, 5);
+    const hunter = G.monsters[0];
+    const blocker = G.monsters[1];
+    G.heroes.push(hero("warrior", 7, 5, { actCd: 999999, atkCd: 999999 }));
+    hunter.moveCd = 0;
+    hunter.eatCd = 999999;
+    blocker.moveCd = 999999;
+    blocker.eatCd = 999999;
+    blocker.atkCd = 999999;
+    G.update(100);
+    expect(hunter.col).toBe(5);
+    expect(blocker.col).toBe(6);
+    expect(blocker.actionType).not.toBe("attack");
   });
 
   it("魔物は勇者入場地帯とコアマスへ侵入・繁殖できない", () => {
@@ -901,6 +1006,55 @@ describe("ゲームルール", () => {
     expect(m.hp).toBe(m.maxHp);
   });
 
+  it("全勇者出現後0.5秒は勇者と魔物が移動・攻撃しない", () => {
+    carveAll();
+    G.spawnQueue.push({ delay: 0, cls: "warrior" });
+    G.update(1);
+    expect(G.spawnQueue).toHaveLength(0);
+    expect(G.heroEntryHold).toBe(G.HERO_ENTRY_HOLD);
+    const h = G.heroes[0];
+    Object.assign(h, { col: 5, row: 6, px: G.cx(5), py: G.cy(6), actCd: 0, atkCd: 0, hp: 60, maxHp: 60 });
+    G.spawnMonster("slime", 5, 5);
+    const m = G.monsters[0];
+    m.atkCd = 0;
+    m.moveCd = 0;
+    m.eatCd = 999999;
+    G.update(100);
+    expect(h.hp).toBe(60);
+    expect(m.hp).toBe(m.maxHp);
+    expect(h.col).toBe(5);
+    expect(h.row).toBe(6);
+    expect(m.col).toBe(5);
+    expect(m.row).toBe(5);
+    G.update(G.HERO_ENTRY_HOLD);
+    expect(G.heroEntryHold).toBe(0);
+    G.update(100);
+    expect(h.hp < 60 || m.hp < m.maxHp).toBe(true);
+  });
+
+  it("入口が混雑して卵があっても勇者は入口付近からコア方面へ離脱する", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    G.grid[0][G.ENTRANCE_COL] = { t: "surface", sub: null, shade: 0 };
+    for (const r of G.ENTRY_ZONE_ROWS) for (const c of G.ENTRY_ZONE_COLS) G.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
+    for (let r = 3; r <= G.CORE_ROW; r++) G.grid[r][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+    G.grid[G.CORE_ROW][G.CORE_COL] = { t: "core", sub: null, shade: 0 };
+    expect(G.spawnEgg("spitter", G.ENTRANCE_COL, 3)).toBe(true);
+    for (const [col, row] of [[5, 2], [4, 2], [6, 2], [5, 1], [4, 1], [6, 1]]) {
+      G.heroes.push(hero("warrior", col, row, { actCd: 0, atkCd: 999999 }));
+    }
+    for (let i = 0; i < 12; i++) {
+      for (const h of G.heroes) h.actCd = 0;
+      G.update(120);
+      for (const h of G.heroes) {
+        h.moveAnim = 0;
+        h.px = G.cx(h.col);
+        h.py = G.cy(h.row);
+      }
+    }
+    expect(G.heroes.some((h) => h.row >= 4)).toBe(true);
+    expect(G.eggs).toHaveLength(1);
+  });
+
   it("後半役職は指定ウェーブまで出現せず、騎士団長は1ウェーブ最大1体", () => {
     const late = new Set(["crossknight", "captain", "saint", "sage"]);
     G.wave = 13;
@@ -1018,6 +1172,7 @@ describe("ゲームルール", () => {
     expect(G.START_NUT).toBe(25);
     expect(G.FIRST_GRACE).toBe(27000);
     expect(G.WAVE_INTERVAL).toBe(10000);
+    expect(G.HERO_ENTRY_HOLD).toBe(500);
     expect(G.HEROES_PER_WAVE_CAP).toBe(5);
     expect(G.VEIN_SPAWN_TICK).toBe(1000);
     expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0006);

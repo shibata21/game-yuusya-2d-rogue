@@ -21,6 +21,7 @@ export const HEROES_PER_WAVE_CAP = 5;
 export const WAVE_INTERVAL = 10000;
 export const FIRST_GRACE = 27000;
 export const HERO_STAGGER = 520;
+export const HERO_ENTRY_HOLD = 500;
 export const VEIN_CAP = 44;
 export const VEIN_SPAWN_TICK = 1000;
 export const VEIN_SPAWN_BASE_CHANCE = 0.0006;
@@ -79,11 +80,11 @@ export const HERO_CLASSES = {
   tank: { name: "タンク勇者", role: "tank", rank: 1, hpMul: 2.4, atkMul: 0.55, defense: 55, range: 1, moveMul: 1.55, atkCd: 850, weight: 1.35, unlock: 4, weapon: "greatshield", msg: "タンク勇者が現れた ─ 大楯で迷宮へ迫る", profile: "大楯の裏に予定表を書いている。雨の日は全部にじむ。" },
   mage: { name: "魔法使い", role: "caster", rank: 1, hpMul: 0.55, atkMul: 1.45, defense: -10, range: 3, moveMul: 1.0, atkCd: 900, weight: 1.3, unlock: 5, weapon: "staff", msg: "魔法使いが現れた ─ 遠くから魔物を撃つ", profile: "杖をなくす夢をよく見る。起きてから毎回、杖に謝る。" },
   superwarrior: { name: "スーパー勇者", role: "fighter", rank: 2, hpMul: 1.05, atkMul: 1.25, defense: 4, range: 1, moveMul: 0.96, atkCd: 620, weight: 1.55, unlock: 6, weapon: "spear", msg: "スーパー勇者が現れた ─ 槍の突きが鋭い", profile: "槍を磨く時間が長い。集合に遅れる理由もだいたい槍。" },
-  priest: { name: "僧侶", role: "healer", rank: 1, hpMul: 0.85, atkMul: 0.35, defense: 0, range: 1, moveMul: 1.0, atkCd: 1000, weight: 1.0, unlock: 7, weapon: "rod", heal: true, healCd: 1500, healRange: 2, healMul: 1.0, msg: "僧侶が現れた ─ 仲間を癒やす", profile: "祈りは丁寧だが、会計の割り勘だけ妙に早い。" },
+  priest: { name: "僧侶", role: "healer", rank: 1, hpMul: 1.15, atkMul: 0.35, defense: 8, range: 1, moveMul: 1.0, atkCd: 1000, weight: 1.0, unlock: 7, weapon: "rod", heal: true, areaHeal: true, healCd: 950, healRange: 2, healMul: 1.8, msg: "僧侶が現れた ─ 仲間を癒やす", profile: "祈りは丁寧だが、会計の割り勘だけ妙に早い。" },
   ultrawarrior: { name: "ウルトラ勇者", role: "fighter", rank: 3, hpMul: 1.25, atkMul: 1.38, defense: 18, range: 1, moveMul: 1.08, atkCd: 680, weight: 1.25, unlock: 8, weapon: "sword_shield", msg: "ウルトラ勇者が現れた ─ 剣と盾で押し込む", profile: "育ちのいいエリート。宿の枕が低いと翌日の正義感が少し落ちる。" },
   supermage: { name: "スーパー魔法使い", role: "caster", rank: 2, hpMul: 0.62, atkMul: 1.75, defense: -10, range: 3, moveMul: 1.0, atkCd: 880, weight: 0.75, unlock: 11, weapon: "gem_staff", msg: "スーパー魔法使いが現れた ─ 魔石の飛び道具が強い", profile: "魔石の産地を聞かれると急に早口になる。" },
   crossknight: { name: "十字騎士団", role: "fighter", rank: 4, hpMul: 1.55, atkMul: 1.55, defense: 28, range: 1, moveMul: 1.12, atkCd: 660, weight: 0.85, unlock: 14, weapon: "cross_shield", msg: "十字騎士団が現れた ─ 後半の重装部隊", profile: "規律が厳しい。号令が長すぎて、突撃前に一度休憩が入る。" },
-  saint: { name: "聖女", role: "healer", rank: 2, hpMul: 1.1, atkMul: 0.45, defense: 8, range: 1, moveMul: 1.08, atkCd: 1050, weight: 0.55, unlock: 16, weapon: "saint_rod", heal: true, healCd: 1100, healRange: 3, healMul: 2.25, msg: "聖女が現れた ─ 仲間を大きく癒やす", profile: "微笑むと寄付箱が重くなる。本人は偶然だと言い張っている。" },
+  saint: { name: "聖女", role: "healer", rank: 2, hpMul: 1.45, atkMul: 0.45, defense: 14, range: 1, moveMul: 1.08, atkCd: 1050, weight: 0.55, unlock: 16, weapon: "saint_rod", heal: true, areaHeal: true, healCd: 720, healRange: 3, healMul: 3.3, msg: "聖女が現れた ─ 仲間を大きく癒やす", profile: "微笑むと寄付箱が重くなる。本人は偶然だと言い張っている。" },
   sage: { name: "賢者", role: "caster", rank: 3, hpMul: 0.72, atkMul: 1.95, defense: -8, range: 4, moveMul: 1.05, atkCd: 1050, weight: 0.45, unlock: 18, weapon: "glow_staff", areaAttack: true, areaScale: 0.65, areaMax: 3, msg: "賢者が現れた ─ 光る杖で列を薙ぐ", profile: "知らないことも知っている顔で聞く。沈黙が長いほど怪しい。" },
   captain: { name: "騎士団長", role: "fighter", rank: 5, hpMul: 1.85, atkMul: 1.75, defense: 42, range: 1, moveMul: 1.0, atkCd: 600, weight: 0.35, unlock: 20, weapon: "gold_sword_shield", maxPerWave: 1, msg: "騎士団長が現れた ─ 金色の剣と盾を持つ強敵", profile: "金色装備は自腹らしい。部下には節約をすすめるので微妙な空気になる。" },
 };
@@ -162,6 +163,7 @@ export function createGame(options = {}) {
   let kills = 0;
   let playerDigCount = 0;
   let waveCountdown = FIRST_GRACE;
+  let heroEntryHold = 0;
   let veinSpawnTimer = 0;
   let idc = 0;
   let gameState = "title";
@@ -372,9 +374,7 @@ export function createGame(options = {}) {
   }
 
   function occupied(col, row) {
-    return monsters.some((m) => m.col === col && m.row === row) ||
-      heroes.some((h) => h.col === col && h.row === row) ||
-      eggs.some((e) => e.col === col && e.row === row);
+    return actorOccupied(col, row);
   }
 
   function actorOccupied(col, row) {
@@ -386,13 +386,16 @@ export function createGame(options = {}) {
     return monsters.find((m) => m !== except && m.col === col && m.row === row) || null;
   }
 
-  function heroOrEggOccupied(col, row) {
-    return heroes.some((h) => h.col === col && h.row === row) ||
-      eggs.some((e) => e.col === col && e.row === row);
+  function heroOccupied(col, row) {
+    return heroes.some((h) => h.col === col && h.row === row);
+  }
+
+  function eggOccupied(col, row, except = null) {
+    return eggs.some((e) => e !== except && e.col === col && e.row === row);
   }
 
   function openFreeNeighbors(col, row) {
-    return openNeighbors(col, row).filter((n) => !isMonsterForbiddenCell(n.col, n.row) && !occupied(n.col, n.row));
+    return openNeighbors(col, row).filter((n) => !isMonsterForbiddenCell(n.col, n.row) && !actorOccupied(n.col, n.row));
   }
 
   function countKindNear(kind, col, row, range) {
@@ -503,7 +506,7 @@ export function createGame(options = {}) {
     for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
       const nc = col + dc;
       const nr = row + dr;
-      if (inBounds(nc, nr) && OPEN.has(grid[nr][nc].t)) return true;
+      if (inBounds(nc, nr) && !isCoreCell(nc, nr) && OPEN.has(grid[nr][nc].t)) return true;
     }
     return false;
   }
@@ -557,7 +560,7 @@ export function createGame(options = {}) {
 
   function spawnEgg(kind, col, row) {
     if (monsters.length + eggs.length >= MONSTER_CAP) return false;
-    if (!canLayEgg(kind) || !inBounds(col, row) || isMonsterForbiddenCell(col, row) || !OPEN.has(grid[row][col].t) || occupied(col, row)) return false;
+    if (!canLayEgg(kind) || !inBounds(col, row) || isMonsterForbiddenCell(col, row) || !OPEN.has(grid[row][col].t) || eggOccupied(col, row)) return false;
     eggs.push({ kind, col, row, hatchCd: EGG_HATCH, bornAnim: BORN_ANIM });
     effects.push({ type: "birth", x: cx(col), y: cy(row), life: 380, max: 380, color: KINDS[kind].col });
     return true;
@@ -569,8 +572,34 @@ export function createGame(options = {}) {
 
   function eggSpot(m) {
     const cand = [];
-    for (const n of openNeighbors(m.col, m.row)) if (!isMonsterForbiddenCell(n.col, n.row) && !occupied(n.col, n.row)) cand.push(n);
+    for (const n of openNeighbors(m.col, m.row)) {
+      if (!isMonsterForbiddenCell(n.col, n.row) && !actorOccupied(n.col, n.row) && !eggOccupied(n.col, n.row)) cand.push(n);
+    }
     return cand.length ? cand[ri(0, cand.length - 1)] : null;
+  }
+
+  function hatchSpot(egg) {
+    if (!inBounds(egg.col, egg.row) || isMonsterForbiddenCell(egg.col, egg.row) || !OPEN.has(grid[egg.row][egg.col].t)) return null;
+    const canHatchAt = (col, row) => inBounds(col, row) &&
+      !isMonsterForbiddenCell(col, row) &&
+      OPEN.has(grid[row][col].t) &&
+      !actorOccupied(col, row) &&
+      !eggOccupied(col, row, egg);
+    if (canHatchAt(egg.col, egg.row)) return { col: egg.col, row: egg.row };
+    const seen = new Set([`${egg.col},${egg.row}`]);
+    const q = [{ col: egg.col, row: egg.row, d: 0 }];
+    for (let qi = 0; qi < q.length; qi++) {
+      const cur = q[qi];
+      if (cur.d >= 2) continue;
+      for (const n of openNeighbors(cur.col, cur.row)) {
+        const key = `${n.col},${n.row}`;
+        if (seen.has(key) || isMonsterForbiddenCell(n.col, n.row)) continue;
+        seen.add(key);
+        if (canHatchAt(n.col, n.row)) return n;
+        q.push({ col: n.col, row: n.row, d: cur.d + 1 });
+      }
+    }
+    return null;
   }
 
   function updateEggs(dt) {
@@ -579,11 +608,18 @@ export function createGame(options = {}) {
       e.hatchCd -= dt;
       e.bornAnim = Math.max(0, (e.bornAnim || 0) - dt);
       if (e.hatchCd > 0) continue;
-      if (monsters.length < MONSTER_CAP && !isMonsterForbiddenCell(e.col, e.row) && !actorOccupied(e.col, e.row)) {
-        spawnMonster(e.kind, e.col, e.row);
-        const mo = monsters[monsters.length - 1];
-        if (mo) mo.bornAnim = BORN_ANIM;
+      if (monsters.length >= MONSTER_CAP) {
+        e.hatchCd = 1000;
+        continue;
       }
+      const spot = hatchSpot(e);
+      if (!spot) {
+        e.hatchCd = 250;
+        continue;
+      }
+      spawnMonster(e.kind, spot.col, spot.row);
+      const mo = monsters[monsters.length - 1];
+      if (mo) mo.bornAnim = BORN_ANIM;
       eggs.splice(i, 1);
     }
   }
@@ -671,6 +707,7 @@ export function createGame(options = {}) {
   }
 
   function tryEatLower(m) {
+    if (m.hp >= m.maxHp) return false;
     const found = lowerPreyNear(m);
     if (!found) return false;
     const chance = clamp(EAT_CHANCE_STEP * found.gap, 0.08, 0.55);
@@ -899,7 +936,8 @@ export function createGame(options = {}) {
     if (cardinalDist(a, b) !== 1) return false;
     if (isMonsterForbiddenCell(a.col, a.row) || isMonsterForbiddenCell(b.col, b.row)) return false;
     if (!OPEN.has(grid[a.row][a.col].t) || !OPEN.has(grid[b.row][b.col].t)) return false;
-    if (heroOrEggOccupied(a.col, a.row) || heroOrEggOccupied(b.col, b.row)) return false;
+    if (heroOccupied(a.col, a.row) || heroOccupied(b.col, b.row)) return false;
+    if (monsterHasAttackableHero(a) || monsterHasAttackableHero(b)) return false;
     return true;
   }
 
@@ -971,28 +1009,112 @@ export function createGame(options = {}) {
     return applyMoveCandidate(e, best);
   }
 
-  function wanderHome(m) {
-    if (m.homeCol !== undefined && cheb(m, { col: m.homeCol, row: m.homeRow }) > 3) {
-      moveToward(m, { col: m.homeCol, row: m.homeRow });
-      return;
+  function monsterOpenCell(col, row) {
+    return inBounds(col, row) && !isMonsterForbiddenCell(col, row) && OPEN.has(grid[row][col].t);
+  }
+
+  function reachableMonsterCells(col, row) {
+    if (!monsterOpenCell(col, row)) return [];
+    const out = [];
+    const seen = new Set([`${col},${row}`]);
+    const q = [{ col, row }];
+    for (let qi = 0; qi < q.length; qi++) {
+      const cur = q[qi];
+      out.push(cur);
+      for (const n of openNeighbors(cur.col, cur.row)) {
+        const key = `${n.col},${n.row}`;
+        if (seen.has(key) || !monsterOpenCell(n.col, n.row)) continue;
+        seen.add(key);
+        q.push(n);
+      }
     }
-    const inHomeRange = (n) => m.homeCol === undefined || cheb(n, { col: m.homeCol, row: m.homeRow }) <= 3;
-    const free = openFreeNeighbors(m.col, m.row).filter(inHomeRange);
+    return out;
+  }
+
+  function validWanderTarget(m) {
+    return m.wanderTarget &&
+      monsterOpenCell(m.wanderTarget.col, m.wanderTarget.row) &&
+      reachableMonsterCells(m.col, m.row).some((cell) => cell.col === m.wanderTarget.col && cell.row === m.wanderTarget.row);
+  }
+
+  function chooseWanderTarget(m) {
+    const cells = reachableMonsterCells(m.col, m.row).filter((cell) => cell.col !== m.col || cell.row !== m.row);
+    if (!cells.length) {
+      m.wanderTarget = null;
+      return null;
+    }
+    const target = cells[ri(0, cells.length - 1)];
+    m.wanderTarget = { col: target.col, row: target.row };
+    return m.wanderTarget;
+  }
+
+  function firstMonsterStepToward(m, target) {
+    if (!target || (m.col === target.col && m.row === target.row)) return null;
+    const seen = new Set([`${m.col},${m.row}`]);
+    const prev = new Map();
+    const q = [{ col: m.col, row: m.row }];
+    let found = null;
+    for (let qi = 0; qi < q.length; qi++) {
+      const cur = q[qi];
+      if (cur.col === target.col && cur.row === target.row) {
+        found = cur;
+        break;
+      }
+      for (const n of openNeighbors(cur.col, cur.row)) {
+        const key = `${n.col},${n.row}`;
+        if (seen.has(key) || !monsterOpenCell(n.col, n.row)) continue;
+        seen.add(key);
+        prev.set(key, cur);
+        q.push(n);
+      }
+    }
+    if (!found) return null;
+    let step = found;
+    while (true) {
+      const p = prev.get(`${step.col},${step.row}`);
+      if (!p) return null;
+      if (p.col === m.col && p.row === m.row) return step;
+      step = p;
+    }
+  }
+
+  function applyMonsterStep(m, step) {
+    if (!step) return false;
+    const other = monsterAt(step.col, step.row, m);
+    if (other) return swapMonsters(m, other);
+    if (actorOccupied(step.col, step.row)) return false;
+    beginMove(m, step.col, step.row);
+    return true;
+  }
+
+  function wanderHome(m) {
+    const free = openFreeNeighbors(m.col, m.row);
     const fresh = free.filter((n) => !isPrevCell(m, n));
+    if (free.length && free.every((n) => isPrevCell(m, n)) && random() < 0.58) return;
+    if (!validWanderTarget(m) || (m.wanderTarget.col === m.col && m.wanderTarget.row === m.row)) chooseWanderTarget(m);
+    const step = firstMonsterStepToward(m, m.wanderTarget);
+    if (step) {
+      if (isPrevCell(m, step) && fresh.length && random() < 0.82) {
+        const n = fresh[ri(0, fresh.length - 1)];
+        beginMove(m, n.col, n.row);
+        return;
+      }
+      if (applyMonsterStep(m, step)) return;
+      m.wanderTarget = null;
+    }
     if (fresh.length && random() < 0.82) {
       const n = fresh[ri(0, fresh.length - 1)];
       beginMove(m, n.col, n.row);
       return;
     }
     if (free.length) {
-      if (free.every((n) => isPrevCell(m, n)) && random() < 0.58) return;
       if (random() < 0.82) {
         const n = free[ri(0, free.length - 1)];
         beginMove(m, n.col, n.row);
       }
       return;
     }
-    const swaps = swappableMonsterNeighbors(m).filter(inHomeRange);
+    const swaps = swappableMonsterNeighbors(m);
     if (swaps.length && random() < 0.55) {
       applyMoveCandidate(m, swaps[ri(0, swaps.length - 1)]);
     }
@@ -1108,6 +1230,13 @@ export function createGame(options = {}) {
     return best;
   }
 
+  function monsterHasAttackableHero(m) {
+    if (!m || !monsters.includes(m) || isMoving(m)) return false;
+    const k = KINDS[m.kind];
+    if (!k) return false;
+    return k.lineFire ? !!bestDragonFireAttack(m) : !!bestHeroInRange(m);
+  }
+
   function breatheDragonFire(m, attack, k) {
     const end = attack.cells[attack.cells.length - 1];
     m.atkCd = k.atkCd;
@@ -1155,6 +1284,17 @@ export function createGame(options = {}) {
       }
     }
     return best;
+  }
+
+  function heroHealTargets(h, c) {
+    const targets = [];
+    for (const o of heroes) {
+      if (o.hp >= o.maxHp || cheb(o, h) > c.healRange) continue;
+      if (!hasLOS(h.col, h.row, o.col, o.row)) continue;
+      targets.push(o);
+    }
+    targets.sort((a, b) => hpRatio(a) - hpRatio(b) || (a === h ? 1 : 0) - (b === h ? 1 : 0));
+    return targets;
   }
 
   function hasAdjacentMonster(h) {
@@ -1220,16 +1360,13 @@ export function createGame(options = {}) {
   function heroStep(h) {
     const n = COLS * ROWS;
     const dist = new Float64Array(n);
-    const prev = new Int32Array(n);
     const done = new Uint8Array(n);
     dist.fill(Infinity);
-    prev.fill(-1);
     const idx = (c, r) => r * COLS + c;
-    const s = idx(h.col, h.row);
-    const goals = new Set(coreAttackCells().map((p) => idx(p.col, p.row)));
-    if (!goals.size) return null;
-    let goal = -1;
-    dist[s] = 0;
+    const canPath = (col, row) => inBounds(col, row) && !isCoreCell(col, row) && grid[row][col].t !== "bedrock";
+    const goals = coreAttackCells().filter((p) => canPath(p.col, p.row));
+    if (!goals.length) return null;
+    for (const g of goals) dist[idx(g.col, g.row)] = 0;
     while (true) {
       let u = -1;
       let best = Infinity;
@@ -1238,40 +1375,35 @@ export function createGame(options = {}) {
         u = i;
       }
       if (u < 0) break;
-      if (goals.has(u)) {
-        goal = u;
-        break;
-      }
       done[u] = 1;
       const c = u % COLS;
       const r = (u - c) / COLS;
       for (const [dc, dr] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
         const nc = c + dc;
         const nr = r + dr;
-        if (!inBounds(nc, nr)) continue;
-        if (isCoreCell(nc, nr)) continue;
-        const t = grid[nr][nc].t;
-        if (t === "bedrock") continue;
-        if (OPEN.has(t) && occupied(nc, nr)) continue;
+        if (!canPath(nc, nr)) continue;
         const ni = idx(nc, nr);
-        const nd = dist[u] + (t === "earth" ? 10 : 1);
+        const nd = dist[u] + (grid[r][c].t === "earth" ? 10 : 1);
         if (nd < dist[ni]) {
           dist[ni] = nd;
-          prev[ni] = u;
         }
       }
     }
-    if (goal < 0 || dist[goal] === Infinity) return null;
-    let cur = goal;
-    let step = goal;
-    while (prev[cur] !== -1) {
-      step = cur;
-      cur = prev[cur];
+    let bestStep = null;
+    let bestScore = Infinity;
+    for (const [dc, dr] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+      const col = h.col + dc;
+      const row = h.row + dr;
+      if (!canPath(col, row)) continue;
+      const tile = grid[row][col];
+      if (OPEN.has(tile.t) && actorOccupied(col, row)) continue;
+      const score = dist[idx(col, row)] + (tile.t === "earth" ? 0.2 : 0);
+      if (score < bestScore) {
+        bestScore = score;
+        bestStep = { col, row, tile };
+      }
     }
-    if (cur !== s) return null;
-    const col = step % COLS;
-    const row = (step - col) / COLS;
-    return { col, row, tile: grid[row][col] };
+    return bestStep && bestScore < Infinity ? bestStep : null;
   }
 
   function updateLowerBreeding(dt) {
@@ -1306,11 +1438,10 @@ export function createGame(options = {}) {
     }
   }
 
-  function updateMonsters(dt) {
+  function updateMonsters(dt, entryPaused = false) {
     for (const m of [...monsters]) {
       if (!monsters.includes(m)) continue;
       const k = KINDS[m.kind];
-      const entryPending = spawnQueue.length > 0;
       m.atkCd -= dt;
       m.moveCd -= dt;
       m.eatCd -= dt;
@@ -1318,9 +1449,10 @@ export function createGame(options = {}) {
       m.atkAnim = Math.max(0, (m.atkAnim || 0) - dt);
       m.actionTime = Math.max(0, (m.actionTime || 0) - dt);
       m.bornAnim = Math.max(0, (m.bornAnim || 0) - dt);
+      if (entryPaused) continue;
       if (isMoving(m)) continue;
-      const fireAttack = !entryPending && k.lineFire ? bestDragonFireAttack(m) : null;
-      const heroTarget = !entryPending ? (k.lineFire ? (fireAttack && fireAttack.target) : bestHeroInRange(m)) : null;
+      const fireAttack = k.lineFire ? bestDragonFireAttack(m) : null;
+      const heroTarget = k.lineFire ? (fireAttack && fireAttack.target) : bestHeroInRange(m);
       if (heroTarget) {
         faceToward(m, heroTarget.px, heroTarget.py);
         if (m.atkCd <= 0) {
@@ -1339,25 +1471,24 @@ export function createGame(options = {}) {
         }
         continue;
       }
-      const aggroHero = entryPending ? null : bestHeroWithin(m, k.aggro);
+      const aggroHero = bestHeroWithin(m, k.aggro);
       if (aggroHero) faceToward(m, aggroHero.px, aggroHero.py);
       if (!aggroHero && m.eatCd <= 0) {
         m.eatCd = EAT_CHECK * rnd(0.85, 1.25);
         if (tryEatLower(m)) continue;
       }
       if (m.moveCd <= 0) {
-        if (aggroHero) moveToward(m, aggroHero, { attackRange: k.range, preferLos: k.range > 1, lineFire: !!k.lineFire, homeLimit: 5 });
+        if (aggroHero) moveToward(m, aggroHero, { attackRange: k.range, preferLos: k.range > 1, lineFire: !!k.lineFire });
         else wanderHome(m);
         m.moveCd = k.moveCd + rnd(-80, 120);
       }
     }
   }
 
-  function updateHeroes(dt) {
+  function updateHeroes(dt, entryPaused = false) {
     for (const h of [...heroes]) {
       if (!heroes.includes(h)) continue;
       const c = HERO_CLASSES[h.cls];
-      const entryPending = spawnQueue.length > 0;
       h.atkCd -= dt;
       h.actCd -= dt;
       h.coreCd -= dt;
@@ -1365,15 +1496,20 @@ export function createGame(options = {}) {
       updateVisualPosition(h, dt);
       h.atkAnim = Math.max(0, (h.atkAnim || 0) - dt);
       h.actionTime = Math.max(0, (h.actionTime || 0) - dt);
-      if (entryPending) continue;
+      if (entryPaused) continue;
       if (isMoving(h)) continue;
       if (c.heal && h.healCd <= 0) {
-        const target = heroHealTarget(h, c);
+        const targets = c.areaHeal ? heroHealTargets(h, c) : [];
+        const target = c.areaHeal ? targets[0] : heroHealTarget(h, c);
         if (target) {
           const amount = resolveHeroStats(h.cls, h.wave).heal;
-          target.hp = Math.min(target.maxHp, target.hp + amount);
-          slash(target.px, target.py - 2, "#9effa0");
-          popDmg(target.px, target.py - 10, `+${amount}`, "#9effa0");
+          const healed = c.areaHeal ? targets : [target];
+          effects.push({ type: "healArea", x: h.px, y: h.py, radius: (c.healRange + 0.55) * TILE, color: h.cls === "saint" ? "#fff1a6" : "#9effa0", life: 360, max: 360 });
+          for (const o of healed) {
+            o.hp = Math.min(o.maxHp, o.hp + amount);
+            slash(o.px, o.py - 2, h.cls === "saint" ? "#fff1a6" : "#9effa0");
+            popDmg(o.px, o.py - 10, `+${amount}`, h.cls === "saint" ? "#fff1a6" : "#9effa0");
+          }
           h.healCd = c.healCd;
           setAction(h, "heal", target.px, target.py, ATK_ANIM);
         } else {
@@ -1421,7 +1557,8 @@ export function createGame(options = {}) {
         if (h.coreCd <= 0) {
           coreHP -= h.atk;
           popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `-${h.atk}`, "#e0556b");
-          effects.push({ type: "corehit", x: cx(CORE_COL), y: cy(CORE_ROW), life: 260, max: 260 });
+          effects.push({ type: "corehit", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#e0556b", life: 420, max: 420 });
+          effects.push({ type: "coreShock", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#ff3355", life: 460, max: 460 });
           h.coreCd = 1100;
           setAction(h, "attack", cx(CORE_COL), cy(CORE_ROW), ATK_ANIM);
         }
@@ -1467,25 +1604,34 @@ export function createGame(options = {}) {
       waveCountdown -= dt;
       if (waveCountdown <= 0) startWave();
     }
+    const hadSpawnQueue = spawnQueue.length > 0;
+    let spawnedHero = false;
     for (let i = spawnQueue.length - 1; i >= 0; i--) {
       spawnQueue[i].delay -= dt;
       if (spawnQueue[i].delay <= 0) {
         if (heroes.length < MAX_HEROES && spawnHero(spawnQueue[i].cls)) {
           spawnQueue.splice(i, 1);
+          spawnedHero = true;
         } else {
           spawnQueue[i].delay = 800;
         }
       }
     }
+    const holdStarted = hadSpawnQueue && spawnedHero && spawnQueue.length === 0 && heroes.length > 0;
+    if (holdStarted) heroEntryHold = HERO_ENTRY_HOLD;
+    const entryPaused = spawnQueue.length > 0 || heroEntryHold > 0;
     updateVeinTouchEvolution();
     updateVeinSpawning(dt);
     updateVeinAging(dt);
     updateEggs(dt);
-    updateEliteEggBreeding(dt);
-    updateLowerBreeding(dt);
+    if (!entryPaused) {
+      updateEliteEggBreeding(dt);
+      updateLowerBreeding(dt);
+    }
     nutrients += monsterIncomeRate() * (dt / 1000);
-    updateMonsters(dt);
-    updateHeroes(dt);
+    updateMonsters(dt, entryPaused);
+    updateHeroes(dt, entryPaused);
+    if (heroEntryHold > 0 && !holdStarted) heroEntryHold = Math.max(0, heroEntryHold - dt);
     updateEffects(dt);
     if (coreHP <= 0) {
       coreHP = 0;
@@ -1507,6 +1653,7 @@ export function createGame(options = {}) {
     kills = 0;
     playerDigCount = 0;
     waveCountdown = FIRST_GRACE;
+    heroEntryHold = 0;
     veinSpawnTimer = 0;
     idc = 0;
     unlocked = new Set(Object.keys(VEIN).filter((key) => VEIN[key].unlock <= 1));
@@ -1594,17 +1741,19 @@ export function createGame(options = {}) {
     get playerDigCount() { return playerDigCount; },
     get waveCountdown() { return waveCountdown; },
     set waveCountdown(v) { waveCountdown = v; },
+    get heroEntryHold() { return heroEntryHold; },
+    set heroEntryHold(v) { heroEntryHold = v; },
     get gameState() { return gameState; },
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
     update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
-    pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, hasLOS, dragonFireCells, occupied, actorOccupied,
+    pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
     isHeroEntryZone, isCoreCell, isCoreAttackCell, isMonsterForbiddenCell,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken,
-    KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HEROES_PER_WAVE_CAP,
+    KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, HEROES_PER_WAVE_CAP,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
@@ -1615,7 +1764,7 @@ export function createGame(options = {}) {
 }
 
 export const Core = {
-  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HEROES_PER_WAVE_CAP,
+  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, HEROES_PER_WAVE_CAP,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
