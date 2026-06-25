@@ -41,10 +41,16 @@ let codexOpen = false;
 let codexTab = "monster";
 let selectedPowerId = "fusion";
 let selectedSeasonMode = "summer";
+let startStep = "title";
+let powerNoticeText = "";
+let powerNoticeMs = 0;
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
+const POWER_HOLD_MS = 600;
+const POWER_MOVE_CANCEL = 10;
+const POWER_COLORS = { fusion: 0xc446ff, cicada: 0x9effa0, summer: 0xffcf4d, winter: 0x9fe8ff };
 
 function tileKey(tile) {
   if (tile.t === "earth" && tile.sub) {
@@ -91,6 +97,31 @@ function effectLevel(type) {
   return level;
 }
 
+function powerModeForActivation() {
+  return gameApi.selectedPower === "season" ? selectedSeasonMode : gameApi.selectedPower || selectedPowerId;
+}
+
+function powerColorForMode(mode) {
+  return POWER_COLORS[mode] || POWER_COLORS.fusion;
+}
+
+function setPowerNotice(text, life = 1500) {
+  powerNoticeText = text;
+  powerNoticeMs = life;
+}
+
+function powerUnavailableReason() {
+  const id = gameApi.selectedPower || selectedPowerId;
+  const def = POWER_DEFS[id] || POWER_DEFS.fusion;
+  if (gameApi.gameState !== "playing") return "開始後に使用";
+  if (gameApi.powerState.active > 0) return "発動中";
+  if (gameApi.powerState.cooldown > 0) return "再使用待ち";
+  if (gameApi.nutrients < def.cost) return "栄養不足";
+  if ((id === "fusion" || id === "cicada") && gameApi.monsters.length <= 0) return "魔物なし";
+  if (id === "season" && !["summer", "winter"].includes(selectedSeasonMode)) return "季節未選択";
+  return "";
+}
+
 class MainScene extends Phaser.Scene {
   constructor() {
     super("MainScene");
@@ -101,7 +132,9 @@ class MainScene extends Phaser.Scene {
     this.soilGraphics = null;
     this.crackGraphics = null;
     this.flameGraphics = null;
-    this.tapStart = null;
+    this.powerGraphics = null;
+    this.pressStart = null;
+    this.powerBursts = [];
   }
 
   preload() {
@@ -113,23 +146,37 @@ class MainScene extends Phaser.Scene {
   create() {
     this.cameras.main.setBackgroundColor("#120c1a");
     this.input.on("pointerdown", (pointer) => {
-      this.tapStart = { x: pointer.x, y: pointer.y, time: pointer.event && pointer.event.timeStamp ? pointer.event.timeStamp : this.time.now, moved: false };
+      this.pressStart = {
+        x: pointer.x,
+        y: pointer.y,
+        time: this.time.now,
+        moved: false,
+        ready: false,
+        readyAt: 0,
+      };
     });
     this.input.on("pointermove", (pointer) => {
-      if (!this.tapStart) return;
-      if (Math.hypot(pointer.x - this.tapStart.x, pointer.y - this.tapStart.y) > 10) this.tapStart.moved = true;
+      if (!this.pressStart) return;
+      if (Math.hypot(pointer.x - this.pressStart.x, pointer.y - this.pressStart.y) > POWER_MOVE_CANCEL) this.pressStart.moved = true;
     });
     this.input.on("pointerup", (pointer) => {
-      if (!this.tapStart) return;
-      const start = this.tapStart;
-      this.tapStart = null;
-      const elapsed = (pointer.event && pointer.event.timeStamp ? pointer.event.timeStamp : this.time.now) - start.time;
-      if (codexOpen || gameApi.gameState !== "playing" || start.moved || elapsed > 450) return;
-      if (Math.hypot(pointer.x - start.x, pointer.y - start.y) > 10) return;
+      if (!this.pressStart) return;
+      const start = this.pressStart;
+      this.pressStart = null;
+      const elapsed = this.time.now - start.time;
+      const moved = start.moved || Math.hypot(pointer.x - start.x, pointer.y - start.y) > POWER_MOVE_CANCEL;
+      if (codexOpen || gameApi.gameState !== "playing" || moved) return;
+      if (elapsed >= POWER_HOLD_MS) {
+        this.activateHeldPower(start.x, start.y);
+        return;
+      }
       const col = Math.floor(pointer.x / TILE);
       const row = Math.floor(pointer.y / TILE);
       gameApi.tryDig(col, row);
       updateHud();
+    });
+    this.input.on("pointercancel", () => {
+      this.pressStart = null;
     });
     for (let r = 0; r < ROWS; r++) {
       for (let c = 0; c < COLS; c++) {
@@ -150,15 +197,106 @@ class MainScene extends Phaser.Scene {
     this.crackGraphics.setDepth(80);
     this.flameGraphics = this.add.graphics();
     this.flameGraphics.setDepth(490);
+    this.powerGraphics = this.add.graphics();
+    this.powerGraphics.setDepth(900);
   }
 
   update(_time, delta) {
     if (!codexOpen) gameApi.update(Math.min(delta, 60));
+    this.updatePowerGestures(delta);
     this.syncTiles();
     this.syncCracks();
     this.syncActors();
     this.syncEffects();
+    this.drawPowerGestureEffects();
     updateHud();
+  }
+
+  updatePowerGestures(delta) {
+    if (powerNoticeMs > 0) powerNoticeMs = Math.max(0, powerNoticeMs - delta);
+    for (let i = this.powerBursts.length - 1; i >= 0; i--) {
+      const burst = this.powerBursts[i];
+      burst.life -= delta;
+      if (burst.life <= 0) this.powerBursts.splice(i, 1);
+    }
+    if (!this.pressStart || this.pressStart.moved || gameApi.gameState !== "playing" || codexOpen) return;
+    const elapsed = this.time.now - this.pressStart.time;
+    if (!this.pressStart.ready && elapsed >= POWER_HOLD_MS) {
+      this.pressStart.ready = true;
+      this.pressStart.readyAt = this.time.now;
+      const reason = powerUnavailableReason();
+      if (reason) setPowerNotice(reason, 900);
+      else setPowerNotice("離して発動", 900);
+    }
+  }
+
+  activateHeldPower(x, y) {
+    const reason = powerUnavailableReason();
+    if (reason) {
+      setPowerNotice(reason);
+      updateHud();
+      return false;
+    }
+    const mode = powerModeForActivation();
+    const ok = gameApi.activatePower(gameApi.selectedPower === "season" ? selectedSeasonMode : null);
+    if (!ok) {
+      setPowerNotice("発動不可");
+      updateHud();
+      return false;
+    }
+    this.powerBursts.push({ x, y, mode, color: powerColorForMode(mode), life: 820, max: 820 });
+    setPowerNotice("発動");
+    updateHud();
+    return true;
+  }
+
+  drawPowerGestureEffects() {
+    if (!this.powerGraphics) return;
+    this.powerGraphics.clear();
+    if (this.pressStart && this.pressStart.ready && !this.pressStart.moved && gameApi.gameState === "playing") {
+      const color = powerColorForMode(powerModeForActivation());
+      const age = Math.max(0, this.time.now - this.pressStart.readyAt);
+      for (let i = 0; i < 3; i++) {
+        const p = ((age + i * 220) % 760) / 760;
+        const r = 20 + p * 92;
+        this.powerGraphics.lineStyle(3, color, 0.55 * (1 - p));
+        this.powerGraphics.strokeCircle(this.pressStart.x, this.pressStart.y, r);
+        this.powerGraphics.lineStyle(1, 0xffffff, 0.35 * (1 - p));
+        this.powerGraphics.strokeCircle(this.pressStart.x, this.pressStart.y, r * 0.68);
+      }
+      this.powerGraphics.fillStyle(color, 0.18);
+      this.powerGraphics.fillCircle(this.pressStart.x, this.pressStart.y, 18 + Math.sin(this.time.now / 70) * 3);
+    }
+    for (const burst of this.powerBursts) {
+      const p = 1 - burst.life / burst.max;
+      const alpha = Math.max(0, 1 - p);
+      this.powerGraphics.fillStyle(burst.color, 0.16 * alpha);
+      this.powerGraphics.fillRect(0, 0, W, H);
+      for (let i = 0; i < 5; i++) {
+        const r = 70 + p * (220 + i * 34);
+        this.powerGraphics.lineStyle(i === 0 ? 5 : 2, burst.color, (0.38 - i * 0.045) * alpha);
+        this.powerGraphics.strokeCircle(W / 2, H / 2, r);
+      }
+      this.powerGraphics.lineStyle(2, 0xffffff, 0.26 * alpha);
+      for (let i = 0; i < 18; i++) {
+        const a = i * Math.PI * 2 / 18 + p * 1.5;
+        const inner = 38 + p * 80;
+        const outer = 160 + p * 250;
+        const x1 = W / 2 + Math.cos(a) * inner;
+        const y1 = H / 2 + Math.sin(a) * inner;
+        const x2 = W / 2 + Math.cos(a) * outer;
+        const y2 = H / 2 + Math.sin(a) * outer;
+        this.powerGraphics.lineBetween(x1, y1, x2, y2);
+      }
+      this.powerGraphics.fillStyle(0xffffff, 0.45 * alpha);
+      for (let i = 0; i < 28; i++) {
+        const a = (i * 97 % 360) * Math.PI / 180 + p * 2.2;
+        const r = 30 + ((i * 31) % 220) + p * 180;
+        const x = W / 2 + Math.cos(a) * r;
+        const y = H / 2 + Math.sin(a) * r;
+        this.powerGraphics.fillCircle(x, y, 2 + (i % 3));
+      }
+    }
   }
 
   syncTiles() {
@@ -173,7 +311,7 @@ class MainScene extends Phaser.Scene {
         sprite.setFrame(idx >= 0 ? idx : 1);
         sprite.setAlpha(1);
         sprite.clearTint();
-        if (tile.t === "core") {
+        if (tile.t === "core" && gameApi.coreHP > 0 && gameApi.gameState === "playing") {
           const hit = Math.max(effectLevel("corehit"), effectLevel("coreShock"));
           if (hit > 0) {
             const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 40);
@@ -555,9 +693,9 @@ function updatePowerSelection() {
 function updatePowerHud() {
   const name = document.getElementById("powerName");
   const timer = document.getElementById("powerTimer");
-  const btn = document.getElementById("powerBtn");
+  const hint = document.getElementById("powerHint");
   const season = document.getElementById("seasonMode");
-  if (!name || !timer || !btn) return;
+  if (!name || !timer || !hint) return;
   const id = gameApi.selectedPower || selectedPowerId;
   const def = POWER_DEFS[id] || POWER_DEFS.fusion;
   const state = gameApi.powerState;
@@ -565,12 +703,27 @@ function updatePowerHud() {
   if (state.active > 0) timer.textContent = `発動中 ${Math.ceil(state.active / 1000)}秒`;
   else if (state.cooldown > 0) timer.textContent = `再使用 ${Math.ceil(state.cooldown / 1000)}秒`;
   else timer.textContent = `栄養 ${def.cost}`;
+  if (powerNoticeMs > 0 && powerNoticeText) hint.textContent = powerNoticeText;
+  else if (gameApi.gameState !== "playing") hint.textContent = "開始後に使用";
+  else if (powerUnavailableReason()) hint.textContent = powerUnavailableReason();
+  else hint.textContent = "画面長押しで発動";
   if (season) season.classList.toggle("hidden", id !== "season");
-  btn.disabled = !gameApi.canActivatePower(id === "season" ? selectedSeasonMode : null);
   for (const modeBtn of document.querySelectorAll("[data-season]")) {
     const active = modeBtn.dataset.season === selectedSeasonMode;
     modeBtn.classList.toggle("active", active);
     modeBtn.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+}
+
+function renderStartStep() {
+  const steps = {
+    title: document.getElementById("startTitlePanel"),
+    dialogue: document.getElementById("startDialoguePanel"),
+    power: document.getElementById("startPowerPanel"),
+  };
+  for (const [step, el] of Object.entries(steps)) {
+    if (!el) continue;
+    el.classList.toggle("hidden", step !== startStep);
   }
 }
 
@@ -579,7 +732,7 @@ function updateHud() {
   document.getElementById("coreFill").style.width = `${ratio * 100}%`;
   document.getElementById("coreNum").textContent = `${Math.ceil(gameApi.coreHP)} / ${CORE_MAX}`;
   const coreLine = document.querySelector(".core-line");
-  if (coreLine) coreLine.classList.toggle("core-alert", effectLevel("corehit") > 0 || effectLevel("coreShock") > 0);
+  if (coreLine) coreLine.classList.toggle("core-alert", gameApi.coreHP > 0 && gameApi.gameState === "playing" && (effectLevel("corehit") > 0 || effectLevel("coreShock") > 0));
   document.getElementById("nutNum").textContent = Math.floor(gameApi.nutrients);
   document.getElementById("waveNum").textContent = `${gameApi.wave}/${MAX_WAVE}`;
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
@@ -612,19 +765,38 @@ function updateHud() {
   document.getElementById("clearKills").textContent = gameApi.kills;
   document.getElementById("clearScore").textContent = gameApi.score;
   document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveCountdown <= 3000;
+  renderStartStep();
   updatePowerSelection();
   updatePowerHud();
 }
 
 function startGame() {
   gameApi.startGame(selectedPowerId);
+  powerNoticeText = "";
+  powerNoticeMs = 0;
+  updateHud();
+}
+
+function openStartFlow() {
+  gameApi.gameState = "title";
+  startStep = "title";
+  powerNoticeText = "";
+  powerNoticeMs = 0;
   updateHud();
 }
 
 function boot() {
-  document.getElementById("startBtn").addEventListener("click", startGame);
-  document.getElementById("restartBtn").addEventListener("click", startGame);
-  document.getElementById("clearRestartBtn").addEventListener("click", startGame);
+  document.getElementById("startBtn").addEventListener("click", () => {
+    startStep = "dialogue";
+    updateHud();
+  });
+  document.getElementById("dialogueNextBtn").addEventListener("click", () => {
+    startStep = "power";
+    updateHud();
+  });
+  document.getElementById("powerConfirmBtn").addEventListener("click", startGame);
+  document.getElementById("restartBtn").addEventListener("click", openStartFlow);
+  document.getElementById("clearRestartBtn").addEventListener("click", openStartFlow);
   document.getElementById("codexBtn").addEventListener("click", showCodex);
   document.getElementById("codexBackBtn").addEventListener("click", hideCodex);
   for (const btn of document.querySelectorAll("[data-power]")) {
@@ -640,10 +812,6 @@ function boot() {
       updateHud();
     });
   }
-  document.getElementById("powerBtn").addEventListener("click", () => {
-    gameApi.activatePower(gameApi.selectedPower === "season" ? selectedSeasonMode : null);
-    updateHud();
-  });
   for (const btn of document.querySelectorAll("[data-codex-tab]")) {
     btn.addEventListener("click", () => {
       codexTab = btn.dataset.codexTab;

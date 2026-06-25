@@ -2054,6 +2054,10 @@ export function createGame(options = {}) {
     if (effects.length > EFFECT_CAP) effects.splice(0, effects.length - EFFECT_CAP);
   }
 
+  function clearCoreHitEffects() {
+    effects = effects.filter((f) => f.type !== "corehit" && f.type !== "coreShock");
+  }
+
   function update(dt) {
     if (gameState !== "playing") return;
     updatePowerState(dt);
@@ -2101,6 +2105,7 @@ export function createGame(options = {}) {
     updateEffects(dt);
     if (coreHP <= 0) {
       coreHP = 0;
+      clearCoreHitEffects();
       gameState = "dead";
     }
   }
@@ -2144,6 +2149,7 @@ export function createGame(options = {}) {
   }
 
   function gameOver() {
+    clearCoreHitEffects();
     gameState = "dead";
   }
 
@@ -2235,7 +2241,7 @@ export function createGame(options = {}) {
     get gameState() { return gameState; },
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, clearCoreHitEffects,
     choosePower, canActivatePower, activatePower, hasAmulet, applyAmulet,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,

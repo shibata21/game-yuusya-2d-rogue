@@ -15,6 +15,12 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('<script type="module" src="/src/main.js"></script>');
     expect(html).toContain('id="codexBtn"');
     expect(html).toContain('id="codexPanel"');
+    expect(html).toContain('id="startTitlePanel"');
+    expect(html).toContain('id="startDialoguePanel"');
+    expect(html).toContain('id="startPowerPanel"');
+    expect(html).toContain('id="powerConfirmBtn"');
+    expect(html).toContain("ちからを選択");
+    expect(html).not.toContain('id="powerBtn"');
     expect(html).not.toContain("迷宮防衛指令");
     expect(html).not.toContain("魔界");
     expect(html).not.toContain("敗 北");
@@ -38,7 +44,12 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("coreShock");
     expect(src).toContain("healArea");
     expect(src).toContain("core-alert");
+    expect(src).toContain("POWER_HOLD_MS = 600");
+    expect(src).toContain("activateHeldPower");
+    expect(src).toContain("drawPowerGestureEffects");
     expect(src).toContain('this.input.on("pointerup"');
+    expect(src).toContain('this.input.on("pointercancel"');
+    expect(src).not.toContain('getElementById("powerBtn")');
     expect(src).toContain("touch: { capture: false }");
     expect(src).toContain("preventDefaultDown: false");
     expect(src).toContain("renderCodex");
@@ -53,6 +64,10 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".codex-card");
     expect(css).toContain(".btn-codex");
     expect(css).toContain(".core-line.core-alert");
+    expect(css).toContain(".power-status");
+    expect(css).toContain("demon-squirrel-king.png");
+    expect(css).not.toContain(".btn-power");
+    expect(fs.existsSync(path.join(repoDir, "assets/ui/demon-squirrel-king.png"))).toBe(true);
   });
 
   it("ViteビルドはPages配下で読める相対baseを使う", () => {

@@ -746,6 +746,17 @@ describe("ゲームルール", () => {
     expect(G.effects.some((e) => e.type === "coreShock")).toBe(true);
   });
 
+  it("コアHPが0になったらコア揺れエフェクトを残さない", () => {
+    carveAll();
+    G.coreHP = 1;
+    const h = hero("warrior", G.CORE_COL, G.CORE_ROW - 1, { actCd: 999999, atk: 50, coreCd: 0 });
+    G.heroes.push(h);
+    G.update(100);
+    expect(G.coreHP).toBe(0);
+    expect(G.gameState).toBe("dead");
+    expect(G.effects.some((e) => e.type === "corehit" || e.type === "coreShock")).toBe(false);
+  });
+
   it("冒険者は横の通路が開いていない斜め位置からコアを攻撃しない", () => {
     carveAll();
     const h = hero("warrior", G.CORE_COL - 1, G.CORE_ROW - 1, { actCd: 999999, atk: 7, coreCd: 0 });
