@@ -6,6 +6,7 @@ import {
   exposeGameNamespace,
   pixelAssetUrl,
   pixelActorX,
+  pixelActorFrameIndex,
   COLS,
   ROWS,
   TILE,
@@ -67,12 +68,6 @@ function actorFrame(e, scene) {
   if (e.actionTime > 0) return Math.floor((1 - e.actionTime / (e.actionMax || ATK_ANIM)) * PIXEL_FRAMES) % PIXEL_FRAMES;
   if (e.moveAnim > 0) return Math.floor(scene.time.now / 100 + e.id) % PIXEL_FRAMES;
   return Math.floor(scene.time.now / 260 + e.id) % PIXEL_FRAMES;
-}
-
-function actorFrameIndex(name, action, dir, frame) {
-  const row = PIXEL_ACTORS.indexOf(name);
-  if (row < 0) return 0;
-  return row * (PIXEL_FRAMES * 8 * 6) + Math.floor(pixelActorX(action, dir, frame) / TILE);
 }
 
 function effectFrameIndex(type, life, max) {
@@ -340,7 +335,7 @@ class MainScene extends Phaser.Scene {
       const pose = entry.egg ? { x: 0, y: 0, scale: 1, rot: 0 } : gameApi.actorPose(e);
       const bornScale = e.bornAnim > 0 ? 0.4 + 0.6 * Math.max(0, Math.min(1, 1 - e.bornAnim / BORN_ANIM)) : 1;
       sprite.setVisible(true);
-      sprite.setFrame(actorFrameIndex(name, action, dir, frame));
+      sprite.setFrame(pixelActorFrameIndex(name, action, dir, frame));
       sprite.setPosition((e.px ?? gameApi.cx(e.col)) + pose.x, (e.py ?? gameApi.cy(e.row)) + pose.y + (entry.egg ? 8 : 0));
       sprite.setScale(bornScale * pose.scale);
       sprite.setRotation(pose.rot || 0);
@@ -685,7 +680,7 @@ function boot() {
   });
 }
 
-export { MainScene, boot, gameApi, tileKey, actorFrameIndex, effectFrameIndex };
+export { MainScene, boot, gameApi, tileKey, pixelActorFrameIndex, effectFrameIndex };
 
 if (typeof document !== "undefined") {
   boot();

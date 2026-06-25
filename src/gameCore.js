@@ -158,6 +158,13 @@ export function pixelActorX(action, dir, frame) {
   return ((actionIndex * PIXEL_DIRS.length + dirIndex) * PIXEL_FRAMES + frame) * PIXEL_CELL;
 }
 
+export function pixelActorFrameIndex(name, action, dir, frame) {
+  const row = PIXEL_ACTORS.indexOf(name);
+  if (row < 0) return 0;
+  const framesPerRow = PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length;
+  return row * framesPerRow + Math.floor(pixelActorX(action, dir, frame) / PIXEL_CELL);
+}
+
 function mulberry32(seed) {
   let t = seed >>> 0;
   return function next() {
@@ -2242,7 +2249,7 @@ export function createGame(options = {}) {
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
     MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
     PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
-    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
+    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
@@ -2253,7 +2260,7 @@ export const Core = {
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
   MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
   PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
-  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, heroDigDmg, resolveHeroStats, cx, cy,
+  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, heroDigDmg, resolveHeroStats, cx, cy,
 };
 
 export function exposeGameNamespace(currentGame = null) {

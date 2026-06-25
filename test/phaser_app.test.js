@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { createGame, pixelActorX, PIXEL_ACTIONS, PIXEL_DIRS, PIXEL_FRAMES, PIXEL_CELL } from "../src/gameCore.js";
+import { createGame, pixelActorX, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTORS } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -87,5 +87,18 @@ describe("Phaserアプリ構成", () => {
     const frame = 2;
     const expectedColumn = ((PIXEL_ACTIONS.indexOf(action) * PIXEL_DIRS.length + PIXEL_DIRS.indexOf(dir)) * PIXEL_FRAMES + frame);
     expect(pixelActorX(action, dir, frame)).toBe(expectedColumn * PIXEL_CELL);
+  });
+
+  it("アクターのPhaserフレーム番号はアクション数変更後も正しい行を指す", () => {
+    const framesPerRow = PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length;
+    const adventurerFrame = pixelActorFrameIndex("warrior", "idle", "s", 1);
+    const whiteflameFrame = pixelActorFrameIndex("whiteflame", "idle", "s", 1);
+    expect(Math.floor(adventurerFrame / framesPerRow)).toBe(PIXEL_ACTORS.indexOf("warrior"));
+    expect(Math.floor(whiteflameFrame / framesPerRow)).toBe(PIXEL_ACTORS.indexOf("whiteflame"));
+    expect(adventurerFrame).not.toBe(whiteflameFrame);
+
+    const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
+    expect(src).toContain("pixelActorFrameIndex");
+    expect(src).not.toContain("PIXEL_FRAMES * 8 * 6");
   });
 });
