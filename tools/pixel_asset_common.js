@@ -7,7 +7,7 @@ const { PNG } = require("pngjs");
 const CELL = 48;
 const FRAMES = 4;
 const DIRECTIONS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
-const ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat"];
+const ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat", "dodge"];
 const OUT_DIR = path.join("assets", "pixel");
 const SOURCE_DIR = path.join(OUT_DIR, "source", "v6-self-made");
 
@@ -15,8 +15,9 @@ const ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",
   "superslime", "tarantula", "titan", "infernal",
   "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame",
+  "reaper", "chimera",
   "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain",
-  "priest", "saint", "mage", "supermage", "sage",
+  "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage",
   "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal",
   "egg_goldweaver", "egg_goldcore", "egg_whiteflame",
 ];

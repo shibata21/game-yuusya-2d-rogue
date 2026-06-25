@@ -186,8 +186,8 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v18-wave-evo2-entry");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v18-wave-evo2-entry");
+    expect(PIXEL_ASSET_VERSION).toBe("v19-adventurer-clear15");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v19-adventurer-clear15");
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -226,9 +226,13 @@ describe("ピクセル素材", () => {
     expect(diffRatio(actorCrop("warrior", "attack", "e", 2), actorCrop("superwarrior", "attack", "e", 2))).toBeGreaterThan(0.16);
     expect(diffRatio(actorCrop("tank", "attack", "e", 2), actorCrop("crossknight", "attack", "e", 2))).toBeGreaterThan(0.16);
     expect(diffRatio(actorCrop("mage", "cast", "e", 2), actorCrop("supermage", "cast", "e", 2))).toBeGreaterThan(0.16);
+    expect(diffRatio(actorCrop("max", "idle", "e", 1), actorCrop("max", "attack", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("shon", "idle", "e", 1), actorCrop("shon", "attack", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("hori", "idle", "e", 1), actorCrop("hori", "cast", "e", 2))).toBeGreaterThan(0.18);
+    expect(diffRatio(actorCrop("shon", "idle", "e", 1), actorCrop("shon", "dodge", "e", 2))).toBeGreaterThan(0.12);
   });
 
-  it("下向き勇者の剣は下へ突き出さず体の前で振る", () => {
+  it("下向き冒険者の剣は下へ突き出さず体の前で振る", () => {
     const attack = actorCrop("warrior", "attack", "s", 2);
     expect(brightPixelsIn(attack, (x, y) => x >= 29 && y >= 12 && y <= 32)).toBeGreaterThan(8);
     expect(brightPixelsIn(attack, (x, y) => y >= 36)).toBeLessThan(18);

@@ -204,6 +204,9 @@ function validateHeroActionDiff() {
     tank: "attack",
     crossknight: "attack",
     captain: "attack",
+    max: "attack",
+    shon: "attack",
+    hori: "cast",
     priest: "heal",
     saint: "heal",
     mage: "cast",
@@ -215,7 +218,15 @@ function validateHeroActionDiff() {
     const d = diffRatio(actorFrame(name, "idle", "e", 1), actorFrame(name, action, "e", 2));
     if (d < 0.18) fail(name + " の " + action + " アクション差分が小さすぎます: " + d.toFixed(3));
   }
-  ok("勇者の職業別アクション差分を検査しました");
+  ok("冒険者の職業別アクション差分を検査しました");
+}
+
+function validateDodgeActionDiff() {
+  for (const name of ["max", "shon", "hori"]) {
+    const d = diffRatio(actorFrame(name, "idle", "e", 1), actorFrame(name, "dodge", "e", 2));
+    if (d < 0.12) fail(name + " の dodge アクション差分が小さすぎます: " + d.toFixed(3));
+  }
+  ok("回避アクション差分を検査しました");
 }
 function paletteStats(base, elite) {
   let union = 0, alphaDiff = 0, colorDiff = 0, redDominant = 0, opaque = 0;
@@ -341,6 +352,7 @@ function validateNoLegacyAssetSources() {
   validateNoLegacyAssetSources();
   validateActorDirectionDiff();
   validateHeroActionDiff();
+  validateDodgeActionDiff();
   validateElitePaletteVariants();
   validateEggShapes();
   validateRichVeins();

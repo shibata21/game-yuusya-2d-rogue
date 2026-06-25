@@ -12,12 +12,15 @@ import {
   W,
   H,
   CORE_MAX,
+  MAX_WAVE,
   CORE_COL,
   CORE_ROW,
   ENTRANCE_COL,
   KINDS,
   VEIN,
   HERO_CLASSES,
+  AMULETS,
+  POWER_DEFS,
   PIXEL_ACTORS,
   PIXEL_TILES,
   PIXEL_EFFECTS,
@@ -35,9 +38,11 @@ let gameApi = createGame();
 exposeGameNamespace(gameApi);
 let codexOpen = false;
 let codexTab = "monster";
+let selectedPowerId = "fusion";
+let selectedSeasonMode = "summer";
 
-const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame"];
-const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage"];
+const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
+const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 
 function tileKey(tile) {
@@ -383,6 +388,14 @@ class MainScene extends Phaser.Scene {
   drawFlameLines() {
     if (!this.flameGraphics) return;
     this.flameGraphics.clear();
+    for (const p of gameApi.pickups) {
+      const alpha = Math.max(0, Math.min(1, p.life / p.max));
+      const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 120);
+      this.flameGraphics.fillStyle(0x9effa0, 0.18 + pulse * 0.12);
+      this.flameGraphics.fillCircle(p.x, p.y - 8, 10 + pulse * 3);
+      this.flameGraphics.lineStyle(2, 0xeaffd8, 0.45 * alpha);
+      this.flameGraphics.strokeRect(p.x - 5, p.y - 14, 10, 8);
+    }
     for (const f of gameApi.effects) {
       const alpha = Math.max(0, Math.min(1, f.life / f.max));
       const color = tintFromColor(f.color) || 0xff8a3a;
@@ -403,15 +416,20 @@ class MainScene extends Phaser.Scene {
         continue;
       }
       if (f.type !== "flameLine") continue;
-      this.flameGraphics.lineStyle(14, color, 0.16 * alpha);
-      this.flameGraphics.lineBetween(f.sx, f.sy, f.tx, f.ty);
-      this.flameGraphics.lineStyle(8, color, 0.32 * alpha);
-      this.flameGraphics.lineBetween(f.sx, f.sy, f.tx, f.ty);
-      this.flameGraphics.lineStyle(3, 0xfff1a6, 0.64 * alpha);
-      this.flameGraphics.lineBetween(f.sx, f.sy, f.tx, f.ty);
-      for (const cell of f.cells || []) {
-        this.flameGraphics.fillStyle(color, 0.18 * alpha);
-        this.flameGraphics.fillCircle(gameApi.cx(cell.col), gameApi.cy(cell.row), 15);
+      const p = 1 - alpha;
+      for (let i = 0; i < (f.cells || []).length; i++) {
+        const cell = f.cells[i];
+        const x = gameApi.cx(cell.col) + Math.sin(this.time.now / 80 + i * 1.7) * 3;
+        const y = gameApi.cy(cell.row) + Math.cos(this.time.now / 95 + i) * 2;
+        const r = 18 - p * 5 + (i % 2) * 2;
+        this.flameGraphics.fillStyle(color, 0.22 * alpha);
+        this.flameGraphics.fillCircle(x, y + 6, r);
+        this.flameGraphics.fillStyle(0xfff1a6, 0.46 * alpha);
+        this.flameGraphics.fillTriangle(x - 11, y + 10, x + 11, y + 9, x + Math.sin(this.time.now / 70 + i) * 4, y - 17 - p * 6);
+        this.flameGraphics.fillStyle(0xff5a28, 0.30 * alpha);
+        this.flameGraphics.fillTriangle(x - 15, y + 12, x + 4, y + 13, x - 2, y - 12);
+        this.flameGraphics.fillStyle(0xffcf4d, 0.18 * alpha);
+        this.flameGraphics.fillCircle(x + 9, y - 3, 5 + Math.sin(this.time.now / 60 + i) * 2);
       }
     }
   }
@@ -460,7 +478,7 @@ function statPill(label, value) {
 function monsterCard(kind) {
   const k = KINDS[kind];
   const name = k.name || kind;
-  const type = k.evoLevel >= 2 ? "第二進化モンスター" : (k.eliteOf ? "進化モンスター" : "通常モンスター");
+  const type = ["reaper", "chimera"].includes(kind) ? "特殊モンスター" : (k.evoLevel >= 2 ? "第二進化モンスター" : (k.eliteOf ? "進化モンスター" : "通常モンスター"));
   return `
     <article class="codex-card">
       <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(kind)}'></div></div>
@@ -517,6 +535,50 @@ function hideCodex() {
   updateHud();
 }
 
+function renderAmulets() {
+  const bar = document.getElementById("amuletBar");
+  if (!bar) return;
+  const held = gameApi.amulets;
+  if (!held.length) {
+    bar.innerHTML = `<span class="amulet-empty">お守りなし</span>`;
+    return;
+  }
+  bar.innerHTML = held.map((id) => {
+    const a = AMULETS[id];
+    return `<span class="amulet" title="${a.profile}"><b>${a.icon}</b>${a.name}</span>`;
+  }).join("");
+}
+
+function updatePowerSelection() {
+  for (const btn of document.querySelectorAll("[data-power]")) {
+    const active = btn.dataset.power === selectedPowerId;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+}
+
+function updatePowerHud() {
+  const name = document.getElementById("powerName");
+  const timer = document.getElementById("powerTimer");
+  const btn = document.getElementById("powerBtn");
+  const season = document.getElementById("seasonMode");
+  if (!name || !timer || !btn) return;
+  const id = gameApi.selectedPower || selectedPowerId;
+  const def = POWER_DEFS[id] || POWER_DEFS.fusion;
+  const state = gameApi.powerState;
+  name.textContent = def.name;
+  if (state.active > 0) timer.textContent = `発動中 ${Math.ceil(state.active / 1000)}秒`;
+  else if (state.cooldown > 0) timer.textContent = `再使用 ${Math.ceil(state.cooldown / 1000)}秒`;
+  else timer.textContent = `栄養 ${def.cost}`;
+  if (season) season.classList.toggle("hidden", id !== "season");
+  btn.disabled = !gameApi.canActivatePower(id === "season" ? selectedSeasonMode : null);
+  for (const modeBtn of document.querySelectorAll("[data-season]")) {
+    const active = modeBtn.dataset.season === selectedSeasonMode;
+    modeBtn.classList.toggle("active", active);
+    modeBtn.setAttribute("aria-pressed", active ? "true" : "false");
+  }
+}
+
 function updateHud() {
   const ratio = Math.max(0, Math.min(1, gameApi.coreHP / CORE_MAX));
   document.getElementById("coreFill").style.width = `${ratio * 100}%`;
@@ -524,43 +586,69 @@ function updateHud() {
   const coreLine = document.querySelector(".core-line");
   if (coreLine) coreLine.classList.toggle("core-alert", effectLevel("corehit") > 0 || effectLevel("coreShock") > 0);
   document.getElementById("nutNum").textContent = Math.floor(gameApi.nutrients);
-  document.getElementById("waveNum").textContent = gameApi.wave;
+  document.getElementById("waveNum").textContent = `${gameApi.wave}/${MAX_WAVE}`;
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
   document.getElementById("scoreNum").textContent = gameApi.score;
+  renderAmulets();
   document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
   let waveLabel = "次の襲来まで";
   let waveTimer = `${Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000)} 秒`;
   if (gameApi.heroes.length > 0) {
-    waveLabel = "勇者殲滅まで";
+    waveLabel = "冒険者殲滅まで";
     waveTimer = `あと ${activeHeroes} 体`;
   } else if (queue.length > 0) {
     const seconds = Math.ceil(Math.max(0, Math.min(...queue.map((s) => s.delay))) / 1000);
-    waveLabel = "次の勇者まで";
+    waveLabel = "次の冒険者まで";
     waveTimer = `${seconds} 秒`;
+  } else if (gameApi.gameState === "clear") {
+    waveLabel = "防衛完了";
+    waveTimer = "15ウェーブ突破";
   }
   document.getElementById("waveLabel").textContent = waveLabel;
   document.getElementById("waveTimer").textContent = waveTimer;
   document.getElementById("startOverlay").classList.toggle("hidden", gameApi.gameState !== "title");
   document.getElementById("deadOverlay").classList.toggle("hidden", gameApi.gameState !== "dead");
+  document.getElementById("clearOverlay").classList.toggle("hidden", gameApi.gameState !== "clear");
   document.getElementById("deadWave").textContent = gameApi.wave;
   document.getElementById("deadKills").textContent = gameApi.kills;
   document.getElementById("deadScore").textContent = gameApi.score;
+  document.getElementById("clearKills").textContent = gameApi.kills;
+  document.getElementById("clearScore").textContent = gameApi.score;
   document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveCountdown <= 3000;
+  updatePowerSelection();
+  updatePowerHud();
 }
 
 function startGame() {
-  gameApi.resetGame();
-  gameApi.gameState = "playing";
+  gameApi.startGame(selectedPowerId);
   updateHud();
 }
 
 function boot() {
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("restartBtn").addEventListener("click", startGame);
+  document.getElementById("clearRestartBtn").addEventListener("click", startGame);
   document.getElementById("codexBtn").addEventListener("click", showCodex);
   document.getElementById("codexBackBtn").addEventListener("click", hideCodex);
+  for (const btn of document.querySelectorAll("[data-power]")) {
+    btn.addEventListener("click", () => {
+      selectedPowerId = btn.dataset.power;
+      gameApi.choosePower(selectedPowerId);
+      updateHud();
+    });
+  }
+  for (const btn of document.querySelectorAll("[data-season]")) {
+    btn.addEventListener("click", () => {
+      selectedSeasonMode = btn.dataset.season;
+      updateHud();
+    });
+  }
+  document.getElementById("powerBtn").addEventListener("click", () => {
+    gameApi.activatePower(gameApi.selectedPower === "season" ? selectedSeasonMode : null);
+    updateHud();
+  });
   for (const btn of document.querySelectorAll("[data-codex-tab]")) {
     btn.addEventListener("click", () => {
       codexTab = btn.dataset.codexTab;

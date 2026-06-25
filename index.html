@@ -11,7 +11,7 @@
         <div class="crown">
           <div class="tag">迷宮防衛タワーディフェンス</div>
           <h1>迷宮を守る</h1>
-          <div class="tag">― 魔物を呼び、勇者を阻め ―</div>
+          <div class="tag">― 魔物を呼び、冒険者を阻め ―</div>
         </div>
 
         <div class="hud">
@@ -25,25 +25,36 @@
             <div class="stat"><b id="monNum">0</b><span class="k">魔物</span></div>
           </div>
           <div class="stat"><b id="scoreNum">0</b><span class="k">スコア</span></div>
+          <div class="amulets" id="amuletBar"><span class="amulet-empty">お守りなし</span></div>
         </div>
 
         <div class="stage">
           <div id="game-root"></div>
           <div class="overlay" id="startOverlay">
-            <h2>迷宮を守り抜け</h2>
-            <div class="scroll">
-              <span class="key gold">▸</span> 土を掘って道を作る。掘れるのは通路に隣り合う土だけ。<br>
-              <span class="key">▸</span> 色付きの鉱脈を掘ると魔物が1体出る。熟した鉱脈からは上位種が出る。<br>
-              <span class="key pur">▸</span> 下位種はゆっくり増え、上位種は単独で卵を作る。<br>
-              <span class="key red">▸</span> 勇者は最下層の迷宮コアを狙う。掘る場所で迎え撃て。
+            <h2>魔王の命令</h2>
+            <div class="dialogue">
+              <p><b>魔王</b>どうやら冒険者が攻め込んでくるらしい。なんとかしろ</p>
+              <p><b>軍師</b>わかりました</p>
+              <p><b>魔王</b>ちからを与える。えらべ</p>
+            </div>
+            <div class="power-select" aria-label="能力選択">
+              <button class="power-choice active" data-power="fusion" aria-pressed="true"><b>融合</b><span>栄養12 / 24秒</span></button>
+              <button class="power-choice" data-power="season" aria-pressed="false"><b>夏と冬</b><span>栄養9 / 20秒</span></button>
+              <button class="power-choice" data-power="cicada" aria-pressed="false"><b>せみ</b><span>栄養8 / 14秒</span></button>
             </div>
             <button class="btn-start" id="startBtn">防衛を開始する</button>
           </div>
 
           <div class="overlay dead hidden" id="deadOverlay">
             <h2>迷宮コア、陥落</h2>
-            <div class="res">到達ウェーブ <b id="deadWave">0</b><br>討ち取った勇者 <b id="deadKills">0</b><br>最終スコア <b id="deadScore">0</b></div>
+            <div class="res">到達ウェーブ <b id="deadWave">0</b><br>討ち取った冒険者 <b id="deadKills">0</b><br>最終スコア <b id="deadScore">0</b></div>
             <button class="btn-start" id="restartBtn">再び守り直す</button>
+          </div>
+
+          <div class="overlay clear hidden" id="clearOverlay">
+            <h2>迷宮、防衛成功</h2>
+            <div class="res">15ウェーブ突破<br>討ち取った冒険者 <b id="clearKills">0</b><br>最終スコア <b id="clearScore">0</b></div>
+            <button class="btn-start" id="clearRestartBtn">もう一度守る</button>
           </div>
         </div>
 
@@ -52,12 +63,20 @@
             <span class="t" id="waveLabel">次の襲来まで</span>
             <span class="v" id="waveTimer">--</span>
           </div>
+          <div class="powerbox">
+            <div><span class="t" id="powerName">融合</span><span class="v" id="powerTimer">栄養 12</span></div>
+            <div class="season-mode hidden" id="seasonMode">
+              <button data-season="summer" class="active" aria-pressed="true">夏</button>
+              <button data-season="winter" aria-pressed="false">冬</button>
+            </div>
+            <button class="btn-power" id="powerBtn">能力</button>
+          </div>
           <button class="btn-taunt" id="tauntBtn">すぐ襲来<br>待ち時間を短縮</button>
         </div>
 
         <button class="btn-codex" id="codexBtn">キャラクター紹介</button>
         <div class="legend" id="legend"></div>
-        <div class="hint">鉱脈を掘って魔物を出し、勇者の進路に防衛線を作れ。</div>
+        <div class="hint">鉱脈を掘って魔物を出し、冒険者の進路に防衛線を作れ。</div>
       </div>
 
       <section class="codex hidden" id="codexPanel" aria-label="キャラクター紹介">
@@ -70,7 +89,7 @@
         </div>
         <div class="codex-tabs" role="tablist" aria-label="紹介切替">
           <button class="codex-tab active" data-codex-tab="monster" role="tab" aria-selected="true">モンスター</button>
-          <button class="codex-tab" data-codex-tab="hero" role="tab" aria-selected="false">勇者</button>
+          <button class="codex-tab" data-codex-tab="hero" role="tab" aria-selected="false">冒険者</button>
         </div>
         <div class="codex-grid" id="codexGrid"></div>
       </section>

@@ -17,7 +17,8 @@
     "cast",
     "dig",
     "heal",
-    "eat"
+    "eat",
+    "dodge"
   ],
   "actors": {
     "slime": {
@@ -28,7 +29,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -42,7 +43,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -56,7 +57,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -70,7 +71,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -84,7 +85,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -98,7 +99,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -112,7 +113,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -126,7 +127,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -140,7 +141,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -154,7 +155,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -168,7 +169,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -182,7 +183,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -196,7 +197,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -210,7 +211,7 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -224,7 +225,35 @@
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "reaper": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 720,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "chimera": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 768,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -233,12 +262,12 @@
     "warrior": {
       "sheet": "actors",
       "x": 0,
-      "y": 720,
+      "y": 816,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -247,12 +276,12 @@
     "superwarrior": {
       "sheet": "actors",
       "x": 0,
-      "y": 768,
+      "y": 864,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -261,12 +290,12 @@
     "ultrawarrior": {
       "sheet": "actors",
       "x": 0,
-      "y": 816,
+      "y": 912,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -275,12 +304,12 @@
     "tank": {
       "sheet": "actors",
       "x": 0,
-      "y": 864,
+      "y": 960,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -289,12 +318,12 @@
     "crossknight": {
       "sheet": "actors",
       "x": 0,
-      "y": 912,
+      "y": 1008,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -303,12 +332,54 @@
     "captain": {
       "sheet": "actors",
       "x": 0,
-      "y": 960,
+      "y": 1056,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "max": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1104,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "shon": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1152,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "hori": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1200,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -317,12 +388,12 @@
     "priest": {
       "sheet": "actors",
       "x": 0,
-      "y": 1008,
+      "y": 1248,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -331,12 +402,12 @@
     "saint": {
       "sheet": "actors",
       "x": 0,
-      "y": 1056,
+      "y": 1296,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -345,12 +416,12 @@
     "mage": {
       "sheet": "actors",
       "x": 0,
-      "y": 1104,
+      "y": 1344,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -359,12 +430,12 @@
     "supermage": {
       "sheet": "actors",
       "x": 0,
-      "y": 1152,
+      "y": 1392,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -373,12 +444,12 @@
     "sage": {
       "sheet": "actors",
       "x": 0,
-      "y": 1200,
+      "y": 1440,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -387,12 +458,12 @@
     "egg_spitter": {
       "sheet": "actors",
       "x": 0,
-      "y": 1248,
+      "y": 1488,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -401,12 +472,12 @@
     "egg_golem": {
       "sheet": "actors",
       "x": 0,
-      "y": 1296,
+      "y": 1536,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -415,12 +486,12 @@
     "egg_flame": {
       "sheet": "actors",
       "x": 0,
-      "y": 1344,
+      "y": 1584,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -429,12 +500,12 @@
     "egg_tarantula": {
       "sheet": "actors",
       "x": 0,
-      "y": 1392,
+      "y": 1632,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -443,12 +514,12 @@
     "egg_titan": {
       "sheet": "actors",
       "x": 0,
-      "y": 1440,
+      "y": 1680,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -457,12 +528,12 @@
     "egg_infernal": {
       "sheet": "actors",
       "x": 0,
-      "y": 1488,
+      "y": 1728,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -471,12 +542,12 @@
     "egg_goldweaver": {
       "sheet": "actors",
       "x": 0,
-      "y": 1536,
+      "y": 1776,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -485,12 +556,12 @@
     "egg_goldcore": {
       "sheet": "actors",
       "x": 0,
-      "y": 1584,
+      "y": 1824,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36
@@ -499,12 +570,12 @@
     "egg_whiteflame": {
       "sheet": "actors",
       "x": 0,
-      "y": 1632,
+      "y": 1872,
       "w": 48,
       "h": 48,
       "frames": 4,
       "directions": 8,
-      "actions": 6,
+      "actions": 7,
       "anchor": [
         24,
         36

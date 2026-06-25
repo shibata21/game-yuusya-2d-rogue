@@ -18,6 +18,7 @@ export const MONSTER_CAP = 48;
 export const BREED_LIMIT = 3;
 export const MAX_HEROES = 8;
 export const HEROES_PER_WAVE_CAP = 5;
+export const MAX_WAVE = 15;
 export const WAVE_INTERVAL = 10000;
 export const FIRST_GRACE = 27000;
 export const HERO_STAGGER = 520;
@@ -49,6 +50,24 @@ export const EVO_TIME = 65000;
 export const VEIN_FADE_START = 120000;
 export const VEIN_DECAY_TIME = 240000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
+export const AMULET_DROP_CHANCE = 0.018;
+export const REAPER_SPAWN_CHANCE = 0.002;
+
+export const AMULETS = {
+  family: { name: "家族写真", passive: true, icon: "写", profile: "同じ種族が多いほど、その種族全体の攻撃力が上がる。" },
+  dogtag: { name: "ドッグタグ", passive: true, icon: "札", profile: "死んだ魔物がドッグタグを落とし、拾った魔物は体力が全快する。" },
+  lastStick: { name: "最後の一本", passive: false, icon: "火", profile: "取得ウェーブに残った魔物の攻撃力が1.5倍になる。" },
+  whiskey: { name: "ウイスキー", passive: false, icon: "酒", profile: "取得ウェーブに残った魔物の体力が2倍になる。" },
+  letter: { name: "遺書", passive: true, icon: "遺", profile: "冒険者の攻撃力が0.9倍に下がる。" },
+  cards: { name: "トランプ", passive: true, icon: "札", profile: "一定期間戦闘に参加していない魔物の体力が中回復する。" },
+  coinPurse: { name: "小銭入れ", passive: true, icon: "銭", profile: "冒険者を倒したときに得る栄養が増える。" },
+};
+
+export const POWER_DEFS = {
+  fusion: { name: "融合", cost: 12, duration: 24000, cooldown: 60000, profile: "全魔物を束ねてキメラを出す。" },
+  season: { name: "夏と冬", cost: 9, duration: 20000, cooldown: 35000, profile: "夏は繁殖を早め、冬は冒険者の行動量を半減させる。" },
+  cicada: { name: "せみ", cost: 8, duration: 14000, cooldown: 45000, profile: "魔物を大きく強化し、終了後に体力を削る。" },
+};
 
 export const KINDS = {
   slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68", name: "スライム", profile: "迷宮の湿気が集まると出てくる。本人たちは採用面接に受かったと思っている。" },
@@ -66,6 +85,8 @@ export const KINDS = {
   goldweaver: { hp: 205, atk: 36, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
   goldcore: { hp: 540, atk: 31, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.012, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
   whiteflame: { hp: 390, atk: 62, range: 3, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.01, lineFire: true, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
+  reaper: { hp: 430, atk: 68, range: 1, moveCd: 520, atkCd: 620, aggro: 6, rank: 10, breedEvery: 0, breedCap: 1, col: "#b7c6d6", name: "死神", profile: "倒れた冒険者の影からまれに現れる。鎌の手入れだけは妙に几帳面。" },
+  chimera: { hp: 1, atk: 1, range: 1, moveCd: 540, atkCd: 600, aggro: 8, rank: 11, breedEvery: 0, breedCap: 1, col: "#d7835a", name: "キメラ", profile: "融合で生まれる一時の怪物。見えた冒険者だけを執念深く追う。" },
 };
 
 export const VEIN = {
@@ -77,26 +98,29 @@ export const VEIN = {
 };
 
 export const HERO_CLASSES = {
-  warrior: { name: "勇者", role: "fighter", rank: 1, hpMul: 1.0, atkMul: 1.0, defense: 0, range: 1, moveMul: 1.0, atkCd: 650, weight: 3.0, unlock: 1, weapon: "sword", profile: "村で一番まじめな若者。出発前に全員へ『行ってきます』を二回言った。" },
-  tank: { name: "タンク勇者", role: "tank", rank: 1, hpMul: 2.4, atkMul: 0.55, defense: 55, range: 1, moveMul: 1.55, atkCd: 850, weight: 1.35, unlock: 4, weapon: "greatshield", msg: "タンク勇者が現れた ─ 大楯で迷宮へ迫る", profile: "大楯の裏に予定表を書いている。雨の日は全部にじむ。" },
-  mage: { name: "魔法使い", role: "caster", rank: 1, hpMul: 0.55, atkMul: 1.45, defense: -10, range: 3, moveMul: 1.0, atkCd: 900, weight: 1.3, unlock: 5, weapon: "staff", msg: "魔法使いが現れた ─ 遠くから魔物を撃つ", profile: "杖をなくす夢をよく見る。起きてから毎回、杖に謝る。" },
-  superwarrior: { name: "スーパー勇者", role: "fighter", rank: 2, hpMul: 1.05, atkMul: 1.25, defense: 4, range: 1, moveMul: 0.96, atkCd: 620, weight: 1.55, unlock: 6, weapon: "spear", msg: "スーパー勇者が現れた ─ 槍の突きが鋭い", profile: "槍を磨く時間が長い。集合に遅れる理由もだいたい槍。" },
-  priest: { name: "僧侶", role: "healer", rank: 1, hpMul: 1.15, atkMul: 0.35, defense: 8, range: 1, moveMul: 1.0, atkCd: 1000, weight: 1.0, unlock: 7, weapon: "rod", heal: true, areaHeal: true, healCd: 950, healRange: 2, healMul: 1.8, msg: "僧侶が現れた ─ 仲間を癒やす", profile: "祈りは丁寧だが、会計の割り勘だけ妙に早い。" },
-  ultrawarrior: { name: "ウルトラ勇者", role: "fighter", rank: 3, hpMul: 1.25, atkMul: 1.38, defense: 18, range: 1, moveMul: 1.08, atkCd: 680, weight: 1.25, unlock: 8, weapon: "sword_shield", msg: "ウルトラ勇者が現れた ─ 剣と盾で押し込む", profile: "育ちのいいエリート。宿の枕が低いと翌日の正義感が少し落ちる。" },
-  supermage: { name: "スーパー魔法使い", role: "caster", rank: 2, hpMul: 0.62, atkMul: 1.75, defense: -10, range: 3, moveMul: 1.0, atkCd: 880, weight: 0.75, unlock: 11, weapon: "gem_staff", msg: "スーパー魔法使いが現れた ─ 魔石の飛び道具が強い", profile: "魔石の産地を聞かれると急に早口になる。" },
-  crossknight: { name: "十字騎士団", role: "fighter", rank: 4, hpMul: 1.55, atkMul: 1.55, defense: 28, range: 1, moveMul: 1.12, atkCd: 660, weight: 0.85, unlock: 14, weapon: "cross_shield", msg: "十字騎士団が現れた ─ 後半の重装部隊", profile: "規律が厳しい。号令が長すぎて、突撃前に一度休憩が入る。" },
-  saint: { name: "聖女", role: "healer", rank: 2, hpMul: 1.45, atkMul: 0.45, defense: 14, range: 1, moveMul: 1.08, atkCd: 1050, weight: 0.55, unlock: 16, weapon: "saint_rod", heal: true, areaHeal: true, healCd: 720, healRange: 3, healMul: 3.3, msg: "聖女が現れた ─ 仲間を大きく癒やす", profile: "微笑むと寄付箱が重くなる。本人は偶然だと言い張っている。" },
-  sage: { name: "賢者", role: "caster", rank: 3, hpMul: 0.72, atkMul: 1.95, defense: -8, range: 4, moveMul: 1.05, atkCd: 1050, weight: 0.45, unlock: 18, weapon: "glow_staff", areaAttack: true, areaScale: 0.65, areaMax: 3, msg: "賢者が現れた ─ 光る杖で列を薙ぐ", profile: "知らないことも知っている顔で聞く。沈黙が長いほど怪しい。" },
-  captain: { name: "騎士団長", role: "fighter", rank: 5, hpMul: 1.85, atkMul: 1.75, defense: 42, range: 1, moveMul: 1.0, atkCd: 600, weight: 0.35, unlock: 20, weapon: "gold_sword_shield", maxPerWave: 1, msg: "騎士団長が現れた ─ 金色の剣と盾を持つ強敵", profile: "金色装備は自腹らしい。部下には節約をすすめるので微妙な空気になる。" },
+  warrior: { name: "冒険者", role: "fighter", rank: 1, hpMul: 1.0, atkMul: 1.0, defense: 0, range: 1, moveMul: 1.0, atkCd: 650, weight: 3.0, unlock: 1, weapon: "sword", profile: "村で一番まじめな若者。出発前に全員へ『行ってきます』を二回言った。" },
+  tank: { name: "タンク冒険者", role: "tank", rank: 1, hpMul: 2.4, atkMul: 0.55, defense: 55, range: 1, moveMul: 1.55, atkCd: 850, weight: 1.25, unlock: 3, weapon: "greatshield", msg: "タンク冒険者が現れた ─ 大楯で迷宮へ迫る", profile: "大楯の裏に予定表を書いている。雨の日は全部にじむ。" },
+  mage: { name: "魔法使い", role: "caster", rank: 1, hpMul: 0.55, atkMul: 1.45, defense: -10, range: 3, moveMul: 1.0, atkCd: 900, weight: 1.15, unlock: 4, weapon: "staff", msg: "魔法使いが現れた ─ 遠くから魔物を撃つ", profile: "杖をなくす夢をよく見る。起きてから毎回、杖に謝る。" },
+  superwarrior: { name: "スーパー冒険者", role: "fighter", rank: 2, hpMul: 1.05, atkMul: 1.25, defense: 4, range: 1, moveMul: 0.96, atkCd: 620, weight: 1.45, unlock: 5, weapon: "spear", msg: "スーパー冒険者が現れた ─ 槍の突きが鋭い", profile: "槍を磨く時間が長い。集合に遅れる理由もだいたい槍。" },
+  priest: { name: "僧侶", role: "healer", rank: 1, hpMul: 1.15, atkMul: 0.35, defense: 8, range: 1, moveMul: 1.0, atkCd: 1000, weight: 0.95, unlock: 6, weapon: "rod", heal: true, areaHeal: true, healCd: 950, healRange: 2, healMul: 1.8, msg: "僧侶が現れた ─ 仲間を癒やす", profile: "祈りは丁寧だが、会計の割り勘だけ妙に早い。" },
+  ultrawarrior: { name: "ウルトラ冒険者", role: "fighter", rank: 3, hpMul: 1.25, atkMul: 1.38, defense: 18, range: 1, moveMul: 1.08, atkCd: 680, weight: 1.15, unlock: 7, weapon: "sword_shield", msg: "ウルトラ冒険者が現れた ─ 剣と盾で押し込む", profile: "育ちのいいエリート。宿の枕が低いと翌日の正義感が少し落ちる。" },
+  supermage: { name: "スーパー魔法使い", role: "caster", rank: 2, hpMul: 0.62, atkMul: 1.75, defense: -10, range: 3, moveMul: 1.0, atkCd: 880, weight: 0.75, unlock: 8, weapon: "gem_staff", msg: "スーパー魔法使いが現れた ─ 魔石の飛び道具が強い", profile: "魔石の産地を聞かれると急に早口になる。" },
+  crossknight: { name: "十字騎士団", role: "fighter", rank: 4, hpMul: 1.55, atkMul: 1.55, defense: 28, range: 1, moveMul: 1.12, atkCd: 660, weight: 0.85, unlock: 10, weapon: "cross_shield", msg: "十字騎士団が現れた ─ 終盤の重装部隊", profile: "規律が厳しい。号令が長すぎて、突撃前に一度休憩が入る。" },
+  saint: { name: "聖女", role: "healer", rank: 2, hpMul: 1.45, atkMul: 0.45, defense: 14, range: 1, moveMul: 1.08, atkCd: 1050, weight: 0.55, unlock: 11, weapon: "saint_rod", heal: true, areaHeal: true, healCd: 720, healRange: 3, healMul: 3.3, msg: "聖女が現れた ─ 仲間を大きく癒やす", profile: "微笑むと寄付箱が重くなる。本人は偶然だと言い張っている。" },
+  sage: { name: "賢者", role: "caster", rank: 3, hpMul: 0.72, atkMul: 1.95, defense: -8, range: 4, moveMul: 1.05, atkCd: 1050, weight: 0.45, unlock: 11, weapon: "glow_staff", areaAttack: true, areaScale: 0.65, areaMax: 3, msg: "賢者が現れた ─ 光る杖で列を薙ぐ", profile: "知らないことも知っている顔で聞く。沈黙が長いほど怪しい。" },
+  captain: { name: "騎士団長", role: "fighter", rank: 5, hpMul: 1.85, atkMul: 1.75, defense: 42, range: 1, moveMul: 1.0, atkCd: 600, weight: 0.35, unlock: 12, weapon: "gold_sword_shield", maxPerWave: 1, msg: "騎士団長が現れた ─ 金色の剣と盾を持つ強敵", profile: "金色装備は自腹らしい。部下には節約をすすめるので微妙な空気になる。" },
+  max: { name: "マックス", role: "fighter", rank: 6, hpMul: 2.05, atkMul: 2.05, defense: 30, range: 1, moveMul: 0.85, atkCd: 520, weight: 0.36, unlock: 13, weapon: "fist", dodgeChance: 0.20, critChance: 0.20, critMul: 5, maxPerWave: 1, msg: "マックスが現れた ─ 黒いロングコートの格闘冒険者", profile: "黒いロングコートとサングラスで迷宮に入る。拳が当たると冗談では済まない。" },
+  shon: { name: "ション", role: "caster", rank: 7, hpMul: 1.95, atkMul: 2.20, defense: 18, range: 4, moveMul: 0.9, atkCd: 620, weight: 0.32, unlock: 14, weapon: "handgun", dodgeChance: 0.38, maxPerWave: 1, msg: "ションが現れた ─ ハンドガンを構える冒険者", profile: "ジャケット姿で銃口だけが迷いなく動く。回避の一歩がやけに小さい。" },
+  hori: { name: "ホリ", role: "fighter", rank: 8, hpMul: 2.75, atkMul: 2.35, defense: 34, range: 3, moveMul: 1.25, atkCd: 780, weight: 0.28, unlock: 15, weapon: "rocket", dodgeChance: 0.08, maxPerWave: 1, msg: "ホリが現れた ─ ロケットと拳と野菜で押し込む", profile: "ベッカムヘアの太った男。攻撃手段が多すぎて本人も順番を忘れる。" },
 };
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v18-wave-evo2-entry";
+export const PIXEL_ASSET_VERSION = "v19-adventurer-clear15";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
-export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat"];
-export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage", "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
+export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat", "dodge"];
+export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame", "reaper", "chimera", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage", "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
@@ -156,6 +180,9 @@ export function createGame(options = {}) {
   let eggs = [];
   let effects = [];
   let spawnQueue = [];
+  let pickups = [];
+  let amulets = [];
+  let pendingAmulets = [];
   let unlocked = new Set();
   let nutrients = START_NUT;
   let coreHP = CORE_MAX;
@@ -165,6 +192,9 @@ export function createGame(options = {}) {
   let playerDigCount = 0;
   let waveCountdown = FIRST_GRACE;
   let heroEntryHold = 0;
+  let waveSettled = 0;
+  let selectedPower = null;
+  let powerState = { cooldown: 0, active: 0, mode: null };
   let movementTickTimer = 0;
   let veinSpawnTimer = 0;
   let idc = 0;
@@ -183,8 +213,18 @@ export function createGame(options = {}) {
   const isMonsterForbiddenCell = (col, row) => isEntranceCell(col, row) || isHeroEntryZone(col, row) || isCoreCell(col, row);
   const coreAttackCells = () => [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1]]
     .map(([dc, dr]) => ({ col: CORE_COL + dc, row: CORE_ROW + dr }))
-    .filter((p) => inBounds(p.col, p.row) && grid[p.row][p.col].t !== "bedrock");
+    .filter((p) => inBounds(p.col, p.row) && grid[p.row][p.col].t !== "bedrock" && canCoreAttackFrom(p.col, p.row, false));
   const isCoreAttackCell = (col, row) => cheb({ col, row }, { col: CORE_COL, row: CORE_ROW }) === 1;
+
+  function canCoreAttackFrom(col, row, checkOccupied = true) {
+    if (!isCoreAttackCell(col, row)) return false;
+    const dc = CORE_COL - col;
+    const dr = CORE_ROW - row;
+    if (Math.abs(dc) + Math.abs(dr) === 1) return true;
+    const sideA = inBounds(CORE_COL, row) && OPEN.has(grid[row][CORE_COL].t) && (!checkOccupied || !actorOccupied(CORE_COL, row));
+    const sideB = inBounds(col, CORE_ROW) && OPEN.has(grid[CORE_ROW][col].t) && (!checkOccupied || !actorOccupied(col, CORE_ROW));
+    return sideA && sideB;
+  }
 
   function digCost() {
     return DIG_COST;
@@ -192,6 +232,53 @@ export function createGame(options = {}) {
 
   function monsterIncomeRate() {
     return 0.045;
+  }
+
+  function hasAmulet(id) {
+    return amulets.includes(id);
+  }
+
+  function heldOrPendingAmulet(id) {
+    return hasAmulet(id) || pendingAmulets.includes(id);
+  }
+
+  function seasonMode() {
+    return selectedPower === "season" && powerState.active > 0 ? powerState.mode : null;
+  }
+
+  function heroActionScale() {
+    return seasonMode() === "winter" ? 0.5 : 1;
+  }
+
+  function eggTimeScale() {
+    const mode = seasonMode();
+    if (mode === "winter") return 0;
+    if (mode === "summer") return 1.35;
+    return 1;
+  }
+
+  function breedingTimeScale() {
+    const mode = seasonMode();
+    if (mode === "winter") return 0;
+    if (mode === "summer") return 1.6;
+    return 1;
+  }
+
+  function monsterAttackPower(m) {
+    if (!m) return 1;
+    let power = m.atk || 1;
+    if (hasAmulet("family")) {
+      let same = 0;
+      for (const o of monsters) if (o.kind === m.kind) same++;
+      power *= 1 + Math.min(0.6, Math.max(0, same - 1) * 0.06);
+    }
+    return Math.max(1, Math.round(power));
+  }
+
+  function heroAttackPower(h) {
+    let power = h.atk || 1;
+    if (hasAmulet("letter")) power *= 0.9;
+    return Math.max(1, Math.round(power));
   }
 
   function evoStageOf(tile) {
@@ -507,6 +594,155 @@ export function createGame(options = {}) {
     effects.push({ type: "bite", sx, sy, tx, ty, x: tx, y: ty, color, life: 260, max: 260 });
   }
 
+  function chooseAmuletDrop() {
+    const pool = Object.keys(AMULETS).filter((id) => !heldOrPendingAmulet(id));
+    if (!pool.length) return null;
+    return pool[ri(0, pool.length - 1)];
+  }
+
+  function queueAmuletDrop() {
+    if (random() >= AMULET_DROP_CHANCE) return null;
+    const id = chooseAmuletDrop();
+    if (!id) return null;
+    pendingAmulets.push(id);
+    return id;
+  }
+
+  function applyAmulet(id) {
+    if (!AMULETS[id] || hasAmulet(id)) return false;
+    amulets.push(id);
+    if (id === "lastStick") {
+      for (const m of monsters) {
+        m.atk = Math.max(1, Math.round((m.atk || 1) * 1.5));
+        popDmg(m.px, m.py, "攻↑", "#ffcf4d");
+      }
+    } else if (id === "whiskey") {
+      for (const m of monsters) {
+        m.maxHp = Math.max(1, Math.round((m.maxHp || 1) * 2));
+        m.hp = Math.max(1, Math.round((m.hp || 1) * 2));
+        popDmg(m.px, m.py, "体↑", "#ffcf4d");
+      }
+    }
+    return true;
+  }
+
+  function settleWave() {
+    if (wave <= 0 || waveSettled >= wave) return;
+    waveSettled = wave;
+    if (pendingAmulets.length) {
+      const got = [...pendingAmulets];
+      pendingAmulets = [];
+      for (const id of got) {
+        if (!applyAmulet(id)) continue;
+        banner(`お守り『${AMULETS[id].name}』を入手`);
+      }
+    }
+    if (wave >= MAX_WAVE) {
+      gameState = "clear";
+      banner("迷宮を守り抜いた");
+    }
+  }
+
+  function choosePower(id) {
+    if (!POWER_DEFS[id]) return false;
+    selectedPower = id;
+    return true;
+  }
+
+  function canActivatePower(mode = null) {
+    if (gameState !== "playing" || !selectedPower || !POWER_DEFS[selectedPower]) return false;
+    if (powerState.active > 0 || powerState.cooldown > 0) return false;
+    if (nutrients < POWER_DEFS[selectedPower].cost) return false;
+    if ((selectedPower === "fusion" || selectedPower === "cicada") && monsters.length <= 0) return false;
+    if (selectedPower === "season" && !["summer", "winter"].includes(mode)) return false;
+    return true;
+  }
+
+  function bestFusionTarget() {
+    if (heroes.length) {
+      const sorted = [...heroes].sort((a, b) => cardinalDist(a, { col: CORE_COL, row: CORE_ROW }) - cardinalDist(b, { col: CORE_COL, row: CORE_ROW }));
+      return sorted[0];
+    }
+    return { col: ENTRANCE_COL, row: 2, px: cx(ENTRANCE_COL), py: cy(2) };
+  }
+
+  function activateFusion(def) {
+    let hp = 0;
+    let atk = 0;
+    for (const m of monsters) {
+      hp += Math.max(0, Math.round(m.hp || 0));
+      atk += monsterAttackPower(m);
+      effects.push({ type: "puff", x: m.px, y: m.py, life: 260, max: 260, color: KINDS[m.kind] ? KINDS[m.kind].col : "#cfd8e3" });
+    }
+    monsters = [];
+    const target = bestFusionTarget();
+    const chimera = spawnMonsterNear("chimera", target.col, target.row, 2);
+    if (!chimera) return false;
+    chimera.maxHp = Math.max(1, hp);
+    chimera.hp = chimera.maxHp;
+    chimera.atk = Math.max(1, Math.round(atk * 0.3));
+    chimera.ttl = def.duration;
+    chimera.fusionBorn = true;
+    setAction(chimera, "cast", target.px, target.py, 360);
+    effects.push({ type: "birth", x: chimera.px, y: chimera.py, life: 520, max: 520, color: KINDS.chimera.col });
+    banner("融合 ─ キメラが出現");
+    return true;
+  }
+
+  function activateCicada() {
+    for (const m of monsters) {
+      if (m.cicadaBase) continue;
+      m.cicadaBase = { atk: m.atk, maxHp: m.maxHp };
+      m.atk = Math.max(1, Math.round(m.atk * 2));
+      m.maxHp = Math.max(1, Math.round(m.maxHp * 2));
+      m.hp = Math.max(1, Math.round(m.hp * 2));
+      popDmg(m.px, m.py, "せみ", "#ffcf4d");
+    }
+    banner("せみ ─ 魔物が一斉に昂る");
+    return true;
+  }
+
+  function endCicada() {
+    for (const m of monsters) {
+      if (!m.cicadaBase) continue;
+      m.atk = m.cicadaBase.atk;
+      m.maxHp = m.cicadaBase.maxHp;
+      m.hp = Math.max(1, Math.min(m.maxHp, Math.ceil((m.hp || 1) / 5)));
+      delete m.cicadaBase;
+      popDmg(m.px, m.py, "反動", "#e0556b");
+    }
+  }
+
+  function activatePower(mode = null) {
+    if (!canActivatePower(mode)) return false;
+    const def = POWER_DEFS[selectedPower];
+    nutrients -= def.cost;
+    let ok = true;
+    if (selectedPower === "fusion") ok = activateFusion(def);
+    else if (selectedPower === "cicada") ok = activateCicada();
+    else if (selectedPower === "season") {
+      powerState.mode = mode === "winter" ? "winter" : "summer";
+      banner(powerState.mode === "winter" ? "冬 ─ 冒険者の動きが鈍る" : "夏 ─ 魔物の繁殖が早まる");
+    }
+    if (!ok) {
+      nutrients += def.cost;
+      return false;
+    }
+    powerState.active = def.duration;
+    powerState.cooldown = def.cooldown;
+    if (selectedPower !== "season") powerState.mode = selectedPower;
+    return true;
+  }
+
+  function updatePowerState(dt) {
+    if (powerState.cooldown > 0) powerState.cooldown = Math.max(0, powerState.cooldown - dt);
+    if (powerState.active <= 0) return;
+    powerState.active = Math.max(0, powerState.active - dt);
+    if (powerState.active > 0) return;
+    if (selectedPower === "cicada") endCicada();
+    powerState.mode = null;
+  }
+
   function isDigTarget(col, row) {
     if (!inBounds(col, row)) return false;
     const tile = grid[row][col];
@@ -563,7 +799,24 @@ export function createGame(options = {}) {
       moveCd: k.moveCd, moveCharge: rnd(0, 0.35), moveWait: 0, moveIntent: null, atkCd: 0, eggCd: EGG_CHECK * rnd(0.7, 1.3), eatCd: EAT_CHECK * rnd(0.6, 1.2),
       breedCd: k.breedEvery ? k.breedEvery * rnd(0.6, 1.2) : 0, breedLeft: k.breedEvery ? BREED_LIMIT : 0,
       prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
+      nonCombatMs: 0, cardsHealCd: 0,
     });
+  }
+
+  function spawnMonsterNear(kind, col, row, radius = 2) {
+    const cand = [];
+    for (let r = row - radius; r <= row + radius; r++) for (let c = col - radius; c <= col + radius; c++) {
+      if (!inBounds(c, r) || isMonsterForbiddenCell(c, r) || !OPEN.has(grid[r][c].t) || actorOccupied(c, r)) continue;
+      cand.push({ col: c, row: r, d: cheb({ col: c, row: r }, { col, row }) });
+    }
+    cand.sort((a, b) => a.d - b.d || a.row - b.row || a.col - b.col);
+    const spot = cand[0];
+    if (spot) {
+      const before = monsters.length;
+      spawnMonster(kind, spot.col, spot.row);
+      return monsters.length > before ? monsters[monsters.length - 1] : null;
+    }
+    return spawnInTunnel(kind) ? monsters[monsters.length - 1] : null;
   }
 
   function spawnEgg(kind, col, row) {
@@ -611,9 +864,10 @@ export function createGame(options = {}) {
   }
 
   function updateEggs(dt) {
+    const scale = eggTimeScale();
     for (let i = eggs.length - 1; i >= 0; i--) {
       const e = eggs[i];
-      e.hatchCd -= dt;
+      e.hatchCd -= dt * scale;
       e.bornAnim = Math.max(0, (e.bornAnim || 0) - dt);
       if (e.hatchCd > 0) continue;
       if (monsters.length >= MONSTER_CAP) {
@@ -633,12 +887,14 @@ export function createGame(options = {}) {
   }
 
   function updateEliteEggBreeding(dt) {
-    for (const m of monsters) if (canLayEgg(m.kind)) m.eggCd = (m.eggCd === undefined ? EGG_CHECK : m.eggCd) - dt;
+    const scale = breedingTimeScale();
+    if (scale <= 0) return;
+    for (const m of monsters) if (canLayEgg(m.kind)) m.eggCd = (m.eggCd === undefined ? EGG_CHECK : m.eggCd) - dt * scale;
     for (const m of monsters) {
       if (!canLayEgg(m.kind) || m.eggCd > 0) continue;
       m.eggCd = EGG_CHECK * rnd(0.9, 1.25);
       if (eggCount(m.kind) >= EGG_KIND_CAP) continue;
-      if (random() < KINDS[m.kind].eggChance) {
+      if (random() < Math.min(0.95, KINDS[m.kind].eggChance * (seasonMode() === "summer" ? 1.7 : 1))) {
         const spot = eggSpot(m);
         if (spot) spawnEgg(m.kind, spot.col, spot.row);
       }
@@ -665,8 +921,9 @@ export function createGame(options = {}) {
         if (cardinalDist(m, { col: c, row: r }) === 1) {
           touching[m.id] = true;
           if (!t.evoTouching || !t.evoTouching[m.id]) {
-            t.evoTouch = (t.evoTouch || 0) + 1;
-            t.evoStageTouch = (t.evoStageTouch || 0) + 1;
+            const gain = seasonMode() === "summer" ? 2 : 1;
+            t.evoTouch = (t.evoTouch || 0) + gain;
+            t.evoStageTouch = (t.evoStageTouch || 0) + gain;
           }
         }
       }
@@ -742,7 +999,7 @@ export function createGame(options = {}) {
     const c = HERO_CLASSES[cls];
     if (!c || w < c.unlock) return 0;
     if (c.maxPerWave && heroClassWaveCount(cls) >= c.maxPerWave) return 0;
-    const desiredRank = Math.min(5, 1 + Math.floor((Math.max(1, w) - 1) / 5));
+    const desiredRank = Math.min(8, 1 + Math.floor((Math.max(1, w) - 1) / 2));
     const gap = desiredRank - (c.rank || 1);
     if (gap >= 3) return 0;
     return (c.weight || 1) * (gap > 0 ? Math.pow(0.24, gap) : 1);
@@ -795,6 +1052,10 @@ export function createGame(options = {}) {
   }
 
   function startWave() {
+    if (wave >= MAX_WAVE) {
+      settleWave();
+      return;
+    }
     wave++;
     for (const key in VEIN) {
       const v = VEIN[key];
@@ -1142,14 +1403,12 @@ export function createGame(options = {}) {
   function breatheDragonFire(m, attack, k) {
     const end = attack.cells[attack.cells.length - 1];
     m.atkCd = k.atkCd;
+    m.nonCombatMs = 0;
     setAction(m, "cast", cx(end.col), cy(end.row), ATK_ANIM);
-    effects.push({ type: "flameLine", sx: m.px, sy: m.py - 4, tx: cx(end.col), ty: cy(end.row), x: cx(end.col), y: cy(end.row), color: k.col, life: 260, max: 260, cells: attack.cells });
+    effects.push({ type: "flameLine", sx: m.px, sy: m.py - 4, tx: cx(end.col), ty: cy(end.row), x: cx(end.col), y: cy(end.row), color: k.col, life: 500, max: 500, cells: attack.cells });
     for (const h of [...attack.victims]) {
       if (!heroes.includes(h)) continue;
-      const dmg = heroDamageTaken(m.atk, h);
-      h.hp -= dmg;
-      popDmg(h.px, h.py, `-${dmg}`, "#ffcf4d");
-      if (h.hp <= 0) killHero(h);
+      damageHero(h, monsterAttackPower(m), m, "#ffcf4d");
     }
   }
 
@@ -1209,8 +1468,30 @@ export function createGame(options = {}) {
     return Math.max(1, Math.ceil(raw * 100 / Math.max(30, 100 + defense)));
   }
 
+  function tryHeroDodge(h, source = null) {
+    const cls = HERO_CLASSES[h.cls] || HERO_CLASSES.warrior;
+    const chance = cls.dodgeChance || 0;
+    if (chance <= 0 || random() >= chance) return false;
+    const tx = source ? ((h.px ?? cx(h.col)) - ((source.px ?? cx(source.col)) - (h.px ?? cx(h.col)))) : (h.px ?? cx(h.col));
+    const ty = source ? ((h.py ?? cy(h.row)) - ((source.py ?? cy(source.row)) - (h.py ?? cy(h.row)))) : (h.py ?? cy(h.row));
+    setAction(h, "dodge", tx, ty, 220);
+    popDmg(h.px, h.py, "回避", "#9fe8ff");
+    return true;
+  }
+
+  function damageHero(h, raw, source = null, color = "#ff8a8a") {
+    if (!heroes.includes(h)) return false;
+    if (tryHeroDodge(h, source)) return false;
+    const dmg = heroDamageTaken(raw, h);
+    h.hp -= dmg;
+    popDmg(h.px, h.py, `-${dmg}`, color);
+    if (h.hp <= 0) killHero(h);
+    return true;
+  }
+
   function damageMonster(m, amount, color = "#fff") {
     if (!monsters.includes(m)) return false;
+    m.nonCombatMs = 0;
     m.hp -= amount;
     popDmg(m.px, m.py, `-${amount}`, color);
     if (m.hp <= 0) killMonster(m);
@@ -1231,18 +1512,31 @@ export function createGame(options = {}) {
   function killMonster(m) {
     const i = monsters.indexOf(m);
     if (i >= 0) monsters.splice(i, 1);
+    if (hasAmulet("dogtag") && inBounds(m.col, m.row) && OPEN.has(grid[m.row][m.col].t)) {
+      pickups.push({ type: "dogtag", col: m.col, row: m.row, x: m.px, y: m.py, life: 12000, max: 12000 });
+    }
     effects.push({ type: "puff", x: m.px, y: m.py, life: 300, max: 300, color: "#5fd16b" });
   }
 
   function killHero(h) {
     const i = heroes.indexOf(h);
     if (i >= 0) heroes.splice(i, 1);
-    const reward = Math.round(4 + h.wave);
+    const reward = Math.round((4 + h.wave) * (hasAmulet("coinPurse") ? 1.5 : 1));
     nutrients += reward;
     score += 80 * h.wave + 20;
     kills++;
     popDmg(h.px, h.py, `+${reward}`, "#ffcf4d");
     effects.push({ type: "puff", x: h.px, y: h.py, life: 340, max: 340, color: "#cfd8e3" });
+    const drop = queueAmuletDrop();
+    if (drop) toast(h.col, h.row, "お守り", "#ffcf4d");
+    if (random() < REAPER_SPAWN_CHANCE) {
+      const reaper = spawnMonsterNear("reaper", h.col, h.row, 1);
+      if (reaper) {
+        setAction(reaper, "cast", h.px, h.py, 360);
+        effects.push({ type: "birth", x: reaper.px, y: reaper.py, life: 520, max: 520, color: KINDS.reaper.col });
+        banner("死神が現れた");
+      }
+    }
   }
 
   function spawnInTunnel(kind) {
@@ -1316,7 +1610,8 @@ export function createGame(options = {}) {
 
   function actorMoveInterval(e) {
     const base = e.moveCd || (e.kind && KINDS[e.kind] && KINDS[e.kind].moveCd) || MOVEMENT_TICK;
-    return Math.max(MOVEMENT_TICK, Math.round(base));
+    const scaled = e.cls && seasonMode() === "winter" ? base * 2 : base;
+    return Math.max(MOVEMENT_TICK, Math.round(scaled));
   }
 
   function actorCanMoveTo(e, col, row) {
@@ -1487,11 +1782,13 @@ export function createGame(options = {}) {
   }
 
   function updateLowerBreeding(dt) {
+    const scale = breedingTimeScale();
+    if (scale <= 0) return;
     for (const m of [...monsters]) {
       if (!monsters.includes(m) || isMoving(m)) continue;
       const k = KINDS[m.kind];
       if (!k.breedEvery || m.breedLeft <= 0) continue;
-      m.breedCd -= dt;
+      m.breedCd -= dt * scale;
       if (m.breedCd > 0) continue;
       if (monsters.length + eggs.length >= MONSTER_CAP) {
         m.breedCd = k.breedEvery * 0.5;
@@ -1539,14 +1836,12 @@ export function createGame(options = {}) {
           if (fireAttack) {
             breatheDragonFire(m, fireAttack, k);
           } else {
-            const dmg = heroDamageTaken(m.atk, heroTarget);
-            heroTarget.hp -= dmg;
-            popDmg(heroTarget.px, heroTarget.py, `-${dmg}`, m.kind === "spitter" ? "#b6ff7a" : "#ff8a8a");
+            m.nonCombatMs = 0;
             m.atkCd = k.atkCd;
             setAction(m, m.range >= 2 ? "cast" : "attack", heroTarget.px, heroTarget.py, ATK_ANIM);
             if (m.range >= 2) shoot(m.px, m.py - 4, heroTarget.px, heroTarget.py, "#9bff5a");
             else slash(heroTarget.px, heroTarget.py, "#ffd0d0");
-            if (heroTarget.hp <= 0) killHero(heroTarget);
+            damageHero(heroTarget, monsterAttackPower(m), m, m.kind === "spitter" ? "#b6ff7a" : "#ff8a8a");
           }
         }
         continue;
@@ -1562,15 +1857,72 @@ export function createGame(options = {}) {
     }
   }
 
+  function performHeroAttack(h, c, monsterTarget) {
+    h.atkCd = c.atkCd;
+    let damage = heroAttackPower(h);
+    let action = h.range >= 2 || c.areaAttack ? "cast" : "attack";
+    let ranged = h.range >= 2 || c.areaAttack;
+    let shotColor = c.areaAttack ? "#fff0a6" : "#b6a6ff";
+    let slashColor = "#ffffff";
+    const dist = cheb(h, monsterTarget);
+    if (h.cls === "hori") {
+      const roll = random();
+      if (roll < 0.22 && h.hp < h.maxHp) {
+        const amount = Math.max(1, Math.round(h.maxHp * 0.45));
+        h.hp = Math.min(h.maxHp, h.hp + amount);
+        popDmg(h.px, h.py - 10, `+${amount}`, "#9effa0");
+        setAction(h, "eat", h.px, h.py, ATK_ANIM);
+        effects.push({ type: "healArea", x: h.px, y: h.py, radius: TILE * 0.9, color: "#9effa0", life: 260, max: 260 });
+        return;
+      }
+      if (roll < 0.62 || dist > 1) {
+        damage = Math.max(1, Math.round(damage * 1.35));
+        action = "cast";
+        ranged = true;
+        shotColor = "#ff9f43";
+      } else {
+        action = "attack";
+        ranged = false;
+        slashColor = "#fff7dc";
+      }
+    } else if (h.cls === "shon") {
+      action = "attack";
+      ranged = true;
+      shotColor = "#cfd8e3";
+    }
+    if (c.critChance && random() < c.critChance) {
+      damage = Math.max(1, Math.round(damage * (c.critMul || 2)));
+      popDmg(monsterTarget.px, monsterTarget.py - 12, "会心", "#ffcf4d");
+    }
+    setAction(h, action, monsterTarget.px, monsterTarget.py, ATK_ANIM);
+    if (ranged) shoot(h.px, h.py - 6, monsterTarget.px, monsterTarget.py, shotColor);
+    else slash(monsterTarget.px, monsterTarget.py, slashColor);
+    damageMonster(monsterTarget, damage, "#fff");
+    if (c.areaAttack) {
+      let extra = 0;
+      const areaDmg = Math.max(1, Math.round(damage * (c.areaScale || 0.65)));
+      for (const m of [...monsters]) {
+        if (m === monsterTarget || isMoving(m) || cheb(m, h) > h.range) continue;
+        if (!sameHeroAttackLane(h, monsterTarget, m)) continue;
+        if (!hasLOS(h.col, h.row, m.col, m.row)) continue;
+        shoot(h.px, h.py - 8, m.px, m.py, "#ffe680");
+        damageMonster(m, areaDmg, "#fff0a6");
+        extra++;
+        if (extra >= (c.areaMax || 3)) break;
+      }
+    }
+  }
+
   function updateHeroes(dt, entryPaused = false) {
     for (const h of [...heroes]) {
       if (!heroes.includes(h)) continue;
       const c = HERO_CLASSES[h.cls];
+      const actionDt = dt * heroActionScale();
       h.moveIntent = null;
-      h.atkCd -= dt;
-      h.actCd -= dt;
-      h.coreCd -= dt;
-      h.healCd -= dt;
+      h.atkCd -= actionDt;
+      h.actCd -= actionDt;
+      h.coreCd -= actionDt;
+      h.healCd -= actionDt;
       updateVisualPosition(h, dt);
       h.atkAnim = Math.max(0, (h.atkAnim || 0) - dt);
       h.actionTime = Math.max(0, (h.actionTime || 0) - dt);
@@ -1597,39 +1949,22 @@ export function createGame(options = {}) {
       const monsterTarget = bestMonsterInRange(h);
       if (monsterTarget) faceToward(h, monsterTarget.px, monsterTarget.py);
       if (monsterTarget && h.atkCd <= 0) {
-        h.atkCd = c.atkCd;
-        const ranged = h.range >= 2 || c.areaAttack;
-        setAction(h, ranged ? "cast" : "attack", monsterTarget.px, monsterTarget.py, ATK_ANIM);
-        if (ranged) shoot(h.px, h.py - 6, monsterTarget.px, monsterTarget.py, c.areaAttack ? "#fff0a6" : "#b6a6ff");
-        else slash(monsterTarget.px, monsterTarget.py, "#ffffff");
-        damageMonster(monsterTarget, h.atk, "#fff");
-        if (c.areaAttack) {
-          let extra = 0;
-          const areaDmg = Math.max(1, Math.round(h.atk * (c.areaScale || 0.65)));
-          for (const m of [...monsters]) {
-            if (m === monsterTarget || isMoving(m) || cheb(m, h) > h.range) continue;
-            if (!sameHeroAttackLane(h, monsterTarget, m)) continue;
-            if (!hasLOS(h.col, h.row, m.col, m.row)) continue;
-            shoot(h.px, h.py - 8, m.px, m.py, "#ffe680");
-            damageMonster(m, areaDmg, "#fff0a6");
-            extra++;
-            if (extra >= (c.areaMax || 3)) break;
-          }
-        }
+        performHeroAttack(h, c, monsterTarget);
         continue;
       }
       if (hasAdjacentMonster(h)) {
-        h.blockedMs += dt;
+        h.blockedMs += actionDt;
         if (h.blockedMs > 4500) {
           if (heroMoveCandidates(h).length) h.moveIntent = { kind: "unblock" };
         }
         continue;
       }
       h.blockedMs = 0;
-      if (isCoreAttackCell(h.col, h.row)) {
+      if (canCoreAttackFrom(h.col, h.row)) {
         if (h.coreCd <= 0) {
-          coreHP -= h.atk;
-          popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `-${h.atk}`, "#e0556b");
+          const dmg = heroAttackPower(h);
+          coreHP -= dmg;
+          popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `-${dmg}`, "#e0556b");
           effects.push({ type: "corehit", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#e0556b", life: 420, max: 420 });
           effects.push({ type: "coreShock", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#ff3355", life: 460, max: 460 });
           h.coreCd = 1100;
@@ -1660,6 +1995,48 @@ export function createGame(options = {}) {
     }
   }
 
+  function updatePickups(dt) {
+    for (let i = pickups.length - 1; i >= 0; i--) {
+      const p = pickups[i];
+      p.life -= dt;
+      const taker = monsters.find((m) => !isMoving(m) && cheb(m, p) <= 1);
+      if (taker) {
+        taker.hp = taker.maxHp;
+        taker.nonCombatMs = 0;
+        popDmg(taker.px, taker.py - 8, "全快", "#9effa0");
+        effects.push({ type: "birth", x: taker.px, y: taker.py, life: 260, max: 260, color: "#9effa0" });
+        pickups.splice(i, 1);
+      } else if (p.life <= 0) {
+        pickups.splice(i, 1);
+      }
+    }
+  }
+
+  function updateAmuletPassives(dt) {
+    if (!hasAmulet("cards")) return;
+    for (const m of monsters) {
+      m.nonCombatMs = (m.nonCombatMs || 0) + dt;
+      m.cardsHealCd = Math.max(0, (m.cardsHealCd || 0) - dt);
+      if (m.nonCombatMs < 12000 || m.cardsHealCd > 0 || m.hp >= m.maxHp) continue;
+      const amount = Math.max(1, Math.round(m.maxHp * 0.2));
+      m.hp = Math.min(m.maxHp, m.hp + amount);
+      m.cardsHealCd = 6000;
+      popDmg(m.px, m.py - 10, `+${amount}`, "#9effa0");
+    }
+  }
+
+  function updateMonsterTtl(dt) {
+    for (const m of [...monsters]) {
+      if (!monsters.includes(m) || !m.ttl) continue;
+      m.ttl -= dt;
+      if (m.ttl > 0) continue;
+      const i = monsters.indexOf(m);
+      if (i >= 0) monsters.splice(i, 1);
+      effects.push({ type: "puff", x: m.px, y: m.py, life: 360, max: 360, color: KINDS[m.kind] ? KINDS[m.kind].col : "#cfd8e3" });
+      popDmg(m.px, m.py, "消滅", "#cfd8e3");
+    }
+  }
+
   function updateEffects(dt) {
     for (let i = effects.length - 1; i >= 0; i--) {
       const f = effects[i];
@@ -1672,7 +2049,13 @@ export function createGame(options = {}) {
 
   function update(dt) {
     if (gameState !== "playing") return;
+    updatePowerState(dt);
     if (spawnQueue.length === 0 && heroes.length === 0) {
+      settleWave();
+      if (gameState !== "playing") {
+        updateEffects(dt);
+        return;
+      }
       waveCountdown -= dt;
       if (waveCountdown <= 0) startWave();
     }
@@ -1703,6 +2086,9 @@ export function createGame(options = {}) {
     nutrients += monsterIncomeRate() * (dt / 1000);
     updateMonsters(dt, entryPaused);
     updateHeroes(dt, entryPaused);
+    updatePickups(dt);
+    updateAmuletPassives(dt);
+    updateMonsterTtl(dt);
     updateActorMovement(dt, entryPaused);
     if (heroEntryHold > 0 && !holdStarted) heroEntryHold = Math.max(0, heroEntryHold - dt);
     updateEffects(dt);
@@ -1712,13 +2098,17 @@ export function createGame(options = {}) {
     }
   }
 
-  function resetGame(seed = options.seed ?? autoSeed()) {
+  function resetGame(seed = options.seed ?? autoSeed(), keepPower = false) {
+    const chosenPower = selectedPower;
     random = typeof options.random === "function" ? options.random : mulberry32(seed);
     monsters = [];
     heroes = [];
     eggs = [];
     effects = [];
     spawnQueue = [];
+    pickups = [];
+    amulets = [];
+    pendingAmulets = [];
     nutrients = START_NUT;
     coreHP = CORE_MAX;
     wave = 0;
@@ -1727,6 +2117,9 @@ export function createGame(options = {}) {
     playerDigCount = 0;
     waveCountdown = FIRST_GRACE;
     heroEntryHold = 0;
+    waveSettled = 0;
+    selectedPower = keepPower ? chosenPower : null;
+    powerState = { cooldown: 0, active: 0, mode: null };
     movementTickTimer = 0;
     veinSpawnTimer = 0;
     idc = 0;
@@ -1735,8 +2128,11 @@ export function createGame(options = {}) {
     buildGrid();
   }
 
-  function startGame() {
-    resetGame();
+  function startGame(powerId = selectedPower || "fusion") {
+    const power = POWER_DEFS[powerId] ? powerId : "fusion";
+    selectedPower = power;
+    resetGame(options.seed ?? autoSeed(), true);
+    selectedPower = power;
     gameState = "playing";
   }
 
@@ -1784,6 +2180,11 @@ export function createGame(options = {}) {
     } else if (e.actionType === "dig") {
       power = 6;
       rot = 0.16 * waveSin * Math.sign(dx || 1);
+    } else if (e.actionType === "dodge") {
+      power = -9;
+      yLift = -3;
+      scale = 0.94 + 0.06 * Math.cos(p * Math.PI);
+      rot = -0.18 * waveSin * Math.sign(dx || 1);
     }
     return { x: dx / d * power * waveSin, y: dy / d * power * waveSin + yLift * waveSin, scale, rot };
   }
@@ -1803,6 +2204,9 @@ export function createGame(options = {}) {
     get grid() { return grid; },
     get effects() { return effects; },
     get spawnQueue() { return spawnQueue; },
+    get pickups() { return pickups; },
+    get amulets() { return amulets; },
+    get pendingAmulets() { return pendingAmulets; },
     get unlocked() { return unlocked; },
     get wave() { return wave; },
     set wave(v) { wave = v; },
@@ -1817,32 +2221,37 @@ export function createGame(options = {}) {
     set waveCountdown(v) { waveCountdown = v; },
     get heroEntryHold() { return heroEntryHold; },
     set heroEntryHold(v) { heroEntryHold = v; },
+    get waveSettled() { return waveSettled; },
+    get selectedPower() { return selectedPower; },
+    set selectedPower(v) { selectedPower = POWER_DEFS[v] ? v : null; },
+    get powerState() { return powerState; },
     get gameState() { return gameState; },
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave,
+    choosePower, canActivatePower, activatePower, hasAmulet, applyAmulet,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
-    isHeroEntryZone, isCoreCell, isCoreAttackCell, isMonsterForbiddenCell,
+    isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
-    resolveHeroStats, heroDamageTaken,
-    KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP,
+    resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
+    KINDS, VEIN, HERO_CLASSES, AMULETS, POWER_DEFS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
     PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
 export const Core = {
-  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP,
+  VEIN, KINDS, HERO_CLASSES, AMULETS, POWER_DEFS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
   PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
   PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, heroDigDmg, resolveHeroStats, cx, cy,
 };

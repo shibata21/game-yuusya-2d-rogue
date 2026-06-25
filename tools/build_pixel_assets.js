@@ -7,7 +7,7 @@ const {
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
-const heroNames = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "priest", "saint", "mage", "supermage", "sage"];
+const heroNames = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
 const dirVec = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 const eliteBase = {
   superslime: "slime", crownslime: "slime",
@@ -33,6 +33,8 @@ const monsterPalettes = {
   goldweaver: { dark: "#3e2b18", mid: "#c6952c", light: "#ffe8a0", eye: "#c9ff9a" },
   goldcore: { dark: "#4e3d1b", mid: "#d0a248", light: "#fff2aa", eye: "#fff6d8" },
   whiteflame: { dark: "#154b56", mid: "#f3f7ff", light: "#fff6b7", eye: "#65f4ff" },
+  reaper: { dark: "#121520", mid: "#3b4252", light: "#c9d8e8", eye: "#b7f5ff" },
+  chimera: { dark: "#52251c", mid: "#b65a3b", light: "#ffd08a", eye: "#d8ff68" },
 };
 
 const heroPalettes = {
@@ -47,6 +49,9 @@ const heroPalettes = {
   mage: { dark: "#40205f", mid: "#8a45c4", light: "#e3c0ff", skin: "#e9b58f", metal: "#f0dcff", accent: "#86d8ff", weapon: "staff" },
   supermage: { dark: "#203456", mid: "#4d74c8", light: "#c6dcff", skin: "#e9b58f", metal: "#d8ecff", accent: "#6ff0ff", weapon: "gem_staff" },
   sage: { dark: "#293047", mid: "#91b885", light: "#efffd0", skin: "#e9b58f", metal: "#fff7d0", accent: "#fff06a", weapon: "glow_staff" },
+  max: { dark: "#07080c", mid: "#171b24", light: "#303849", skin: "#d39a73", metal: "#dbe4ef", accent: "#1f1f27", weapon: "fist" },
+  shon: { dark: "#20242f", mid: "#5c6978", light: "#c4d1dd", skin: "#e0aa80", metal: "#e8edf2", accent: "#ffcf4d", weapon: "handgun" },
+  hori: { dark: "#51332b", mid: "#b56f55", light: "#f3c092", skin: "#e3a679", metal: "#d8dde4", accent: "#8ed36f", weapon: "rocket" },
 };
 
 const eggPalette = {
@@ -445,70 +450,128 @@ function drawGolem(img, pal, cx, cy, dx, dy, action, frame) {
 
 function drawDragon(img, pal, cx, cy, dx, dy, action, frame) {
   const flare = action === "attack" || action === "cast" ? frame * 2 : 0;
+  const wingLift = action === "idle" ? [0, -2, 0, 2][frame] : [-1, -3, -5, -2][frame];
+  const fire = action === "attack" || action === "cast";
   if (dx === 0 && dy > 0) {
-    oval(img, cx, cy + 14, 13, 5, "#0c0812", 80);
-    oval(img, cx, cy + 6, 14, 9, pal.dark, 245);
-    oval(img, cx, cy + 2, 11, 8, pal.mid, 245);
-    tri(img, cx - 5, cy + 3, cx - 18, cy - 10 - flare, cx - 10, cy + 10, pal.dark, 220);
-    tri(img, cx - 4, cy + 3, cx - 14, cy - 5 - flare, cx - 8, cy + 8, pal.mid, 205);
-    tri(img, cx + 5, cy + 3, cx + 18, cy - 10 - flare, cx + 10, cy + 10, pal.dark, 220);
-    tri(img, cx + 4, cy + 3, cx + 14, cy - 5 - flare, cx + 8, cy + 8, pal.mid, 205);
-    oval(img, cx, cy - 6, 10, 8, pal.dark, 245);
-    oval(img, cx, cy - 2, 8, 6, pal.mid, 245);
-    oval(img, cx, cy + 2, 6, 4, pal.light, 210);
-    tri(img, cx - 6, cy - 10, cx - 4, cy - 20, cx - 1, cy - 10, pal.light, 220);
-    tri(img, cx + 6, cy - 10, cx + 4, cy - 20, cx + 1, cy - 10, pal.light, 220);
-    drawEye(img, cx - 4, cy - 6, pal);
-    drawEye(img, cx + 4, cy - 6, pal);
-    line(img, cx - 4, cy + 3, cx + 4, cy + 3, pal.eye, 2, 190);
-    line(img, cx - 7, cy + 10, cx - 8, cy + 16, pal.dark, 3, 230);
-    line(img, cx + 7, cy + 10, cx + 8, cy + 16, pal.dark, 3, 230);
-    if (action === "cast" || action === "attack") {
-      tri(img, cx - 4, cy + 5, cx, cy + 16 + flare, cx + 4, cy + 5, pal.light, 180);
-      tri(img, cx - 2, cy + 6, cx, cy + 13 + flare, cx + 2, cy + 6, pal.mid, 205);
+    oval(img, cx, cy + 15, 15, 5, "#0c0812", 80);
+    tri(img, cx - 4, cy + 4, cx - 22, cy - 13 + wingLift, cx - 16, cy + 14, pal.dark, 235);
+    tri(img, cx + 4, cy + 4, cx + 22, cy - 13 + wingLift, cx + 16, cy + 14, pal.dark, 235);
+    tri(img, cx - 7, cy + 4, cx - 17, cy - 6 + wingLift, cx - 11, cy + 12, pal.mid, 205);
+    tri(img, cx + 7, cy + 4, cx + 17, cy - 6 + wingLift, cx + 11, cy + 12, pal.mid, 205);
+    oval(img, cx, cy + 7, 13, 11, pal.dark, 250);
+    oval(img, cx, cy + 4, 10, 9, pal.mid, 245);
+    line(img, cx - 2, cy - 2, cx - 2, cy - 10, pal.dark, 6, 240);
+    line(img, cx + 2, cy - 2, cx + 2, cy - 10, pal.dark, 6, 240);
+    oval(img, cx, cy - 10, 10, 8, pal.dark, 250);
+    oval(img, cx, cy - 7, 8, 6, pal.mid, 245);
+    tri(img, cx - 8, cy - 14, cx - 6, cy - 25, cx - 2, cy - 14, pal.light, 230);
+    tri(img, cx + 8, cy - 14, cx + 6, cy - 25, cx + 2, cy - 14, pal.light, 230);
+    tri(img, cx - 10, cy - 9, cx - 16, cy - 13, cx - 9, cy - 4, pal.dark, 210);
+    tri(img, cx + 10, cy - 9, cx + 16, cy - 13, cx + 9, cy - 4, pal.dark, 210);
+    drawEye(img, cx - 4, cy - 10, pal);
+    drawEye(img, cx + 4, cy - 10, pal);
+    for (const sx of [-6, 6]) {
+      line(img, cx + sx, cy + 12, cx + sx - Math.sign(sx) * 2, cy + 20, pal.dark, 3, 235);
+      diamond(img, cx + sx - Math.sign(sx) * 2, cy + 20, 2, pal.light, 210);
+    }
+    line(img, cx, cy + 13, cx, cy + 23, pal.dark, 4, 235);
+    diamond(img, cx, cy + 24, 2, pal.light, 180);
+    if (fire) {
+      tri(img, cx - 6, cy - 4, cx, cy + 15 + flare, cx + 6, cy - 4, pal.light, 170);
+      tri(img, cx - 3, cy - 3, cx, cy + 11 + flare, cx + 3, cy - 3, pal.mid, 205);
     }
     return;
   }
   if (dx === 0 && dy < 0) {
-    oval(img, cx, cy + 14, 13, 5, "#0c0812", 80);
-    oval(img, cx, cy + 6, 15, 9, pal.dark, 245);
-    oval(img, cx, cy + 2, 12, 7, pal.mid, 245);
-    tri(img, cx - 4, cy + 3, cx - 17, cy - 12 - flare, cx - 9, cy + 10, pal.dark, 225);
-    tri(img, cx - 3, cy + 4, cx - 13, cy - 7 - flare, cx - 7, cy + 8, pal.mid, 205);
-    tri(img, cx + 4, cy + 3, cx + 17, cy - 12 - flare, cx + 9, cy + 10, pal.dark, 225);
-    tri(img, cx + 3, cy + 4, cx + 13, cy - 7 - flare, cx + 7, cy + 8, pal.mid, 205);
-    oval(img, cx, cy - 7, 8, 7, pal.dark, 245);
-    oval(img, cx, cy - 8, 6, 5, pal.mid, 230);
-    tri(img, cx - 6, cy - 10, cx - 4, cy - 20, cx - 1, cy - 10, pal.light, 205);
-    tri(img, cx + 6, cy - 10, cx + 4, cy - 20, cx + 1, cy - 10, pal.light, 205);
-    line(img, cx - 8, cy + 2, cx + 8, cy, pal.light, 2, 110);
-    line(img, cx - 1, cy + 8, cx - 13, cy + 1, pal.dark, 4, 230);
-    diamond(img, cx - 14, cy + 1, 3, pal.light, 165);
-    for (const sx of [-6, 5]) line(img, cx + sx, cy + 10, cx + sx, cy + 16, pal.dark, 3, 230);
+    oval(img, cx, cy + 15, 15, 5, "#0c0812", 80);
+    tri(img, cx - 4, cy + 6, cx - 23, cy - 14 + wingLift, cx - 15, cy + 16, pal.dark, 238);
+    tri(img, cx + 4, cy + 6, cx + 23, cy - 14 + wingLift, cx + 15, cy + 16, pal.dark, 238);
+    tri(img, cx - 6, cy + 6, cx - 17, cy - 7 + wingLift, cx - 10, cy + 13, pal.mid, 205);
+    tri(img, cx + 6, cy + 6, cx + 17, cy - 7 + wingLift, cx + 10, cy + 13, pal.mid, 205);
+    oval(img, cx, cy + 7, 14, 10, pal.dark, 250);
+    oval(img, cx, cy + 3, 10, 8, pal.mid, 235);
+    line(img, cx, cy + 3, cx, cy - 11, pal.dark, 7, 240);
+    oval(img, cx, cy - 12, 8, 6, pal.dark, 248);
+    line(img, cx - 9, cy - 1, cx + 9, cy - 3, pal.light, 2, 130);
+    for (const sx of [-7, 7]) line(img, cx + sx, cy + 13, cx + sx, cy + 20, pal.dark, 3, 230);
+    line(img, cx, cy + 12, cx - 13, cy + 7, pal.dark, 4, 235);
+    diamond(img, cx - 15, cy + 6, 3, pal.light, 170);
     return;
   }
   const faceX = dx || 1;
-  oval(img, cx, cy + 13, 13, 5, "#0c0812", 80);
-  oval(img, cx - faceX * 2, cy + 5, 15, 8, pal.dark, 245);
-  oval(img, cx - faceX, cy + 2, 12, 7, pal.mid, 245);
-  const hx = cx + faceX * (11 + Math.min(2, flare));
-  const hy = cy - 3 + dy * 4;
-  oval(img, hx, hy, 7, 6, pal.dark, 245);
-  oval(img, hx + faceX * 5, hy + 1, 5, 4, pal.mid, 245);
-  tri(img, cx - faceX * 4, cy + 2, cx - faceX * 15, cy - 13 - flare, cx - faceX * 7, cy + 10, pal.dark, 225);
-  tri(img, cx - faceX * 3, cy + 3, cx - faceX * 12, cy - 8 - flare, cx - faceX * 6, cy + 8, pal.mid, 215);
-  tri(img, cx + faceX * 2, cy + 2, cx + faceX * 10, cy - 12 - flare, cx + faceX * 7, cy + 9, pal.dark, 205);
-  tri(img, cx + faceX * 3, cy + 3, cx + faceX * 8, cy - 7 - flare, cx + faceX * 7, cy + 8, pal.mid, 195);
-  line(img, cx - faceX * 12, cy + 4, cx - faceX * 19, cy + 1 - dy * 3, pal.dark, 4, 235);
-  diamond(img, cx - faceX * 20, cy + 1 - dy * 3, 3, pal.light, 170);
-  for (const sx of [-6, 5]) line(img, cx + sx, cy + 10, cx + sx + faceX * 3, cy + 16, pal.dark, 3, 230);
-  tri(img, hx - faceX * 4, hy - 4, hx - faceX * 2, hy - 13, hx + faceX, hy - 4, pal.light, 220);
-  tri(img, hx + faceX * 2, hy - 4, hx + faceX * 4, hy - 12, hx + faceX * 8, hy - 4, pal.light, 205);
-  line(img, hx + faceX * 4, hy + 3, hx + faceX * 9, hy + 2, pal.light, 2, 190);
-  if (dy >= 0) drawEye(img, hx + faceX * 4, hy - 2, pal);
-  if (action === "cast" || action === "attack") {
-    tri(img, hx + faceX * 8, hy + 3, hx + faceX * (16 + flare), hy - 3, hx + faceX * (15 + flare), hy + 8, pal.light, 185);
-    tri(img, hx + faceX * 10, hy + 3, hx + faceX * (14 + flare), hy + 1, hx + faceX * (14 + flare), hy + 6, pal.mid, 200);
+  oval(img, cx, cy + 15, 15, 5, "#0c0812", 80);
+  tri(img, cx - faceX * 4, cy + 3, cx - faceX * 8, cy - 16 + wingLift, cx + faceX * 8, cy + 9, pal.dark, 238);
+  tri(img, cx - faceX * 2, cy + 4, cx - faceX * 6, cy - 9 + wingLift, cx + faceX * 6, cy + 8, pal.mid, 205);
+  tri(img, cx + faceX * 2, cy + 4, cx + faceX * 13, cy - 13 + wingLift, cx + faceX * 10, cy + 10, pal.dark, 215);
+  tri(img, cx + faceX * 3, cy + 5, cx + faceX * 10, cy - 7 + wingLift, cx + faceX * 8, cy + 8, pal.mid, 195);
+  oval(img, cx - faceX * 3, cy + 7, 15, 9, pal.dark, 250);
+  oval(img, cx - faceX * 2, cy + 4, 12, 7, pal.mid, 240);
+  line(img, cx + faceX * 5, cy + 1, cx + faceX * 14, cy - 5 + dy * 3, pal.dark, 6, 240);
+  line(img, cx + faceX * 7, cy + 1, cx + faceX * 15, cy - 4 + dy * 3, pal.mid, 3, 220);
+  const hx = cx + faceX * (17 + Math.min(2, flare));
+  const hy = cy - 5 + dy * 4;
+  oval(img, hx, hy, 8, 6, pal.dark, 250);
+  oval(img, hx + faceX * 6, hy + 1, 6, 4, pal.mid, 245);
+  tri(img, hx - faceX * 4, hy - 5, hx - faceX * 2, hy - 15, hx + faceX, hy - 5, pal.light, 225);
+  tri(img, hx + faceX * 2, hy - 5, hx + faceX * 5, hy - 14, hx + faceX * 9, hy - 5, pal.light, 210);
+  line(img, hx + faceX * 4, hy + 3, hx + faceX * 11, hy + 2, pal.light, 2, 200);
+  line(img, cx - faceX * 14, cy + 6, cx - faceX * 22, cy + 2 - dy * 3, pal.dark, 5, 240);
+  diamond(img, cx - faceX * 23, cy + 2 - dy * 3, 3, pal.light, 180);
+  for (const sx of [-7, 5]) {
+    const lx = cx + sx - faceX * 2;
+    line(img, lx, cy + 12, lx + faceX * 3, cy + 20, pal.dark, 3, 235);
+    diamond(img, lx + faceX * 3, cy + 20, 2, pal.light, 205);
+  }
+  if (dy >= 0) drawEye(img, hx + faceX * 5, hy - 2, pal);
+  if (fire) {
+    tri(img, hx + faceX * 10, hy + 3, hx + faceX * (23 + flare), hy - 5, hx + faceX * (21 + flare), hy + 9, pal.light, 175);
+    tri(img, hx + faceX * 12, hy + 3, hx + faceX * (19 + flare), hy, hx + faceX * (19 + flare), hy + 6, pal.mid, 205);
+  }
+}
+
+function drawReaper(img, pal, cx, cy, dx, dy, action, frame) {
+  const swing = action === "attack" || action === "cast" ? [-4, 0, 5, 1][frame] : 0;
+  const faceX = dx || 1;
+  oval(img, cx, cy + 17, 13, 4, "#0c0812", 80);
+  tri(img, cx - 13, cy + 19, cx, cy - 13, cx + 13, cy + 19, "#07080c", 250);
+  tri(img, cx - 9, cy + 17, cx + dx * 2, cy - 9, cx + 9, cy + 17, pal.mid, 170);
+  oval(img, cx + dx * 2, cy - 10 + dy * 2, 8, 8, pal.light, 245);
+  rect(img, cx - 6 + dx * 2, cy - 10 + dy * 2, 12, 5, "#f2f7ff", 235);
+  rect(img, cx - 5 + dx * 2, cy - 8 + dy * 2, 10, 5, "#141822", 230);
+  rect(img, cx - 4 + dx * 2, cy - 8 + dy * 2, 3, 2, pal.eye, 245);
+  rect(img, cx + 1 + dx * 2, cy - 8 + dy * 2, 3, 2, pal.eye, 245);
+  line(img, cx + faceX * 8, cy + 8, cx + faceX * (13 + swing), cy - 18, "#6f7682", 3, 245);
+  line(img, cx + faceX * (13 + swing), cy - 18, cx + faceX * (25 + swing), cy - 16, "#e8f1ff", 3, 230);
+  line(img, cx + faceX * (23 + swing), cy - 16, cx + faceX * (17 + swing), cy - 8, "#e8f1ff", 2, 220);
+  if (action === "cast") {
+    diamond(img, cx - faceX * 8, cy - 4, 5 + frame, pal.eye, 150);
+    line(img, cx - faceX * 6, cy - 3, cx - faceX * 15, cy - 12, pal.eye, 1, 150);
+  }
+}
+
+function drawChimera(img, pal, cx, cy, dx, dy, action, frame) {
+  const bite = action === "attack" || action === "eat" ? [0, 2, 4, 1][frame] : 0;
+  const faceX = dx || 1;
+  oval(img, cx, cy + 16, 18, 5, "#0c0812", 85);
+  oval(img, cx - faceX * 2, cy + 7, 17, 10, pal.dark, 250);
+  oval(img, cx - faceX * 1, cy + 4, 14, 8, pal.mid, 240);
+  tri(img, cx - faceX * 4, cy + 2, cx - faceX * 15, cy - 11, cx - faceX * 10, cy + 11, "#4b2c58", 230);
+  tri(img, cx + faceX * 3, cy + 2, cx + faceX * 13, cy - 9, cx + faceX * 10, cy + 10, "#6d3a42", 220);
+  const hx = cx + faceX * (14 + bite);
+  const hy = cy - 3 + dy * 3;
+  oval(img, hx, hy, 8, 7, "#5f2020", 250);
+  oval(img, hx + faceX * 6, hy + 1, 6, 4, "#e06b3a", 245);
+  tri(img, hx - faceX * 4, hy - 5, hx - faceX, hy - 14, hx + faceX * 2, hy - 5, pal.light, 220);
+  drawEye(img, hx + faceX * 4, hy - 2, { eye: pal.eye });
+  const sx = cx - faceX * 8;
+  oval(img, sx, cy - 6, 7, 6, "#4a286d", 235);
+  rect(img, sx - 3, cy - 8, 2, 2, "#adff8e", 245);
+  rect(img, sx + 2, cy - 8, 2, 2, "#adff8e", 245);
+  line(img, cx - faceX * 14, cy + 7, cx - faceX * 23, cy + 3 - dy * 3, pal.dark, 5, 240);
+  diamond(img, cx - faceX * 24, cy + 3 - dy * 3, 3, pal.light, 180);
+  for (const lx of [-8, 5]) {
+    line(img, cx + lx, cy + 13, cx + lx + faceX * 3, cy + 21, pal.dark, 3, 235);
+    diamond(img, cx + lx + faceX * 3, cy + 21, 2, pal.light, 200);
   }
 }
 
@@ -525,6 +588,8 @@ function drawMonster(img, name, action, dir, frame) {
   else if (base === "spitter") drawSpider(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "golem") drawGolem(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "flame") drawDragon(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "reaper") drawReaper(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "chimera") drawChimera(img, pal, cx, cy, dx, dy, action, frame);
 }
 
 function drawSword(img, cx, cy, dx, dy, frame, pal) {
@@ -610,6 +675,48 @@ function drawPickaxe(img, cx, cy, dx, dy, frame, pal) {
   line(img, headX + fx * 5, headY + 1, headX + fx * 7, headY + 4, pal.metal, 2, 235);
 }
 
+function drawFist(img, cx, cy, dx, dy, frame, pal) {
+  const fx = dx || 1;
+  const jab = [0, 2, 6, 2][frame];
+  line(img, cx + fx * 5, cy + 1, cx + fx * (13 + jab), cy - 2 + dy * 3, pal.skin, 4, 245);
+  oval(img, cx + fx * (16 + jab), cy - 2 + dy * 3, 5, 4, pal.skin, 245);
+  line(img, cx - fx * 5, cy + 2, cx - fx * 11, cy + 8, pal.skin, 4, 230);
+  if (frame >= 2) {
+    diamond(img, cx + fx * (23 + jab), cy - 2 + dy * 3, 3, "#fff4d0", 180);
+    line(img, cx + fx * (19 + jab), cy - 6 + dy * 3, cx + fx * (25 + jab), cy - 9 + dy * 3, "#ffcf4d", 1, 150);
+  }
+}
+
+function drawHandgun(img, cx, cy, dx, dy, frame, pal) {
+  const fx = dx || 1;
+  const recoil = frame >= 2 ? -2 : 0;
+  const gx = cx + fx * (12 + recoil);
+  const gy = cy - 5 + dy * 4;
+  line(img, cx + fx * 5, cy, gx, gy, pal.skin, 3, 235);
+  rect(img, gx - (fx < 0 ? 9 : 0), gy - 3, 9, 5, "#171b22", 245);
+  rect(img, gx + fx * 7 - (fx < 0 ? 5 : 0), gy - 2, 7, 3, pal.metal, 235);
+  rect(img, gx - (fx < 0 ? 2 : 0), gy + 1, 3, 6, "#0b0d12", 245);
+  if (frame >= 2) {
+    diamond(img, gx + fx * 16, gy - 1, 3, "#fff1a6", 220);
+    line(img, gx + fx * 10, gy - 1, gx + fx * 18, gy - 1, "#ffcf4d", 1, 150);
+  }
+}
+
+function drawRocketLauncher(img, cx, cy, dx, dy, frame, pal) {
+  const fx = dx || 1;
+  const lift = frame >= 2 ? -2 : 0;
+  const bx = cx + fx * 2;
+  const by = cy - 6 + dy * 5 + lift;
+  line(img, cx - fx * 7, cy + 4, bx, by, pal.skin, 3, 230);
+  line(img, bx - fx * 12, by, bx + fx * 15, by - 3, "#29313c", 8, 245);
+  line(img, bx - fx * 10, by, bx + fx * 13, by - 3, pal.metal, 4, 235);
+  tri(img, bx + fx * 15, by - 3, bx + fx * 21, by - 8, bx + fx * 21, by + 2, "#cfd8e3", 230);
+  if (frame >= 2) {
+    tri(img, bx + fx * 23, by - 3, bx + fx * 31, by - 11, bx + fx * 31, by + 5, "#ffcf4d", 180);
+    tri(img, bx + fx * 25, by - 3, bx + fx * 29, by - 7, bx + fx * 29, by + 1, "#ff5a28", 220);
+  }
+}
+
 function drawStaff(img, cx, cy, dx, dy, frame, pal, variant) {
   const fx = dx || 1;
   const lift = variant === "heal" || variant === "saint" || variant === "glow" ? frame * 2 : frame;
@@ -685,17 +792,61 @@ function drawArmoredBody(img, name, pal, cx, cy, dx, dy, action, frame, caster) 
   if (action === "idle") diamond(img, cx + ((frame % 2) ? 8 : -8), cy - 4, 1, shine, 90);
 }
 
+function drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame) {
+  const headX = cx + dx * 3;
+  const headY = cy - 12 + dy * 2;
+  oval(img, cx, cy + 17, name === "hori" ? 15 : 12, 4, "#0c0812", 80);
+  rect(img, cx - 5, cy + 9, 5, 11, name === "max" ? "#08090d" : pal.dark, 245);
+  rect(img, cx + 1, cy + 9, 5, 11, name === "max" ? "#08090d" : pal.dark, 245);
+  if (name === "hori") {
+    oval(img, cx, cy + 4, 14, 13, pal.dark, 245);
+    oval(img, cx, cy + 2, 12, 11, pal.mid, 235);
+    rect(img, cx - 10, cy - 2, 20, 7, "#f0f4fa", 190);
+  } else if (name === "max") {
+    tri(img, cx - 11, cy + 15, cx, cy - 8, cx + 11, cy + 15, "#05060a", 250);
+    tri(img, cx - 8, cy + 14, cx + dx * 2, cy - 5, cx + 8, cy + 14, pal.mid, 220);
+    line(img, cx - 8, cy + 1, cx + 8, cy + 1, "#303849", 2, 190);
+  } else {
+    oval(img, cx, cy + 4, 11, 12, pal.dark, 245);
+    rect(img, cx - 9, cy - 5, 18, 20, pal.mid, 235);
+    line(img, cx - 8, cy - 3, cx + 8, cy + 4, pal.light, 2, 150);
+  }
+  oval(img, headX, headY, name === "hori" ? 9 : 8, 8, pal.skin, 245);
+  if (name === "max") {
+    rect(img, headX - 8, headY - 4, 16, 5, "#05060a", 245);
+    rect(img, headX - 6, headY - 2 + dy, 5, 2, "#0a0b10", 255);
+    rect(img, headX + 1, headY - 2 + dy, 5, 2, "#0a0b10", 255);
+  } else if (name === "shon") {
+    rect(img, headX - 7, headY - 8, 14, 5, "#2f3540", 230);
+    rect(img, headX - 4, headY - 1 + dy, 3, 2, "#171b24", 230);
+    rect(img, headX + 2, headY - 1 + dy, 3, 2, "#171b24", 230);
+  } else {
+    rect(img, headX - 8, headY - 11, 16, 5, "#d9c18a", 245);
+    rect(img, headX - 7, headY - 8, 14, 3, "#d9c18a", 230);
+    rect(img, headX - 4, headY - 1 + dy, 3, 2, "#171b24", 230);
+    rect(img, headX + 2, headY - 1 + dy, 3, 2, "#171b24", 230);
+  }
+  rect(img, cx - 12 - dx * 2, cy + 1, 5, 11, pal.skin, 235);
+  rect(img, cx + 7 + dx * 2, cy + 1, 5, 11, pal.skin, 235);
+  if (action === "dodge") {
+    line(img, cx - 13, cy + 16, cx - 20, cy + 18, "#9fe8ff", 1, 150);
+    line(img, cx + 12, cy + 12, cx + 20, cy + 8, "#9fe8ff", 1, 145);
+  }
+}
+
 function drawHero(img, name, action, dir, frame) {
   const pal = heroPalettes[name] || heroPalettes.warrior;
   const [dx, dy] = dirVec[dir];
   const weapon = pal.weapon || "sword";
   const caster = ["priest", "saint", "mage", "supermage", "sage"].includes(name);
   const bob = action === "idle" ? [0, -1, 0, 1][frame] : [0, 1, 2, 1][frame];
-  const lunge = action === "dig" ? [0, 1, 3, 1][frame] : 0;
+  const lunge = action === "dig" ? [0, 1, 3, 1][frame] : (action === "dodge" ? [0, -1, -3, -1][frame] : 0);
   const lift = (action === "cast" || action === "heal") ? [0, -1, -3, -1][frame] : 0;
   const cx = 24 + dx * lunge;
   const cy = 23 + bob + lift + dy * Math.min(2, lunge);
-  drawArmoredBody(img, name, pal, cx, cy, dx, dy, action, frame, caster);
+  const modern = ["max", "shon", "hori"].includes(name);
+  if (modern) drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame);
+  else drawArmoredBody(img, name, pal, cx, cy, dx, dy, action, frame, caster);
   if (action === "dig") {
     drawPickaxe(img, cx, cy, dx, dy, frame, pal);
     if (weapon === "greatshield") drawShield(img, cx, cy, dx, dy, pal, "great", Math.max(1, frame - 1));
@@ -722,6 +873,16 @@ function drawHero(img, name, action, dir, frame) {
     drawStaff(img, cx, cy, dx, dy, action === "cast" ? frame : 1, pal, "gem");
   } else if (weapon === "glow_staff") {
     drawStaff(img, cx, cy, dx, dy, action === "cast" ? frame : 1, pal, "glow");
+  } else if (weapon === "fist") {
+    drawFist(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
+  } else if (weapon === "handgun") {
+    drawHandgun(img, cx, cy, dx, dy, action === "attack" || action === "cast" ? frame : 0, pal);
+  } else if (weapon === "rocket") {
+    if (action === "attack") drawFist(img, cx, cy, dx, dy, frame, pal);
+    else if (action === "eat") {
+      oval(img, cx + (dx || 1) * 10, cy - 4 + dy * 4, 5, 7, "#8ed36f", 245);
+      line(img, cx + (dx || 1) * 10, cy - 10 + dy * 4, cx + (dx || 1) * 14, cy - 14 + dy * 4, "#6fb85a", 2, 230);
+    } else drawRocketLauncher(img, cx, cy, dx, dy, action === "cast" ? frame : 0, pal);
   } else {
     drawSword(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
   }
