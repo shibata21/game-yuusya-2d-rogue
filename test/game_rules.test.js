@@ -464,7 +464,7 @@ describe("ゲームルール", () => {
     expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
     expect(G.occupied(5, 5)).toBe(false);
     expect(G.eggOccupied(5, 5)).toBe(true);
-    const adventurer = hero("warrior", 5, 4, { actCd: 0, atkCd: 999999 });
+    const adventurer = hero("warrior", 5, 4, { actCd: 0, atkCd: 999999, moveCharge: 1 });
     G.heroes.push(adventurer);
     G.update(100);
     expect(adventurer.col).toBe(5);
@@ -829,29 +829,50 @@ describe("ゲームルール", () => {
     expect(G.reachableMonsterCells(1, 5).some((cell) => cell.col === 8 && cell.row === 5)).toBe(true);
   });
 
-  it("モンスター同士は同じマスに滞在せず位置交換ですれ違う", () => {
+  it("予約制移動では空く予定のマスへ隊列移動できる", () => {
     for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
-    for (const c of [5, 6, 7, 8]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
+    for (const c of [5, 6, 7]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
     G.spawnMonster("carniv", 5, 5);
     G.spawnMonster("slime", 6, 5);
     const hunter = G.monsters[0];
     const blocker = G.monsters[1];
-    G.heroes.push(hero("warrior", 8, 5, { actCd: 999999, atkCd: 999999 }));
-    hunter.moveCd = 0;
+    hunter.wanderTarget = { col: 7, row: 5 };
+    blocker.wanderTarget = { col: 7, row: 5 };
+    hunter.moveCharge = 1;
+    blocker.moveCharge = 1;
     hunter.eatCd = 999999;
-    blocker.moveCd = 999999;
     blocker.eatCd = 999999;
     G.update(100);
     expect(hunter.col).toBe(6);
     expect(hunter.row).toBe(5);
-    expect(blocker.col).toBe(5);
+    expect(blocker.col).toBe(7);
     expect(blocker.row).toBe(5);
     expect(new Set(G.monsters.map((m) => `${m.col},${m.row}`)).size).toBe(G.monsters.length);
     expect(hunter.moveAnim).toBeGreaterThan(0);
     expect(blocker.moveAnim).toBeGreaterThan(0);
   });
 
-  it("攻撃射程内の魔物は他魔物との位置交換で攻撃位置を譲らない", () => {
+  it("予約制移動では直接の位置交換を採用しない", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    for (const c of [5, 6]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
+    G.spawnMonster("slime", 5, 5);
+    G.spawnMonster("slime", 6, 5);
+    const left = G.monsters[0];
+    const right = G.monsters[1];
+    left.wanderTarget = { col: 6, row: 5 };
+    right.wanderTarget = { col: 5, row: 5 };
+    left.moveCharge = 1;
+    right.moveCharge = 1;
+    left.eatCd = 999999;
+    right.eatCd = 999999;
+    G.update(100);
+    expect(left.col).toBe(5);
+    expect(right.col).toBe(6);
+    expect(left.moveWait).toBeGreaterThan(0);
+    expect(right.moveWait).toBeGreaterThan(0);
+  });
+
+  it("攻撃射程内の魔物は予約制移動でも攻撃位置を譲らない", () => {
     for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
     for (const c of [5, 6, 7]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
     G.spawnMonster("carniv", 5, 5);
@@ -1043,7 +1064,10 @@ describe("ゲームルール", () => {
       G.heroes.push(hero("warrior", col, row, { actCd: 0, atkCd: 999999 }));
     }
     for (let i = 0; i < 12; i++) {
-      for (const h of G.heroes) h.actCd = 0;
+      for (const h of G.heroes) {
+        h.actCd = 0;
+        h.moveCharge = 1;
+      }
       G.update(120);
       for (const h of G.heroes) {
         h.moveAnim = 0;
@@ -1173,6 +1197,7 @@ describe("ゲームルール", () => {
     expect(G.FIRST_GRACE).toBe(27000);
     expect(G.WAVE_INTERVAL).toBe(10000);
     expect(G.HERO_ENTRY_HOLD).toBe(500);
+    expect(G.MOVEMENT_TICK).toBe(100);
     expect(G.HEROES_PER_WAVE_CAP).toBe(5);
     expect(G.VEIN_SPAWN_TICK).toBe(1000);
     expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0006);

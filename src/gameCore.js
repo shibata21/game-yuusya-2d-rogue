@@ -22,6 +22,7 @@ export const WAVE_INTERVAL = 10000;
 export const FIRST_GRACE = 27000;
 export const HERO_STAGGER = 520;
 export const HERO_ENTRY_HOLD = 500;
+export const MOVEMENT_TICK = 100;
 export const VEIN_CAP = 44;
 export const VEIN_SPAWN_TICK = 1000;
 export const VEIN_SPAWN_BASE_CHANCE = 0.0006;
@@ -164,6 +165,7 @@ export function createGame(options = {}) {
   let playerDigCount = 0;
   let waveCountdown = FIRST_GRACE;
   let heroEntryHold = 0;
+  let movementTickTimer = 0;
   let veinSpawnTimer = 0;
   let idc = 0;
   let gameState = "title";
@@ -382,6 +384,12 @@ export function createGame(options = {}) {
       heroes.some((h) => h.col === col && h.row === row);
   }
 
+  function actorAt(col, row, except = null) {
+    return monsters.find((m) => m !== except && m.col === col && m.row === row) ||
+      heroes.find((h) => h !== except && h.col === col && h.row === row) ||
+      null;
+  }
+
   function monsterAt(col, row, except = null) {
     return monsters.find((m) => m !== except && m.col === col && m.row === row) || null;
   }
@@ -552,7 +560,7 @@ export function createGame(options = {}) {
     monsters.push({
       id: ++idc, kind, col, row, px: cx(col), py: cy(row), bob: rnd(0, 6.28), faceDir: spawnFaceDir(col, row),
       homeCol: col, homeRow: row, hp: k.hp, maxHp: k.hp, atk: k.atk, range: k.range,
-      moveCd: rnd(0, k.moveCd), atkCd: 0, eggCd: EGG_CHECK * rnd(0.7, 1.3), eatCd: EAT_CHECK * rnd(0.6, 1.2),
+      moveCd: k.moveCd, moveCharge: rnd(0, 0.35), moveWait: 0, moveIntent: null, atkCd: 0, eggCd: EGG_CHECK * rnd(0.7, 1.3), eatCd: EAT_CHECK * rnd(0.6, 1.2),
       breedCd: k.breedEvery ? k.breedEvery * rnd(0.6, 1.2) : 0, breedLeft: k.breedEvery ? BREED_LIMIT : 0,
       prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
     });
@@ -779,7 +787,7 @@ export function createGame(options = {}) {
     const stats = resolveHeroStats(cls, wave);
     heroes.push({
       id: ++idc, cls, col, row, px: cx(col), py: cy(row), faceDir: "s",
-      hp: stats.hp, maxHp: stats.hp, atk: stats.atk, defense: stats.defense, range: stats.range, wave, moveCd: Math.round(720 * c.moveMul), atkCd: 0,
+      hp: stats.hp, maxHp: stats.hp, atk: stats.atk, defense: stats.defense, range: stats.range, wave, moveCd: Math.round(720 * c.moveMul), moveCharge: 0, moveWait: 0, moveIntent: null, atkCd: 0,
       coreCd: 0, actCd: 300, healCd: 800, blockedMs: 0, atkAnim: 0, atkTX: 0, atkTY: 0,
       bob: rnd(0, 6.28), actionType: "idle", actionTime: 0, moveAnim: 0,
     });
@@ -930,45 +938,6 @@ export function createGame(options = {}) {
     return e.prevCol === cell.col && e.prevRow === cell.row;
   }
 
-  function canSwapMonsters(a, b) {
-    if (!a || !b || a === b || !a.kind || !b.kind) return false;
-    if (isMoving(a) || isMoving(b)) return false;
-    if (cardinalDist(a, b) !== 1) return false;
-    if (isMonsterForbiddenCell(a.col, a.row) || isMonsterForbiddenCell(b.col, b.row)) return false;
-    if (!OPEN.has(grid[a.row][a.col].t) || !OPEN.has(grid[b.row][b.col].t)) return false;
-    if (heroOccupied(a.col, a.row) || heroOccupied(b.col, b.row)) return false;
-    if (monsterHasAttackableHero(a) || monsterHasAttackableHero(b)) return false;
-    return true;
-  }
-
-  function swapMoveCooldown(e) {
-    const k = KINDS[e.kind];
-    if (!k) return;
-    e.moveCd = Math.max(e.moveCd || 0, Math.round(k.moveCd * rnd(0.45, 0.75)));
-  }
-
-  function swapMonsters(a, b) {
-    if (!canSwapMonsters(a, b)) return false;
-    const aCol = a.col;
-    const aRow = a.row;
-    const bCol = b.col;
-    const bRow = b.row;
-    beginMove(a, bCol, bRow);
-    beginMove(b, aCol, aRow);
-    swapMoveCooldown(b);
-    return true;
-  }
-
-  function swappableMonsterNeighbors(m) {
-    const out = [];
-    for (const n of openNeighbors(m.col, m.row)) {
-      if (isMonsterForbiddenCell(n.col, n.row)) continue;
-      const other = monsterAt(n.col, n.row, m);
-      if (other && canSwapMonsters(m, other)) out.push({ col: n.col, row: n.row, swapWith: other });
-    }
-    return out;
-  }
-
   function moveScore(e, n, t, opts = {}) {
     const d = cheb(n, t);
     const card = cardinalDist(n, t);
@@ -980,33 +949,8 @@ export function createGame(options = {}) {
     if (opts.preferLos && opts.attackRange && d <= opts.attackRange && !canAttack) score += 40;
     if (e.dirX === Math.sign(n.col - e.col) && e.dirY === Math.sign(n.row - e.row)) score -= 1;
     if (isPrevCell(e, n) && d >= currentD && card >= currentCard) score += 44;
-    if (n.swapWith) score += 18;
     if (opts.homeLimit && e.homeCol !== undefined && cheb(n, { col: e.homeCol, row: e.homeRow }) > opts.homeLimit) score += 12;
     return score;
-  }
-
-  function applyMoveCandidate(e, candidate) {
-    if (!candidate) return false;
-    if (candidate.swapWith) return swapMonsters(e, candidate.swapWith);
-    beginMove(e, candidate.col, candidate.row);
-    return true;
-  }
-
-  function moveToward(e, t, opts = {}) {
-    const free = openFreeNeighbors(e.col, e.row);
-    const swaps = e.kind ? swappableMonsterNeighbors(e) : [];
-    const candidates = free.concat(swaps);
-    if (!candidates.length) return false;
-    let best = candidates[0];
-    let bestScore = Infinity;
-    for (const n of candidates) {
-      const score = moveScore(e, n, t, opts);
-      if (score < bestScore) {
-        best = n;
-        bestScore = score;
-      }
-    }
-    return applyMoveCandidate(e, best);
   }
 
   function monsterOpenCell(col, row) {
@@ -1075,48 +1019,6 @@ export function createGame(options = {}) {
       if (!p) return null;
       if (p.col === m.col && p.row === m.row) return step;
       step = p;
-    }
-  }
-
-  function applyMonsterStep(m, step) {
-    if (!step) return false;
-    const other = monsterAt(step.col, step.row, m);
-    if (other) return swapMonsters(m, other);
-    if (actorOccupied(step.col, step.row)) return false;
-    beginMove(m, step.col, step.row);
-    return true;
-  }
-
-  function wanderHome(m) {
-    const free = openFreeNeighbors(m.col, m.row);
-    const fresh = free.filter((n) => !isPrevCell(m, n));
-    if (free.length && free.every((n) => isPrevCell(m, n)) && random() < 0.58) return;
-    if (!validWanderTarget(m) || (m.wanderTarget.col === m.col && m.wanderTarget.row === m.row)) chooseWanderTarget(m);
-    const step = firstMonsterStepToward(m, m.wanderTarget);
-    if (step) {
-      if (isPrevCell(m, step) && fresh.length && random() < 0.82) {
-        const n = fresh[ri(0, fresh.length - 1)];
-        beginMove(m, n.col, n.row);
-        return;
-      }
-      if (applyMonsterStep(m, step)) return;
-      m.wanderTarget = null;
-    }
-    if (fresh.length && random() < 0.82) {
-      const n = fresh[ri(0, fresh.length - 1)];
-      beginMove(m, n.col, n.row);
-      return;
-    }
-    if (free.length) {
-      if (random() < 0.82) {
-        const n = free[ri(0, free.length - 1)];
-        beginMove(m, n.col, n.row);
-      }
-      return;
-    }
-    const swaps = swappableMonsterNeighbors(m);
-    if (swaps.length && random() < 0.55) {
-      applyMoveCandidate(m, swaps[ri(0, swaps.length - 1)]);
     }
   }
 
@@ -1357,7 +1259,7 @@ export function createGame(options = {}) {
     return true;
   }
 
-  function heroStep(h) {
+  function heroPathCandidates(h, opts = {}) {
     const n = COLS * ROWS;
     const dist = new Float64Array(n);
     const done = new Uint8Array(n);
@@ -1365,7 +1267,7 @@ export function createGame(options = {}) {
     const idx = (c, r) => r * COLS + c;
     const canPath = (col, row) => inBounds(col, row) && !isCoreCell(col, row) && grid[row][col].t !== "bedrock";
     const goals = coreAttackCells().filter((p) => canPath(p.col, p.row));
-    if (!goals.length) return null;
+    if (!goals.length) return [];
     for (const g of goals) dist[idx(g.col, g.row)] = 0;
     while (true) {
       let u = -1;
@@ -1389,21 +1291,199 @@ export function createGame(options = {}) {
         }
       }
     }
-    let bestStep = null;
-    let bestScore = Infinity;
+    const out = [];
     for (const [dc, dr] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
       const col = h.col + dc;
       const row = h.row + dr;
       if (!canPath(col, row)) continue;
       const tile = grid[row][col];
-      if (OPEN.has(tile.t) && actorOccupied(col, row)) continue;
+      if (tile.t === "earth" && opts.allowEarth === false) continue;
+      if (OPEN.has(tile.t) && !opts.includeOccupied && actorOccupied(col, row)) continue;
       const score = dist[idx(col, row)] + (tile.t === "earth" ? 0.2 : 0);
-      if (score < bestScore) {
-        bestScore = score;
-        bestStep = { col, row, tile };
+      if (score < Infinity) out.push({ col, row, tile, score });
+    }
+    out.sort((a, b) => a.score - b.score || a.row - b.row || a.col - b.col);
+    return out;
+  }
+
+  function heroStep(h) {
+    return heroPathCandidates(h, { allowEarth: true, includeOccupied: false })[0] || null;
+  }
+
+  function cellKey(col, row) {
+    return `${col},${row}`;
+  }
+
+  function actorMoveInterval(e) {
+    const base = e.moveCd || (e.kind && KINDS[e.kind] && KINDS[e.kind].moveCd) || MOVEMENT_TICK;
+    return Math.max(MOVEMENT_TICK, Math.round(base));
+  }
+
+  function actorCanMoveTo(e, col, row) {
+    if (!inBounds(col, row)) return false;
+    if (e.kind) return monsterOpenCell(col, row);
+    if (e.cls) return OPEN.has(grid[row][col].t) && !isCoreCell(col, row);
+    return false;
+  }
+
+  function addUniqueCandidate(out, seen, col, row, score) {
+    const key = cellKey(col, row);
+    if (seen.has(key)) return;
+    seen.add(key);
+    out.push({ col, row, tile: grid[row][col], score });
+  }
+
+  function monsterChaseCandidates(m, intent) {
+    const target = intent && intent.target;
+    if (!target) return [];
+    const out = [];
+    const seen = new Set();
+    for (const n of openNeighbors(m.col, m.row)) {
+      if (!actorCanMoveTo(m, n.col, n.row)) continue;
+      const score = moveScore(m, n, target, intent.opts || {});
+      addUniqueCandidate(out, seen, n.col, n.row, score);
+    }
+    out.sort((a, b) => a.score - b.score || a.row - b.row || a.col - b.col);
+    return out.slice(0, 4);
+  }
+
+  function monsterWanderCandidates(m) {
+    const neighbors = openNeighbors(m.col, m.row).filter((n) => actorCanMoveTo(m, n.col, n.row));
+    if (neighbors.length && neighbors.every((n) => isPrevCell(m, n)) && random() < 0.58) return [];
+    if (!validWanderTarget(m) || (m.wanderTarget.col === m.col && m.wanderTarget.row === m.row)) chooseWanderTarget(m);
+    const out = [];
+    const seen = new Set();
+    const step = firstMonsterStepToward(m, m.wanderTarget);
+    if (step && actorCanMoveTo(m, step.col, step.row)) addUniqueCandidate(out, seen, step.col, step.row, 0);
+    for (const n of neighbors) {
+      const backtrack = isPrevCell(m, n) ? 70 : 0;
+      const targetCost = m.wanderTarget ? cardinalDist(n, m.wanderTarget) * 8 : 20;
+      addUniqueCandidate(out, seen, n.col, n.row, 60 + backtrack + targetCost + rnd(0, 3));
+    }
+    out.sort((a, b) => a.score - b.score || a.row - b.row || a.col - b.col);
+    return out.slice(0, 4);
+  }
+
+  function heroMoveCandidates(h) {
+    return heroPathCandidates(h, { allowEarth: false, includeOccupied: true })
+      .filter((n) => actorCanMoveTo(h, n.col, n.row))
+      .slice(0, 4);
+  }
+
+  function movementPriority(e, intent) {
+    if (!intent) return 0;
+    let base = 0;
+    if (e.kind && intent.kind === "chase") base = 80;
+    else if (e.cls && intent.kind === "unblock") base = 75;
+    else if (e.cls) base = 60;
+    else if (e.kind) base = 20;
+    return base + Math.min(30, Math.floor((e.moveWait || 0) / 300));
+  }
+
+  function buildMoveRequest(e) {
+    if (!e.moveIntent || isMoving(e) || (e.moveCharge || 0) < 1) return null;
+    const candidates = e.kind
+      ? (e.moveIntent.kind === "chase" ? monsterChaseCandidates(e, e.moveIntent) : monsterWanderCandidates(e))
+      : heroMoveCandidates(e);
+    if (!candidates.length) return null;
+    return {
+      actor: e,
+      intent: e.moveIntent,
+      fromCol: e.col,
+      fromRow: e.row,
+      fromKey: cellKey(e.col, e.row),
+      priority: movementPriority(e, e.moveIntent),
+      candidates,
+    };
+  }
+
+  function movementCreatesCycle(req, cand, accepted) {
+    let occupant = actorAt(cand.col, cand.row, req.actor);
+    const seen = new Set([req.actor.id]);
+    while (occupant) {
+      const move = accepted.get(occupant);
+      if (!move) return false;
+      const nextKey = cellKey(move.toCol, move.toRow);
+      if (nextKey === req.fromKey) return true;
+      if (seen.has(occupant.id)) return false;
+      seen.add(occupant.id);
+      occupant = actorAt(move.toCol, move.toRow, req.actor);
+    }
+    return false;
+  }
+
+  function canAcceptMove(req, cand, accepted, reserved) {
+    const toKey = cellKey(cand.col, cand.row);
+    if (reserved.has(toKey)) return false;
+    const occupant = actorAt(cand.col, cand.row, req.actor);
+    if (!occupant) return true;
+    const occupantMove = accepted.get(occupant);
+    if (!occupantMove) return false;
+    if (cellKey(occupantMove.toCol, occupantMove.toRow) === toKey) return false;
+    return !movementCreatesCycle(req, cand, accepted);
+  }
+
+  function acceptMove(req, cand, accepted, reserved) {
+    accepted.set(req.actor, { req, toCol: cand.col, toRow: cand.row, score: cand.score });
+    reserved.set(cellKey(cand.col, cand.row), req.actor);
+  }
+
+  function runMovementReservationTick() {
+    const actors = monsters.concat(heroes);
+    const ready = [];
+    for (const e of actors) {
+      if (isMoving(e)) continue;
+      if ((e.moveCd || 0) <= 0) e.moveCharge = Math.max(e.moveCharge || 0, 1);
+      else e.moveCharge = Math.min(3, (e.moveCharge || 0) + MOVEMENT_TICK / actorMoveInterval(e));
+      if ((e.moveCharge || 0) >= 1 && e.moveIntent) ready.push(e);
+    }
+    const requests = ready.map(buildMoveRequest).filter(Boolean);
+    requests.sort((a, b) => b.priority - a.priority || (b.actor.moveWait || 0) - (a.actor.moveWait || 0) || a.candidates[0].score - b.candidates[0].score || a.actor.id - b.actor.id);
+
+    const pending = new Set(requests);
+    const accepted = new Map();
+    const reserved = new Map();
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const req of requests) {
+        if (!pending.has(req)) continue;
+        for (const cand of req.candidates) {
+          if (!canAcceptMove(req, cand, accepted, reserved)) continue;
+          acceptMove(req, cand, accepted, reserved);
+          pending.delete(req);
+          changed = true;
+          break;
+        }
       }
     }
-    return bestStep && bestScore < Infinity ? bestStep : null;
+
+    for (const move of accepted.values()) {
+      const e = move.req.actor;
+      if (!monsters.includes(e) && !heroes.includes(e)) continue;
+      beginMove(e, move.toCol, move.toRow);
+      e.moveCharge = Math.max(0, (e.moveCharge || 0) - 1);
+      e.moveWait = 0;
+      if (e.kind && e.wanderTarget && e.col === e.wanderTarget.col && e.row === e.wanderTarget.row) e.wanderTarget = null;
+      if (e.cls && move.req.intent.kind === "unblock") e.blockedMs = 0;
+    }
+
+    for (const e of ready) {
+      if (accepted.has(e)) continue;
+      e.moveWait = Math.min(9000, (e.moveWait || 0) + MOVEMENT_TICK);
+    }
+  }
+
+  function updateActorMovement(dt, entryPaused = false) {
+    if (entryPaused) {
+      movementTickTimer = 0;
+      return;
+    }
+    movementTickTimer += dt;
+    while (movementTickTimer >= MOVEMENT_TICK) {
+      movementTickTimer -= MOVEMENT_TICK;
+      runMovementReservationTick();
+    }
   }
 
   function updateLowerBreeding(dt) {
@@ -1442,8 +1522,8 @@ export function createGame(options = {}) {
     for (const m of [...monsters]) {
       if (!monsters.includes(m)) continue;
       const k = KINDS[m.kind];
+      m.moveIntent = null;
       m.atkCd -= dt;
-      m.moveCd -= dt;
       m.eatCd -= dt;
       updateVisualPosition(m, dt);
       m.atkAnim = Math.max(0, (m.atkAnim || 0) - dt);
@@ -1477,11 +1557,8 @@ export function createGame(options = {}) {
         m.eatCd = EAT_CHECK * rnd(0.85, 1.25);
         if (tryEatLower(m)) continue;
       }
-      if (m.moveCd <= 0) {
-        if (aggroHero) moveToward(m, aggroHero, { attackRange: k.range, preferLos: k.range > 1, lineFire: !!k.lineFire });
-        else wanderHome(m);
-        m.moveCd = k.moveCd + rnd(-80, 120);
-      }
+      if (aggroHero) m.moveIntent = { kind: "chase", target: aggroHero, opts: { attackRange: k.range, preferLos: k.range > 1, lineFire: !!k.lineFire } };
+      else m.moveIntent = { kind: "wander" };
     }
   }
 
@@ -1489,6 +1566,7 @@ export function createGame(options = {}) {
     for (const h of [...heroes]) {
       if (!heroes.includes(h)) continue;
       const c = HERO_CLASSES[h.cls];
+      h.moveIntent = null;
       h.atkCd -= dt;
       h.actCd -= dt;
       h.coreCd -= dt;
@@ -1543,12 +1621,7 @@ export function createGame(options = {}) {
       if (hasAdjacentMonster(h)) {
         h.blockedMs += dt;
         if (h.blockedMs > 4500) {
-          const step = heroStep(h);
-          if (step && step.tile.t !== "earth") {
-            beginMove(h, step.col, step.row);
-            h.actCd = h.moveCd;
-          }
-          h.blockedMs = 0;
+          if (heroMoveCandidates(h).length) h.moveIntent = { kind: "unblock" };
         }
         continue;
       }
@@ -1565,7 +1638,7 @@ export function createGame(options = {}) {
         continue;
       }
       if (h.actCd <= 0) {
-        const step = heroStep(h);
+        const step = heroPathCandidates(h, { allowEarth: true, includeOccupied: true })[0] || null;
         if (step) {
           if (step.tile.t === "earth") {
             step.tile.dig = (step.tile.dig || 0) + heroDigDmg(h.atk);
@@ -1578,8 +1651,7 @@ export function createGame(options = {}) {
               step.tile.dig = 0;
             }
           } else {
-            beginMove(h, step.col, step.row);
-            h.actCd = h.moveCd;
+            h.moveIntent = { kind: "core" };
           }
         } else {
           h.actCd = 400;
@@ -1631,6 +1703,7 @@ export function createGame(options = {}) {
     nutrients += monsterIncomeRate() * (dt / 1000);
     updateMonsters(dt, entryPaused);
     updateHeroes(dt, entryPaused);
+    updateActorMovement(dt, entryPaused);
     if (heroEntryHold > 0 && !holdStarted) heroEntryHold = Math.max(0, heroEntryHold - dt);
     updateEffects(dt);
     if (coreHP <= 0) {
@@ -1654,6 +1727,7 @@ export function createGame(options = {}) {
     playerDigCount = 0;
     waveCountdown = FIRST_GRACE;
     heroEntryHold = 0;
+    movementTickTimer = 0;
     veinSpawnTimer = 0;
     idc = 0;
     unlocked = new Set(Object.keys(VEIN).filter((key) => VEIN[key].unlock <= 1));
@@ -1753,7 +1827,7 @@ export function createGame(options = {}) {
     isHeroEntryZone, isCoreCell, isCoreAttackCell, isMonsterForbiddenCell,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken,
-    KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, HEROES_PER_WAVE_CAP,
+    KINDS, VEIN, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
@@ -1764,7 +1838,7 @@ export function createGame(options = {}) {
 }
 
 export const Core = {
-  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, HEROES_PER_WAVE_CAP,
+  VEIN, KINDS, HERO_CLASSES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
