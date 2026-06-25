@@ -99,6 +99,8 @@ body {
 
 .amulet,
 .amulet-empty {
+  position: relative;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -119,40 +121,58 @@ body {
   font-size: 10px;
 }
 
-.power-status {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 112px;
-  gap: 6px;
-  align-items: center;
-  min-height: 40px;
-  padding: 6px 8px;
-  background: #120d1b;
-  border: 1px solid #3a2c52;
-  border-radius: 7px;
+.amulet-flash {
+  color: #fff7ce;
+  border-color: #ffcf4d;
+  background: linear-gradient(180deg, #3a2a16, #18101a);
+  box-shadow:
+    0 0 0 1px rgba(255, 247, 206, 0.55) inset,
+    0 0 18px rgba(255, 207, 77, 0.7),
+    0 0 34px rgba(255, 90, 80, 0.28);
+  animation: amuletPulse 0.9s ease-in-out infinite;
 }
 
-.power-status .t,
-.power-status .v,
-.power-status .hintline {
-  display: block;
-  line-height: 1.18;
+.amulet-flash::after {
+  content: "";
+  position: absolute;
+  inset: -40% -30%;
+  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.75) 48%, transparent 64%);
+  transform: translateX(-72%);
+  animation: amuletSweep 1.1s ease-out infinite;
 }
 
-.power-status .t {
-  font-size: 11px;
-  color: var(--ink-dim);
+.amulet-used {
+  opacity: 0.72;
+  border-color: #5a4b32;
 }
 
-.power-status .v {
-  font-size: 13px;
-  color: var(--amber);
+.amulet-badge {
+  position: relative;
+  z-index: 1;
+  margin-left: 1px;
+  font-style: normal;
+  color: #ffcf4d;
+  font-size: 9px;
 }
 
-.power-status .hintline {
-  margin-top: 2px;
-  font-size: 10px;
-  color: #9fe8d8;
+@keyframes amuletPulse {
+  0%, 100% {
+    transform: translateY(0) scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: translateY(-1px) scale(1.05);
+    filter: brightness(1.22);
+  }
+}
+
+@keyframes amuletSweep {
+  0% {
+    transform: translateX(-72%);
+  }
+  58%, 100% {
+    transform: translateX(82%);
+  }
 }
 
 .core-line {
@@ -284,31 +304,6 @@ body {
   flex-direction: column;
   justify-content: center;
   box-shadow: inset 0 0 0 1px #000;
-}
-
-.season-mode {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-}
-
-.season-mode.hidden {
-  display: none;
-}
-
-.season-mode button {
-  min-height: 24px;
-  padding: 3px 6px;
-  border: 1px solid #342844;
-  border-radius: 5px;
-  background: #120d1b;
-  color: var(--ink-dim);
-  font-size: 11px;
-}
-
-.season-mode button.active {
-  background: #ffcf4d;
-  color: #2a1905;
 }
 
 .wavebox .t {
@@ -445,24 +440,6 @@ button {
   display: none;
 }
 
-.demon-scene {
-  position: absolute;
-  inset: -20px -18px;
-  z-index: -1;
-  background:
-    linear-gradient(180deg, rgba(10, 7, 16, 0.16), rgba(10, 7, 16, 0.74)),
-    url("../assets/ui/demon-squirrel-king.png") center / cover no-repeat;
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-}
-
-.demon-scene::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: radial-gradient(circle at 50% 38%, transparent 0 34%, rgba(10, 7, 16, 0.64) 74%);
-}
-
 .overlay h2 {
   font-size: 24px;
   color: var(--amber);
@@ -477,8 +454,7 @@ button {
   color: #9fe8d8;
 }
 
-.scroll,
-.dialogue {
+.scroll {
   text-align: left;
   font-size: 12px;
   line-height: 1.8;
@@ -488,65 +464,6 @@ button {
   border-radius: 8px;
   padding: 12px 14px;
   max-width: 324px;
-}
-
-.dialogue {
-  display: grid;
-  gap: 6px;
-  line-height: 1.55;
-}
-
-.dialogue p {
-  display: grid;
-  grid-template-columns: 44px 1fr;
-  gap: 6px;
-}
-
-.dialogue b {
-  color: var(--gold);
-  font-weight: 700;
-}
-
-.power-select {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 6px;
-  width: min(324px, 100%);
-}
-
-.power-choice {
-  display: grid;
-  grid-template-columns: 72px 1fr;
-  align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 7px 9px;
-  background: #171121;
-  border: 2px solid var(--frame);
-  box-shadow: inset 0 0 0 1px #000;
-  color: var(--ink);
-  text-align: left;
-}
-
-.power-choice b {
-  color: var(--amber);
-  font-size: 13px;
-}
-
-.power-choice span {
-  color: var(--ink-dim);
-  font-size: 11px;
-}
-
-.power-choice.active {
-  background: linear-gradient(180deg, #ffcf4d, #d19328);
-  border-color: #8a5e16;
-  color: #2a1905;
-}
-
-.power-choice.active b,
-.power-choice.active span {
-  color: #2a1905;
 }
 
 .key {

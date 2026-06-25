@@ -1290,6 +1290,7 @@ describe("ゲームルール", () => {
     expect(G.pendingAmulets).toContain("family");
     G.settleWave();
     expect(G.amulets).toContain("family");
+    expect(G.amuletEvents.some((e) => e.id === "family")).toBe(true);
     expect(G.pendingAmulets).toHaveLength(0);
   });
 
@@ -1301,14 +1302,17 @@ describe("ゲームルール", () => {
     const b = G.monsters[1];
     expect(G.applyAmulet("family")).toBe(true);
     expect(G.monsterAttackPower(a)).toBeGreaterThan(a.atk);
+    expect(G.amuletEvents.some((e) => e.id === "family")).toBe(true);
 
     const beforeAtk = a.atk;
     expect(G.applyAmulet("lastStick")).toBe(true);
     expect(a.atk).toBe(Math.round(beforeAtk * 1.5));
+    expect(G.amuletEvents.some((e) => e.id === "lastStick")).toBe(true);
 
     const beforeHp = b.maxHp;
     expect(G.applyAmulet("whiskey")).toBe(true);
     expect(b.maxHp).toBe(beforeHp * 2);
+    expect(G.amuletEvents.some((e) => e.id === "whiskey")).toBe(true);
 
     expect(G.applyAmulet("coinPurse")).toBe(true);
     const beforeNut = G.nutrients;
@@ -1316,12 +1320,14 @@ describe("ゲームルール", () => {
     G.heroes.push(h);
     G.killHero(h);
     expect(G.nutrients - beforeNut).toBe(Math.round((4 + 4) * 1.5));
+    expect(G.amuletEvents.some((e) => e.id === "coinPurse")).toBe(true);
 
     expect(G.applyAmulet("dogtag")).toBe(true);
     a.hp = 1;
     G.killMonster(b);
     G.update(100);
     expect(a.hp).toBe(a.maxHp);
+    expect(G.amuletEvents.some((e) => e.id === "dogtag")).toBe(true);
 
     expect(G.applyAmulet("cards")).toBe(true);
     a.hp = 1;
@@ -1329,6 +1335,7 @@ describe("ゲームルール", () => {
     a.cardsHealCd = 0;
     G.update(100);
     expect(a.hp).toBeGreaterThan(1);
+    expect(G.amuletEvents.some((e) => e.id === "cards")).toBe(true);
   });
 
   it("遺書は冒険者の攻撃力を下げ、死神は死亡冒険者からまれに出る", () => {
@@ -1344,40 +1351,52 @@ describe("ゲームルール", () => {
     expect(G.monsters.some((m) => m.kind === "reaper")).toBe(true);
   });
 
-  it("魔王の能力は選択した1つだけを栄養消費と時間制限つきで使う", () => {
+  it("手縫いのくまちゃんは最後の魔物が倒れた時に一度だけキメラを呼ぶ", () => {
     carveAll();
-    G.choosePower("fusion");
-    G.startGame("fusion");
-    carveAll();
-    G.nutrients = 50;
+    expect(G.applyAmulet("stitchedBear")).toBe(true);
+    G.heroes.push(hero("captain", 7, 5, { hp: 300, maxHp: 300, wave: 15 }));
     G.spawnMonster("slime", 5, 5);
     G.spawnMonster("carniv", 6, 5);
-    const hp = G.monsters.reduce((sum, m) => sum + m.hp, 0);
+    const hp = G.monsters.reduce((sum, m) => sum + m.maxHp, 0);
     const atk = G.monsters.reduce((sum, m) => sum + G.monsterAttackPower(m), 0);
-    expect(G.activatePower()).toBe(true);
-    expect(G.selectedPower).toBe("fusion");
+    const first = G.monsters[0];
+    const second = G.monsters[1];
+
+    G.killMonster(first);
     expect(G.monsters).toHaveLength(1);
-    expect(G.monsters[0]).toMatchObject({ kind: "chimera", hp, maxHp: hp, atk: Math.round(atk * 0.3) });
-    expect(G.nutrients).toBe(38);
+    expect(G.monsters[0].kind).toBe("carniv");
 
-    G.resetGame(1);
-    G.startGame("cicada");
-    carveAll();
-    G.nutrients = 50;
+    G.killMonster(second);
+    expect(G.monsters).toHaveLength(1);
+    const chimera = G.monsters[0];
+    expect(chimera).toMatchObject({
+      kind: "chimera",
+      hp: Math.round(hp * 0.55),
+      maxHp: Math.round(hp * 0.55),
+      atk: Math.round(atk * 0.35),
+      ttl: 22000,
+      stitchedBearBorn: true,
+    });
+    expect(G.usedAmulets).toContain("stitchedBear");
+    expect(G.amuletEvents.some((e) => e.id === "stitchedBear")).toBe(true);
+
+    G.update(22000);
+    expect(G.monsters.some((m) => m.kind === "chimera")).toBe(false);
+
     G.spawnMonster("slime", 5, 5);
-    const m = G.monsters[0];
-    expect(G.activatePower()).toBe(true);
-    expect(m.atk).toBe(KINDS.slime.atk * 2);
-    G.update(G.POWER_DEFS.cicada.duration);
-    expect(m.atk).toBe(KINDS.slime.atk);
-    expect(m.hp).toBeGreaterThanOrEqual(1);
+    G.spawnMonster("carniv", 6, 5);
+    for (const m of [...G.monsters]) G.killMonster(m);
+    expect(G.monsters.some((m) => m.kind === "chimera")).toBe(false);
+  });
 
-    G.resetGame(1);
-    G.startGame("season");
-    G.nutrients = 50;
-    expect(G.activatePower("winter")).toBe(true);
-    expect(G.powerState.mode).toBe("winter");
-    expect(G.canActivatePower("summer")).toBe(false);
+  it("手縫いのくまちゃんは魔物死亡数が足りない時は発動しない", () => {
+    carveAll();
+    expect(G.applyAmulet("stitchedBear")).toBe(true);
+    G.heroes.push(hero("warrior", 7, 5));
+    G.spawnMonster("slime", 5, 5);
+    G.killMonster(G.monsters[0]);
+    expect(G.monsters).toHaveLength(0);
+    expect(G.usedAmulets).not.toContain("stitchedBear");
   });
 
   it("撃破報酬と長時間上限を守る", () => {

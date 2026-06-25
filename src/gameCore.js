@@ -61,12 +61,7 @@ export const AMULETS = {
   letter: { name: "遺書", passive: true, icon: "遺", profile: "冒険者の攻撃力が0.9倍に下がる。" },
   cards: { name: "トランプ", passive: true, icon: "札", profile: "一定期間戦闘に参加していない魔物の体力が中回復する。" },
   coinPurse: { name: "小銭入れ", passive: true, icon: "銭", profile: "冒険者を倒したときに得る栄養が増える。" },
-};
-
-export const POWER_DEFS = {
-  fusion: { name: "融合", cost: 12, duration: 24000, cooldown: 60000, profile: "全魔物を束ねてキメラを出す。" },
-  season: { name: "夏と冬", cost: 9, duration: 20000, cooldown: 35000, profile: "夏は繁殖を早め、冬は冒険者の行動量を半減させる。" },
-  cicada: { name: "せみ", cost: 8, duration: 14000, cooldown: 45000, profile: "魔物を大きく強化し、終了後に体力を削る。" },
+  stitchedBear: { name: "手縫いのくまちゃん", passive: true, icon: "縫", profile: "最後の魔物が倒れた時、倒れた魔物の力を縫い合わせて一度だけキメラを呼ぶ。" },
 };
 
 export const KINDS = {
@@ -86,7 +81,7 @@ export const KINDS = {
   goldcore: { hp: 540, atk: 31, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.012, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
   whiteflame: { hp: 390, atk: 62, range: 3, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.01, lineFire: true, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
   reaper: { hp: 430, atk: 68, range: 1, moveCd: 520, atkCd: 620, aggro: 6, rank: 10, breedEvery: 0, breedCap: 1, col: "#b7c6d6", name: "死神", profile: "倒れた冒険者の影からまれに現れる。鎌の手入れだけは妙に几帳面。" },
-  chimera: { hp: 1, atk: 1, range: 1, moveCd: 540, atkCd: 600, aggro: 8, rank: 11, breedEvery: 0, breedCap: 1, col: "#d7835a", name: "キメラ", profile: "融合で生まれる一時の怪物。見えた冒険者だけを執念深く追う。" },
+  chimera: { hp: 1, atk: 1, range: 1, moveCd: 540, atkCd: 600, aggro: 8, rank: 11, breedEvery: 0, breedCap: 1, col: "#d7835a", name: "キメラ", profile: "手縫いのくまちゃんが倒れた魔物の力を縫い合わせて呼ぶ、一時の怪物。" },
 };
 
 export const VEIN = {
@@ -190,6 +185,9 @@ export function createGame(options = {}) {
   let pickups = [];
   let amulets = [];
   let pendingAmulets = [];
+  let amuletEvents = [];
+  let usedAmulets = new Set();
+  let deadMonsterMemory = { count: 0, hp: 0, atk: 0 };
   let unlocked = new Set();
   let nutrients = START_NUT;
   let coreHP = CORE_MAX;
@@ -200,8 +198,6 @@ export function createGame(options = {}) {
   let waveCountdown = FIRST_GRACE;
   let heroEntryHold = 0;
   let waveSettled = 0;
-  let selectedPower = null;
-  let powerState = { cooldown: 0, active: 0, mode: null };
   let movementTickTimer = 0;
   let veinSpawnTimer = 0;
   let idc = 0;
@@ -247,28 +243,6 @@ export function createGame(options = {}) {
 
   function heldOrPendingAmulet(id) {
     return hasAmulet(id) || pendingAmulets.includes(id);
-  }
-
-  function seasonMode() {
-    return selectedPower === "season" && powerState.active > 0 ? powerState.mode : null;
-  }
-
-  function heroActionScale() {
-    return seasonMode() === "winter" ? 0.5 : 1;
-  }
-
-  function eggTimeScale() {
-    const mode = seasonMode();
-    if (mode === "winter") return 0;
-    if (mode === "summer") return 1.35;
-    return 1;
-  }
-
-  function breedingTimeScale() {
-    const mode = seasonMode();
-    if (mode === "winter") return 0;
-    if (mode === "summer") return 1.6;
-    return 1;
   }
 
   function monsterAttackPower(m) {
@@ -615,9 +589,15 @@ export function createGame(options = {}) {
     return id;
   }
 
+  function triggerAmulet(id, life = 1200) {
+    if (!AMULETS[id]) return;
+    amuletEvents.push({ id, life, max: life });
+  }
+
   function applyAmulet(id) {
     if (!AMULETS[id] || hasAmulet(id)) return false;
     amulets.push(id);
+    triggerAmulet(id);
     if (id === "lastStick") {
       for (const m of monsters) {
         m.atk = Math.max(1, Math.round((m.atk || 1) * 1.5));
@@ -650,22 +630,7 @@ export function createGame(options = {}) {
     }
   }
 
-  function choosePower(id) {
-    if (!POWER_DEFS[id]) return false;
-    selectedPower = id;
-    return true;
-  }
-
-  function canActivatePower(mode = null) {
-    if (gameState !== "playing" || !selectedPower || !POWER_DEFS[selectedPower]) return false;
-    if (powerState.active > 0 || powerState.cooldown > 0) return false;
-    if (nutrients < POWER_DEFS[selectedPower].cost) return false;
-    if ((selectedPower === "fusion" || selectedPower === "cicada") && monsters.length <= 0) return false;
-    if (selectedPower === "season" && !["summer", "winter"].includes(mode)) return false;
-    return true;
-  }
-
-  function bestFusionTarget() {
+  function bestChimeraTarget() {
     if (heroes.length) {
       const sorted = [...heroes].sort((a, b) => cardinalDist(a, { col: CORE_COL, row: CORE_ROW }) - cardinalDist(b, { col: CORE_COL, row: CORE_ROW }));
       return sorted[0];
@@ -673,81 +638,30 @@ export function createGame(options = {}) {
     return { col: ENTRANCE_COL, row: 2, px: cx(ENTRANCE_COL), py: cy(2) };
   }
 
-  function activateFusion(def) {
-    let hp = 0;
-    let atk = 0;
-    for (const m of monsters) {
-      hp += Math.max(0, Math.round(m.hp || 0));
-      atk += monsterAttackPower(m);
-      effects.push({ type: "puff", x: m.px, y: m.py, life: 260, max: 260, color: KINDS[m.kind] ? KINDS[m.kind].col : "#cfd8e3" });
-    }
-    monsters = [];
-    const target = bestFusionTarget();
-    const chimera = spawnMonsterNear("chimera", target.col, target.row, 2);
+  function recordDeadMonster(m) {
+    if (!m || m.kind === "chimera") return;
+    deadMonsterMemory.count++;
+    deadMonsterMemory.hp += Math.max(1, Math.round(m.maxHp || m.hp || 1));
+    deadMonsterMemory.atk += monsterAttackPower(m);
+  }
+
+  function tryStitchedBear() {
+    if (!hasAmulet("stitchedBear") || usedAmulets.has("stitchedBear")) return false;
+    if (monsters.length > 0 || heroes.length <= 0 || deadMonsterMemory.count < 2) return false;
+    const target = bestChimeraTarget();
+    const chimera = spawnMonsterNear("chimera", target.col, target.row, 3);
     if (!chimera) return false;
-    chimera.maxHp = Math.max(1, hp);
+    chimera.maxHp = Math.max(1, Math.round(deadMonsterMemory.hp * 0.55));
     chimera.hp = chimera.maxHp;
-    chimera.atk = Math.max(1, Math.round(atk * 0.3));
-    chimera.ttl = def.duration;
-    chimera.fusionBorn = true;
+    chimera.atk = Math.max(1, Math.round(deadMonsterMemory.atk * 0.35));
+    chimera.ttl = 22000;
+    chimera.stitchedBearBorn = true;
     setAction(chimera, "cast", target.px, target.py, 360);
     effects.push({ type: "birth", x: chimera.px, y: chimera.py, life: 520, max: 520, color: KINDS.chimera.col });
-    banner("融合 ─ キメラが出現");
+    triggerAmulet("stitchedBear", 1600);
+    usedAmulets.add("stitchedBear");
+    banner("手縫いのくまちゃん ─ キメラが出現");
     return true;
-  }
-
-  function activateCicada() {
-    for (const m of monsters) {
-      if (m.cicadaBase) continue;
-      m.cicadaBase = { atk: m.atk, maxHp: m.maxHp };
-      m.atk = Math.max(1, Math.round(m.atk * 2));
-      m.maxHp = Math.max(1, Math.round(m.maxHp * 2));
-      m.hp = Math.max(1, Math.round(m.hp * 2));
-      popDmg(m.px, m.py, "せみ", "#ffcf4d");
-    }
-    banner("せみ ─ 魔物が一斉に昂る");
-    return true;
-  }
-
-  function endCicada() {
-    for (const m of monsters) {
-      if (!m.cicadaBase) continue;
-      m.atk = m.cicadaBase.atk;
-      m.maxHp = m.cicadaBase.maxHp;
-      m.hp = Math.max(1, Math.min(m.maxHp, Math.ceil((m.hp || 1) / 5)));
-      delete m.cicadaBase;
-      popDmg(m.px, m.py, "反動", "#e0556b");
-    }
-  }
-
-  function activatePower(mode = null) {
-    if (!canActivatePower(mode)) return false;
-    const def = POWER_DEFS[selectedPower];
-    nutrients -= def.cost;
-    let ok = true;
-    if (selectedPower === "fusion") ok = activateFusion(def);
-    else if (selectedPower === "cicada") ok = activateCicada();
-    else if (selectedPower === "season") {
-      powerState.mode = mode === "winter" ? "winter" : "summer";
-      banner(powerState.mode === "winter" ? "冬 ─ 冒険者の動きが鈍る" : "夏 ─ 魔物の繁殖が早まる");
-    }
-    if (!ok) {
-      nutrients += def.cost;
-      return false;
-    }
-    powerState.active = def.duration;
-    powerState.cooldown = def.cooldown;
-    if (selectedPower !== "season") powerState.mode = selectedPower;
-    return true;
-  }
-
-  function updatePowerState(dt) {
-    if (powerState.cooldown > 0) powerState.cooldown = Math.max(0, powerState.cooldown - dt);
-    if (powerState.active <= 0) return;
-    powerState.active = Math.max(0, powerState.active - dt);
-    if (powerState.active > 0) return;
-    if (selectedPower === "cicada") endCicada();
-    powerState.mode = null;
   }
 
   function isDigTarget(col, row) {
@@ -871,10 +785,9 @@ export function createGame(options = {}) {
   }
 
   function updateEggs(dt) {
-    const scale = eggTimeScale();
     for (let i = eggs.length - 1; i >= 0; i--) {
       const e = eggs[i];
-      e.hatchCd -= dt * scale;
+      e.hatchCd -= dt;
       e.bornAnim = Math.max(0, (e.bornAnim || 0) - dt);
       if (e.hatchCd > 0) continue;
       if (monsters.length >= MONSTER_CAP) {
@@ -894,14 +807,12 @@ export function createGame(options = {}) {
   }
 
   function updateEliteEggBreeding(dt) {
-    const scale = breedingTimeScale();
-    if (scale <= 0) return;
-    for (const m of monsters) if (canLayEgg(m.kind)) m.eggCd = (m.eggCd === undefined ? EGG_CHECK : m.eggCd) - dt * scale;
+    for (const m of monsters) if (canLayEgg(m.kind)) m.eggCd = (m.eggCd === undefined ? EGG_CHECK : m.eggCd) - dt;
     for (const m of monsters) {
       if (!canLayEgg(m.kind) || m.eggCd > 0) continue;
       m.eggCd = EGG_CHECK * rnd(0.9, 1.25);
       if (eggCount(m.kind) >= EGG_KIND_CAP) continue;
-      if (random() < Math.min(0.95, KINDS[m.kind].eggChance * (seasonMode() === "summer" ? 1.7 : 1))) {
+      if (random() < Math.min(0.95, KINDS[m.kind].eggChance)) {
         const spot = eggSpot(m);
         if (spot) spawnEgg(m.kind, spot.col, spot.row);
       }
@@ -928,9 +839,8 @@ export function createGame(options = {}) {
         if (cardinalDist(m, { col: c, row: r }) === 1) {
           touching[m.id] = true;
           if (!t.evoTouching || !t.evoTouching[m.id]) {
-            const gain = seasonMode() === "summer" ? 2 : 1;
-            t.evoTouch = (t.evoTouch || 0) + gain;
-            t.evoStageTouch = (t.evoStageTouch || 0) + gain;
+            t.evoTouch = (t.evoTouch || 0) + 1;
+            t.evoStageTouch = (t.evoStageTouch || 0) + 1;
           }
         }
       }
@@ -1518,21 +1428,25 @@ export function createGame(options = {}) {
 
   function killMonster(m) {
     const i = monsters.indexOf(m);
+    if (i >= 0) recordDeadMonster(m);
     if (i >= 0) monsters.splice(i, 1);
     if (hasAmulet("dogtag") && inBounds(m.col, m.row) && OPEN.has(grid[m.row][m.col].t)) {
       pickups.push({ type: "dogtag", col: m.col, row: m.row, x: m.px, y: m.py, life: 12000, max: 12000 });
     }
+    tryStitchedBear();
     effects.push({ type: "puff", x: m.px, y: m.py, life: 300, max: 300, color: "#5fd16b" });
   }
 
   function killHero(h) {
     const i = heroes.indexOf(h);
     if (i >= 0) heroes.splice(i, 1);
-    const reward = Math.round((4 + h.wave) * (hasAmulet("coinPurse") ? 1.5 : 1));
+    const hasCoinPurse = hasAmulet("coinPurse");
+    const reward = Math.round((4 + h.wave) * (hasCoinPurse ? 1.5 : 1));
     nutrients += reward;
     score += 80 * h.wave + 20;
     kills++;
     popDmg(h.px, h.py, `+${reward}`, "#ffcf4d");
+    if (hasCoinPurse) triggerAmulet("coinPurse");
     effects.push({ type: "puff", x: h.px, y: h.py, life: 340, max: 340, color: "#cfd8e3" });
     const drop = queueAmuletDrop();
     if (drop) toast(h.col, h.row, "お守り", "#ffcf4d");
@@ -1617,8 +1531,7 @@ export function createGame(options = {}) {
 
   function actorMoveInterval(e) {
     const base = e.moveCd || (e.kind && KINDS[e.kind] && KINDS[e.kind].moveCd) || MOVEMENT_TICK;
-    const scaled = e.cls && seasonMode() === "winter" ? base * 2 : base;
-    return Math.max(MOVEMENT_TICK, Math.round(scaled));
+    return Math.max(MOVEMENT_TICK, Math.round(base));
   }
 
   function actorCanMoveTo(e, col, row) {
@@ -1789,13 +1702,11 @@ export function createGame(options = {}) {
   }
 
   function updateLowerBreeding(dt) {
-    const scale = breedingTimeScale();
-    if (scale <= 0) return;
     for (const m of [...monsters]) {
       if (!monsters.includes(m) || isMoving(m)) continue;
       const k = KINDS[m.kind];
       if (!k.breedEvery || m.breedLeft <= 0) continue;
-      m.breedCd -= dt * scale;
+      m.breedCd -= dt;
       if (m.breedCd > 0) continue;
       if (monsters.length + eggs.length >= MONSTER_CAP) {
         m.breedCd = k.breedEvery * 0.5;
@@ -1924,12 +1835,11 @@ export function createGame(options = {}) {
     for (const h of [...heroes]) {
       if (!heroes.includes(h)) continue;
       const c = HERO_CLASSES[h.cls];
-      const actionDt = dt * heroActionScale();
       h.moveIntent = null;
-      h.atkCd -= actionDt;
-      h.actCd -= actionDt;
-      h.coreCd -= actionDt;
-      h.healCd -= actionDt;
+      h.atkCd -= dt;
+      h.actCd -= dt;
+      h.coreCd -= dt;
+      h.healCd -= dt;
       updateVisualPosition(h, dt);
       h.atkAnim = Math.max(0, (h.atkAnim || 0) - dt);
       h.actionTime = Math.max(0, (h.actionTime || 0) - dt);
@@ -1960,7 +1870,7 @@ export function createGame(options = {}) {
         continue;
       }
       if (hasAdjacentMonster(h)) {
-        h.blockedMs += actionDt;
+        h.blockedMs += dt;
         if (h.blockedMs > 4500) {
           if (heroMoveCandidates(h).length) h.moveIntent = { kind: "unblock" };
         }
@@ -2012,6 +1922,7 @@ export function createGame(options = {}) {
         taker.nonCombatMs = 0;
         popDmg(taker.px, taker.py - 8, "全快", "#9effa0");
         effects.push({ type: "birth", x: taker.px, y: taker.py, life: 260, max: 260, color: "#9effa0" });
+        triggerAmulet("dogtag");
         pickups.splice(i, 1);
       } else if (p.life <= 0) {
         pickups.splice(i, 1);
@@ -2028,7 +1939,15 @@ export function createGame(options = {}) {
       const amount = Math.max(1, Math.round(m.maxHp * 0.2));
       m.hp = Math.min(m.maxHp, m.hp + amount);
       m.cardsHealCd = 6000;
+      triggerAmulet("cards");
       popDmg(m.px, m.py - 10, `+${amount}`, "#9effa0");
+    }
+  }
+
+  function updateAmuletEvents(dt) {
+    for (let i = amuletEvents.length - 1; i >= 0; i--) {
+      amuletEvents[i].life -= dt;
+      if (amuletEvents[i].life <= 0) amuletEvents.splice(i, 1);
     }
   }
 
@@ -2060,7 +1979,6 @@ export function createGame(options = {}) {
 
   function update(dt) {
     if (gameState !== "playing") return;
-    updatePowerState(dt);
     if (spawnQueue.length === 0 && heroes.length === 0) {
       settleWave();
       if (gameState !== "playing") {
@@ -2102,6 +2020,7 @@ export function createGame(options = {}) {
     updateMonsterTtl(dt);
     updateActorMovement(dt, entryPaused);
     if (heroEntryHold > 0 && !holdStarted) heroEntryHold = Math.max(0, heroEntryHold - dt);
+    updateAmuletEvents(dt);
     updateEffects(dt);
     if (coreHP <= 0) {
       coreHP = 0;
@@ -2110,8 +2029,7 @@ export function createGame(options = {}) {
     }
   }
 
-  function resetGame(seed = options.seed ?? autoSeed(), keepPower = false) {
-    const chosenPower = selectedPower;
+  function resetGame(seed = options.seed ?? autoSeed()) {
     random = typeof options.random === "function" ? options.random : mulberry32(seed);
     monsters = [];
     heroes = [];
@@ -2121,6 +2039,9 @@ export function createGame(options = {}) {
     pickups = [];
     amulets = [];
     pendingAmulets = [];
+    amuletEvents = [];
+    usedAmulets = new Set();
+    deadMonsterMemory = { count: 0, hp: 0, atk: 0 };
     nutrients = START_NUT;
     coreHP = CORE_MAX;
     wave = 0;
@@ -2130,8 +2051,6 @@ export function createGame(options = {}) {
     waveCountdown = FIRST_GRACE;
     heroEntryHold = 0;
     waveSettled = 0;
-    selectedPower = keepPower ? chosenPower : null;
-    powerState = { cooldown: 0, active: 0, mode: null };
     movementTickTimer = 0;
     veinSpawnTimer = 0;
     idc = 0;
@@ -2140,11 +2059,8 @@ export function createGame(options = {}) {
     buildGrid();
   }
 
-  function startGame(powerId = selectedPower || "fusion") {
-    const power = POWER_DEFS[powerId] ? powerId : "fusion";
-    selectedPower = power;
-    resetGame(options.seed ?? autoSeed(), true);
-    selectedPower = power;
+  function startGame() {
+    resetGame(options.seed ?? autoSeed());
     gameState = "playing";
   }
 
@@ -2220,6 +2136,9 @@ export function createGame(options = {}) {
     get pickups() { return pickups; },
     get amulets() { return amulets; },
     get pendingAmulets() { return pendingAmulets; },
+    get amuletEvents() { return amuletEvents; },
+    get usedAmulets() { return [...usedAmulets]; },
+    get deadMonsterMemory() { return { ...deadMonsterMemory }; },
     get unlocked() { return unlocked; },
     get wave() { return wave; },
     set wave(v) { wave = v; },
@@ -2235,21 +2154,18 @@ export function createGame(options = {}) {
     get heroEntryHold() { return heroEntryHold; },
     set heroEntryHold(v) { heroEntryHold = v; },
     get waveSettled() { return waveSettled; },
-    get selectedPower() { return selectedPower; },
-    set selectedPower(v) { selectedPower = POWER_DEFS[v] ? v : null; },
-    get powerState() { return powerState; },
     get gameState() { return gameState; },
     set gameState(v) { gameState = v; },
     setRandom(fn) { random = fn; },
     update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, clearCoreHitEffects,
-    choosePower, canActivatePower, activatePower, hasAmulet, applyAmulet,
+    hasAmulet, applyAmulet,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
     isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, AMULETS, POWER_DEFS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+    KINDS, VEIN, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
@@ -2260,7 +2176,7 @@ export function createGame(options = {}) {
 }
 
 export const Core = {
-  VEIN, KINDS, HERO_CLASSES, AMULETS, POWER_DEFS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+  VEIN, KINDS, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,

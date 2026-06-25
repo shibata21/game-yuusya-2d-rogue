@@ -25,17 +25,6 @@
             <div class="stat"><b id="monNum">0</b><span class="k">魔物</span></div>
           </div>
           <div class="stat"><b id="scoreNum">0</b><span class="k">スコア</span></div>
-          <div class="power-status" id="powerStatus">
-            <div>
-              <span class="t" id="powerName">融合</span>
-              <span class="v" id="powerTimer">栄養 12</span>
-              <span class="hintline" id="powerHint">画面長押しで発動</span>
-            </div>
-            <div class="season-mode hidden" id="seasonMode">
-              <button data-season="summer" class="active" aria-pressed="true">夏</button>
-              <button data-season="winter" aria-pressed="false">冬</button>
-            </div>
-          </div>
           <div class="amulets" id="amuletBar"><span class="amulet-empty">お守りなし</span></div>
         </div>
 
@@ -47,31 +36,9 @@
               <div class="scroll">
                 <span class="key gold">▸</span> 土を掘って鉱脈を開き、魔物を呼び出す。<br>
                 <span class="key">▸</span> 迫る冒険者から最下層の迷宮コアを守る。<br>
-                <span class="key pur">▸</span> 魔王から授かるちからは、画面長押しで発動する。
+                <span class="key pur">▸</span> 倒した冒険者が落とすお守りは、迷宮の戦況を大きく変える。
               </div>
               <button class="btn-start" id="startBtn">防衛を開始する</button>
-            </div>
-
-            <div class="start-panel hidden" id="startDialoguePanel">
-              <div class="demon-scene" aria-hidden="true"></div>
-              <h2>魔王の間</h2>
-              <div class="dialogue">
-                <p><b>魔王</b><span>軍師よ、地上の冒険者どもが迷宮の入口に集っておる。</span></p>
-                <p><b>軍師</b><span>御意。鉱脈を開き、魔物どもで迎え撃ちます。</span></p>
-                <p><b>魔王</b><span>よい。されど敵は十五の波となって押し寄せる。迷宮コアを失えば、我が玉座も灰となろう。</span></p>
-                <p><b>魔王</b><span>そなたに一つ、禁じられたちからを授ける。よく選び、迷宮を守れ。</span></p>
-              </div>
-              <button class="btn-start" id="dialogueNextBtn">ちからを見る</button>
-            </div>
-
-            <div class="start-panel hidden" id="startPowerPanel">
-              <h2>ちからを選べ</h2>
-              <div class="power-select" aria-label="能力選択">
-                <button class="power-choice active" data-power="fusion" aria-pressed="true"><b>融合</b><span>栄養12 / 24秒</span></button>
-                <button class="power-choice" data-power="season" aria-pressed="false"><b>夏と冬</b><span>栄養9 / 20秒</span></button>
-                <button class="power-choice" data-power="cicada" aria-pressed="false"><b>せみ</b><span>栄養8 / 14秒</span></button>
-              </div>
-              <button class="btn-start" id="powerConfirmBtn">ちからを選択</button>
             </div>
           </div>
 
