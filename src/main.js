@@ -3,6 +3,7 @@
 import Phaser from "phaser";
 import {
   createGame,
+  createRuleConfig,
   exposeGameNamespace,
   pixelAssetUrl,
   pixelActorX,
@@ -12,30 +13,34 @@ import {
   TILE,
   W,
   H,
-  CORE_MAX,
-  MAX_WAVE,
   CORE_COL,
   CORE_ROW,
   ENTRANCE_COL,
-  KINDS,
-  VEIN,
-  HERO_CLASSES,
-  AMULETS,
   PIXEL_ACTORS,
   PIXEL_TILES,
   PIXEL_EFFECTS,
   PIXEL_FRAMES,
-  EGG_HATCH,
-  BORN_ANIM,
-  ATK_ANIM,
-  DIG_BREAK,
-  VEIN_FADE_START,
-  VEIN_DECAY_TIME,
 } from "./gameCore.js";
+import { DEV_GROUPS } from "./devTuning.js";
+import {
+  applyProgressEvents,
+  clearProgress,
+  clearStoredRuleConfig,
+  loadProgress,
+  loadStoredRuleConfig,
+  saveProgress,
+  saveStoredRuleConfig,
+} from "./storage.js";
 import "./style.css";
 
-let gameApi = createGame();
-exposeGameNamespace(gameApi);
+function createConfiguredGame() {
+  const next = createGame({ ruleConfig: loadStoredRuleConfig() });
+  exposeGameNamespace(next);
+  return next;
+}
+
+let gameApi = createConfiguredGame();
+let progress = loadProgress();
 let codexOpen = false;
 let codexTab = "monster";
 
@@ -64,7 +69,7 @@ function soilStage(tile) {
 }
 
 function actorFrame(e, scene) {
-  if (e.actionTime > 0) return Math.floor((1 - e.actionTime / (e.actionMax || ATK_ANIM)) * PIXEL_FRAMES) % PIXEL_FRAMES;
+  if (e.actionTime > 0) return Math.floor((1 - e.actionTime / (e.actionMax || gameApi.ATK_ANIM)) * PIXEL_FRAMES) % PIXEL_FRAMES;
   if (e.moveAnim > 0) return Math.floor(scene.time.now / 100 + e.id) % PIXEL_FRAMES;
   return Math.floor(scene.time.now / 260 + e.id) % PIXEL_FRAMES;
 }
@@ -133,6 +138,7 @@ class MainScene extends Phaser.Scene {
       const col = Math.floor(pointer.x / TILE);
       const row = Math.floor(pointer.y / TILE);
       gameApi.tryDig(col, row);
+      syncProgressEvents();
       updateHud();
     });
     this.input.on("pointercancel", () => {
@@ -161,6 +167,7 @@ class MainScene extends Phaser.Scene {
 
   update(_time, delta) {
     if (!codexOpen) gameApi.update(Math.min(delta, 60));
+    syncProgressEvents();
     this.syncTiles();
     this.syncCracks();
     this.syncActors();
@@ -190,7 +197,7 @@ class MainScene extends Phaser.Scene {
         }
         if (tile.t === "earth" && tile.sub) {
           const veinIdx = PIXEL_TILES.indexOf(tileKey(tile));
-          const fade = Math.max(0, Math.min(1, ((tile.age || 0) - VEIN_FADE_START) / (VEIN_DECAY_TIME - VEIN_FADE_START)));
+          const fade = Math.max(0, Math.min(1, ((tile.age || 0) - gameApi.VEIN_FADE_START) / (gameApi.VEIN_DECAY_TIME - gameApi.VEIN_FADE_START)));
           overlay.setVisible(true);
           overlay.setFrame(veinIdx >= 0 ? veinIdx : idx);
           overlay.setAlpha(1 - fade * 0.72);
@@ -280,7 +287,7 @@ class MainScene extends Phaser.Scene {
       for (let c = 0; c < COLS; c++) {
         const tile = gameApi.grid[r][c];
         if (tile.t !== "earth" || !tile.dig) continue;
-        this.drawDigCracks(c, r, Math.max(0, Math.min(1, tile.dig / DIG_BREAK)), !!tile.sub);
+        this.drawDigCracks(c, r, Math.max(0, Math.min(1, tile.dig / gameApi.DIG_BREAK)), !!tile.sub);
       }
     }
   }
@@ -340,7 +347,7 @@ class MainScene extends Phaser.Scene {
       const dir = entry.egg ? "s" : (e.faceDir || "s");
       const frame = entry.egg ? Math.floor(this.time.now / 220 + e.col) % PIXEL_FRAMES : actorFrame(e, this);
       const pose = entry.egg ? { x: 0, y: 0, scale: 1, rot: 0 } : gameApi.actorPose(e);
-      const bornScale = e.bornAnim > 0 ? 0.4 + 0.6 * Math.max(0, Math.min(1, 1 - e.bornAnim / BORN_ANIM)) : 1;
+      const bornScale = e.bornAnim > 0 ? 0.4 + 0.6 * Math.max(0, Math.min(1, 1 - e.bornAnim / gameApi.BORN_ANIM)) : 1;
       sprite.setVisible(true);
       sprite.setFrame(pixelActorFrameIndex(name, action, dir, frame));
       sprite.setPosition((e.px ?? gameApi.cx(e.col)) + pose.x, (e.py ?? gameApi.cy(e.row)) + pose.y + (entry.egg ? 8 : 0));
@@ -437,10 +444,36 @@ class MainScene extends Phaser.Scene {
   }
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function progressSets() {
+  return {
+    monsters: new Set(progress.discoveredMonsters),
+    heroes: new Set(progress.discoveredHeroes),
+  };
+}
+
+function syncProgressEvents() {
+  if (!gameApi.drainEvents) return;
+  const result = applyProgressEvents(progress, gameApi.drainEvents());
+  if (!result.changed) return;
+  progress = result.progress;
+  saveProgress(progress);
+  updateProgressStatus();
+  if (codexOpen) renderCodex();
+}
+
 function legendHtml() {
   let html = "";
   for (const key of ["moss", "meat", "venom", "stone", "ember"]) {
-    const v = VEIN[key];
+    const v = gameApi.VEIN[key];
     const open = gameApi.unlocked.has(key);
     html += `<span class="${open ? "" : "locked"}"><i style="background:${v.color}"></i>${v.legend}${open ? "" : ` <em>W${v.unlock}</em>`}</span>`;
   }
@@ -457,8 +490,8 @@ function roleLabel(role) {
 }
 
 function monsterUnlockLabel(kind) {
-  for (const key in VEIN) {
-    const v = VEIN[key];
+  for (const key in gameApi.VEIN) {
+    const v = gameApi.VEIN[key];
     if (v.kind === kind) return `W${v.unlock}`;
     if (v.evoKind === kind) return `進化W${v.unlock}`;
     if (v.finalKind === kind) return `二段進化W${v.unlock}`;
@@ -474,38 +507,66 @@ function codexSpriteStyle(name) {
 }
 
 function statPill(label, value) {
-  return `<span><b>${label}</b>${value}</span>`;
+  return `<span><b>${escapeHtml(label)}</b>${escapeHtml(value)}</span>`;
 }
 
 function monsterCard(kind) {
-  const k = KINDS[kind];
+  const k = gameApi.KINDS[kind];
+  const found = progressSets().monsters.has(kind);
+  if (!found) {
+    return `
+      <article class="codex-card locked">
+        <div class="codex-sprite-wrap"><div class="codex-sprite silhouette" style='${codexSpriteStyle(kind)}'></div></div>
+        <div class="codex-body">
+          <div class="codex-title"><strong>???</strong><em>未発見</em></div>
+          <div class="codex-stats">
+            ${statPill("HP", "???")}${statPill("攻", "???")}${statPill("射", "???")}${statPill("解禁", "???")}
+          </div>
+          <p>まだ記録がない。</p>
+        </div>
+      </article>`;
+  }
   const name = k.name || kind;
   const type = ["reaper", "chimera"].includes(kind) ? "特殊モンスター" : (k.evoLevel >= 2 ? "第二進化モンスター" : (k.eliteOf ? "進化モンスター" : "通常モンスター"));
   return `
     <article class="codex-card">
       <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(kind)}'></div></div>
       <div class="codex-body">
-        <div class="codex-title"><strong>${name}</strong><em>${type}</em></div>
+        <div class="codex-title"><strong>${escapeHtml(name)}</strong><em>${escapeHtml(type)}</em></div>
         <div class="codex-stats">
           ${statPill("HP", k.hp)}${statPill("攻", k.atk)}${statPill("射", k.range)}${statPill("解禁", monsterUnlockLabel(kind))}
         </div>
-        <p>${k.profile}</p>
+        <p>${escapeHtml(k.profile)}</p>
       </div>
     </article>`;
 }
 
 function heroCard(cls) {
-  const c = HERO_CLASSES[cls];
+  const c = gameApi.HERO_CLASSES[cls];
+  const found = progressSets().heroes.has(cls);
+  if (!found) {
+    return `
+      <article class="codex-card locked">
+        <div class="codex-sprite-wrap"><div class="codex-sprite silhouette" style='${codexSpriteStyle(cls)}'></div></div>
+        <div class="codex-body">
+          <div class="codex-title"><strong>???</strong><em>未発見</em></div>
+          <div class="codex-stats">
+            ${statPill("HP", "???")}${statPill("攻", "???")}${statPill("射", "???")}${statPill("解禁", "???")}
+          </div>
+          <p>まだ記録がない。</p>
+        </div>
+      </article>`;
+  }
   const stats = gameApi.resolveHeroStats(cls, Math.max(c.unlock, 1));
   return `
     <article class="codex-card">
       <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(cls)}'></div></div>
       <div class="codex-body">
-        <div class="codex-title"><strong>${c.name}</strong><em>${roleLabel(c.role)}</em></div>
+        <div class="codex-title"><strong>${escapeHtml(c.name)}</strong><em>${escapeHtml(roleLabel(c.role))}</em></div>
         <div class="codex-stats">
           ${statPill("HP", stats.hp)}${statPill("攻", stats.atk)}${statPill("射", c.range)}${statPill("解禁", `W${c.unlock}`)}
         </div>
-        <p>${c.profile}</p>
+        <p>${escapeHtml(c.profile)}</p>
       </div>
     </article>`;
 }
@@ -537,6 +598,115 @@ function hideCodex() {
   updateHud();
 }
 
+function devFieldInfo(labels, key) {
+  const found = labels[key] || [key, "調整用の数値。"];
+  return { label: found[0], help: found[1] };
+}
+
+function devInputHtml(path, key, value, labels) {
+  const info = devFieldInfo(labels, key);
+  const isArray = Array.isArray(value);
+  const textValue = isArray ? value.join(", ") : value;
+  const type = isArray ? "text" : "number";
+  const step = isArray ? "" : ' step="any"';
+  return `
+    <label class="dev-field">
+      <span><b>${escapeHtml(info.label)}</b><em>${escapeHtml(info.help)}</em></span>
+      <input type="${type}"${step} data-dev-path="${escapeHtml(path)}" data-dev-array="${isArray ? "1" : "0"}" value="${escapeHtml(textValue)}">
+    </label>`;
+}
+
+function entityTitle(groupKey, id) {
+  if (groupKey === "kinds") return (gameApi.KINDS[id] && gameApi.KINDS[id].name) || id;
+  if (groupKey === "veins") return (gameApi.VEIN[id] && gameApi.VEIN[id].legend) || id;
+  if (groupKey === "heroes") return (gameApi.HERO_CLASSES[id] && gameApi.HERO_CLASSES[id].name) || id;
+  return id;
+}
+
+function renderDevPanel() {
+  const root = document.getElementById("devFields");
+  if (!root) return;
+  const config = createRuleConfig(loadStoredRuleConfig());
+  let html = "";
+  for (const group of DEV_GROUPS) {
+    if (group.key === "constants") {
+      html += `<details class="dev-group" open><summary>${escapeHtml(group.title)}</summary>`;
+      for (const key of group.keys) html += devInputHtml(`constants.${key}`, key, config.constants[key], group.labels);
+      html += "</details>";
+      continue;
+    }
+    html += `<details class="dev-group"><summary>${escapeHtml(group.title)}</summary>`;
+    for (const id in config[group.key]) {
+      html += `<details class="dev-entity"><summary>${escapeHtml(entityTitle(group.key, id))}</summary>`;
+      for (const key of group.keys) {
+        if (!(key in config[group.key][id])) continue;
+        html += devInputHtml(`${group.key}.${id}.${key}`, key, config[group.key][id][key], group.labels);
+      }
+      html += "</details>";
+    }
+    html += "</details>";
+  }
+  root.innerHTML = html;
+}
+
+function setDevValue(config, path, value) {
+  const parts = path.split(".");
+  if (parts.length === 2 && parts[0] === "constants") {
+    config.constants[parts[1]] = value;
+    return;
+  }
+  if (parts.length === 3 && config[parts[0]] && config[parts[0]][parts[1]]) {
+    config[parts[0]][parts[1]][parts[2]] = value;
+  }
+}
+
+function readDevPanelConfig() {
+  const config = createRuleConfig();
+  for (const input of document.querySelectorAll("[data-dev-path]")) {
+    const value = input.dataset.devArray === "1"
+      ? input.value.split(",").map((part) => Number(part.trim())).filter((n) => Number.isFinite(n))
+      : Number(input.value);
+    setDevValue(config, input.dataset.devPath, value);
+  }
+  return createRuleConfig(config);
+}
+
+function updateDevStatus(text = "変更は次回開始時に反映") {
+  const status = document.getElementById("devStatus");
+  if (status) status.textContent = text;
+}
+
+function updateProgressStatus() {
+  const status = document.getElementById("progressStatus");
+  if (!status) return;
+  status.textContent = `最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length}`;
+}
+
+function saveDevPanel() {
+  saveStoredRuleConfig(readDevPanelConfig());
+  updateDevStatus("保存済み。次回開始時に反映");
+}
+
+function bindDevPanel() {
+  renderDevPanel();
+  updateProgressStatus();
+  const fields = document.getElementById("devFields");
+  if (fields) fields.addEventListener("change", saveDevPanel);
+  const resetDev = document.getElementById("resetDevBtn");
+  if (resetDev) resetDev.addEventListener("click", () => {
+    clearStoredRuleConfig();
+    renderDevPanel();
+    updateDevStatus("開発設定を初期化");
+  });
+  const resetProgress = document.getElementById("resetProgressBtn");
+  if (resetProgress) resetProgress.addEventListener("click", () => {
+    clearProgress();
+    progress = loadProgress();
+    updateProgressStatus();
+    if (codexOpen) renderCodex();
+  });
+}
+
 function renderAmulets() {
   const bar = document.getElementById("amuletBar");
   if (!bar) return;
@@ -548,7 +718,7 @@ function renderAmulets() {
   const active = new Set(gameApi.amuletEvents.map((e) => e.id));
   const used = new Set(gameApi.usedAmulets);
   bar.innerHTML = held.map((id) => {
-    const a = AMULETS[id];
+    const a = gameApi.AMULETS[id];
     if (!a) return "";
     const classes = ["amulet"];
     if (active.has(id)) classes.push("amulet-flash");
@@ -559,13 +729,13 @@ function renderAmulets() {
 }
 
 function updateHud() {
-  const ratio = Math.max(0, Math.min(1, gameApi.coreHP / CORE_MAX));
+  const ratio = Math.max(0, Math.min(1, gameApi.coreHP / gameApi.CORE_MAX));
   document.getElementById("coreFill").style.width = `${ratio * 100}%`;
-  document.getElementById("coreNum").textContent = `${Math.ceil(gameApi.coreHP)} / ${CORE_MAX}`;
+  document.getElementById("coreNum").textContent = `${Math.ceil(gameApi.coreHP)} / ${gameApi.CORE_MAX}`;
   const coreLine = document.querySelector(".core-line");
   if (coreLine) coreLine.classList.toggle("core-alert", gameApi.coreHP > 0 && gameApi.gameState === "playing" && (effectLevel("corehit") > 0 || effectLevel("coreShock") > 0));
   document.getElementById("nutNum").textContent = Math.floor(gameApi.nutrients);
-  document.getElementById("waveNum").textContent = `${gameApi.wave}/${MAX_WAVE}`;
+  document.getElementById("waveNum").textContent = `${gameApi.wave}/${gameApi.MAX_WAVE}`;
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
   document.getElementById("scoreNum").textContent = gameApi.score;
   renderAmulets();
@@ -583,7 +753,7 @@ function updateHud() {
     waveTimer = `${seconds} 秒`;
   } else if (gameApi.gameState === "clear") {
     waveLabel = "防衛完了";
-    waveTimer = "15ウェーブ突破";
+    waveTimer = `${gameApi.MAX_WAVE}ウェーブ突破`;
   }
   document.getElementById("waveLabel").textContent = waveLabel;
   document.getElementById("waveTimer").textContent = waveTimer;
@@ -593,18 +763,24 @@ function updateHud() {
   document.getElementById("deadWave").textContent = gameApi.wave;
   document.getElementById("deadKills").textContent = gameApi.kills;
   document.getElementById("deadScore").textContent = gameApi.score;
+  document.getElementById("clearWaveLabel").textContent = `${gameApi.MAX_WAVE}ウェーブ突破`;
   document.getElementById("clearKills").textContent = gameApi.kills;
   document.getElementById("clearScore").textContent = gameApi.score;
   document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveCountdown <= 3000;
+  updateProgressStatus();
 }
 
 function startGame() {
+  gameApi = createConfiguredGame();
   gameApi.startGame();
+  syncProgressEvents();
   updateHud();
 }
 
 function openStartFlow() {
+  gameApi = createConfiguredGame();
   gameApi.gameState = "title";
+  syncProgressEvents();
   updateHud();
 }
 
@@ -624,6 +800,7 @@ function boot() {
     gameApi.tauntEarly();
     updateHud();
   });
+  bindDevPanel();
 
   updateHud();
   return new Phaser.Game({

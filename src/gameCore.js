@@ -53,6 +53,55 @@ export const OPEN = new Set(["tunnel", "core", "surface"]);
 export const AMULET_DROP_CHANCE = 0.018;
 export const REAPER_SPAWN_CHANCE = 0.002;
 
+export const RULE_CONSTANT_KEYS = [
+  "DIG_COST",
+  "START_NUT",
+  "CORE_MAX",
+  "MONSTER_CAP",
+  "BREED_LIMIT",
+  "MAX_HEROES",
+  "HEROES_PER_WAVE_CAP",
+  "MAX_WAVE",
+  "WAVE_INTERVAL",
+  "FIRST_GRACE",
+  "HERO_STAGGER",
+  "HERO_ENTRY_HOLD",
+  "MOVEMENT_TICK",
+  "VEIN_CAP",
+  "VEIN_SPAWN_TICK",
+  "VEIN_SPAWN_BASE_CHANCE",
+  "VEIN_SPAWN_SOIL_WEIGHT",
+  "VEIN_SPAWN_SOIL_CHANCES",
+  "VEIN_SPAWN_BURST_CAP",
+  "EGG_HATCH",
+  "EGG_CHECK",
+  "EGG_CHANCE",
+  "EGG_KIND_CAP",
+  "EAT_CHECK",
+  "EAT_CHANCE_STEP",
+  "SOIL_MANA_MAX_STAGE",
+  "SOIL_CHARGE_MOVES",
+  "SOIL_MANA_EVO_STEP",
+  "SOIL_MANA_EVO_MAX",
+  "EFFECT_CAP",
+  "ATK_ANIM",
+  "MOVE_ANIM",
+  "DIG_BREAK",
+  "DIG_CD",
+  "BORN_ANIM",
+  "EVO_TIME",
+  "VEIN_FADE_START",
+  "VEIN_DECAY_TIME",
+  "AMULET_DROP_CHANCE",
+  "REAPER_SPAWN_CHANCE",
+];
+
+export const RULE_TABLE_NUMBER_KEYS = {
+  kinds: ["hp", "atk", "range", "moveCd", "atkCd", "aggro", "rank", "breedEvery", "breedCap", "eggChance", "evoLevel"],
+  veins: ["unlock", "touchNeed", "finalTouchNeed", "spawnWeight", "soilAffinity"],
+  heroes: ["rank", "hpMul", "atkMul", "defense", "range", "moveMul", "atkCd", "weight", "unlock", "healCd", "healRange", "healMul", "areaScale", "areaMax", "maxPerWave", "dodgeChance", "critChance", "critMul"],
+};
+
 export const AMULETS = {
   family: { name: "家族写真", passive: true, icon: "写", profile: "同じ種族が多いほど、その種族全体の攻撃力が上がる。" },
   dogtag: { name: "ドッグタグ", passive: true, icon: "札", profile: "死んだ魔物がドッグタグを落とし、拾った魔物は体力が全快する。" },
@@ -108,6 +157,153 @@ export const HERO_CLASSES = {
   shon: { name: "ション", role: "caster", rank: 7, hpMul: 1.95, atkMul: 2.20, defense: 18, range: 4, moveMul: 0.9, atkCd: 620, weight: 0.32, unlock: 14, weapon: "handgun", dodgeChance: 0.38, maxPerWave: 1, msg: "ションが現れた ─ ハンドガンを構える冒険者", profile: "ジャケット姿で銃口だけが迷いなく動く。回避の一歩がやけに小さい。" },
   hori: { name: "ホリ", role: "fighter", rank: 8, hpMul: 2.75, atkMul: 2.35, defense: 34, range: 3, moveMul: 1.25, atkCd: 780, weight: 0.28, unlock: 15, weapon: "rocket", dodgeChance: 0.08, maxPerWave: 1, msg: "ホリが現れた ─ ロケットと拳と野菜で押し込む", profile: "ベッカムヘアの太った男。攻撃手段が多すぎて本人も順番を忘れる。" },
 };
+
+const RULE_CONSTANT_DEFAULTS = {
+  DIG_COST,
+  START_NUT,
+  CORE_MAX,
+  MONSTER_CAP,
+  BREED_LIMIT,
+  MAX_HEROES,
+  HEROES_PER_WAVE_CAP,
+  MAX_WAVE,
+  WAVE_INTERVAL,
+  FIRST_GRACE,
+  HERO_STAGGER,
+  HERO_ENTRY_HOLD,
+  MOVEMENT_TICK,
+  VEIN_CAP,
+  VEIN_SPAWN_TICK,
+  VEIN_SPAWN_BASE_CHANCE,
+  VEIN_SPAWN_SOIL_WEIGHT,
+  VEIN_SPAWN_SOIL_CHANCES,
+  VEIN_SPAWN_BURST_CAP,
+  EGG_HATCH,
+  EGG_CHECK,
+  EGG_CHANCE,
+  EGG_KIND_CAP,
+  EAT_CHECK,
+  EAT_CHANCE_STEP,
+  SOIL_MANA_MAX_STAGE,
+  SOIL_CHARGE_MOVES,
+  SOIL_MANA_EVO_STEP,
+  SOIL_MANA_EVO_MAX,
+  EFFECT_CAP,
+  ATK_ANIM,
+  MOVE_ANIM,
+  DIG_BREAK,
+  DIG_CD,
+  BORN_ANIM,
+  EVO_TIME,
+  VEIN_FADE_START,
+  VEIN_DECAY_TIME,
+  AMULET_DROP_CHANCE,
+  REAPER_SPAWN_CHANCE,
+};
+
+function clonePlain(value) {
+  if (Array.isArray(value)) return value.map(clonePlain);
+  if (value && typeof value === "object") {
+    const out = {};
+    for (const key in value) out[key] = clonePlain(value[key]);
+    return out;
+  }
+  return value;
+}
+
+function toFiniteNumber(value) {
+  if (typeof value === "string" && value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : null;
+}
+
+function sanitizeNumberArray(base, value) {
+  const raw = Array.isArray(value)
+    ? value
+    : (typeof value === "string" ? value.split(",") : null);
+  if (!raw) return base.slice();
+  const parsed = raw.map(toFiniteNumber).filter((n) => n !== null);
+  return parsed.length ? parsed : base.slice();
+}
+
+function pickNumberTable(source, keys) {
+  const out = {};
+  for (const id in source) {
+    out[id] = {};
+    for (const key of keys) {
+      if (typeof source[id][key] === "number") out[id][key] = source[id][key];
+    }
+  }
+  return out;
+}
+
+function mergeNumberTable(baseTable, sourceTable) {
+  if (!sourceTable || typeof sourceTable !== "object") return baseTable;
+  for (const id in baseTable) {
+    const sourceRow = sourceTable[id];
+    if (!sourceRow || typeof sourceRow !== "object") continue;
+    for (const key in baseTable[id]) {
+      const parsed = toFiniteNumber(sourceRow[key]);
+      if (parsed !== null) baseTable[id][key] = parsed;
+    }
+  }
+  return baseTable;
+}
+
+function mergeRuntimeTable(baseRows, numberRows) {
+  const out = clonePlain(baseRows);
+  if (!numberRows || typeof numberRows !== "object") return out;
+  for (const id in out) {
+    const sourceRow = numberRows[id];
+    if (!sourceRow || typeof sourceRow !== "object") continue;
+    for (const key in sourceRow) {
+      const parsed = toFiniteNumber(sourceRow[key]);
+      if (parsed !== null && typeof out[id][key] === "number") out[id][key] = parsed;
+    }
+  }
+  return out;
+}
+
+function buildDefaultRuleConfig() {
+  const constants = {};
+  for (const key of RULE_CONSTANT_KEYS) constants[key] = clonePlain(RULE_CONSTANT_DEFAULTS[key]);
+  return {
+    constants,
+    kinds: pickNumberTable(KINDS, RULE_TABLE_NUMBER_KEYS.kinds),
+    veins: pickNumberTable(VEIN, RULE_TABLE_NUMBER_KEYS.veins),
+    heroes: pickNumberTable(HERO_CLASSES, RULE_TABLE_NUMBER_KEYS.heroes),
+  };
+}
+
+export const DEFAULT_RULE_CONFIG = buildDefaultRuleConfig();
+
+export function createRuleConfig(overrides = {}) {
+  const base = clonePlain(DEFAULT_RULE_CONFIG);
+  const sourceConstants = overrides && typeof overrides === "object" ? (overrides.constants || {}) : {};
+  for (const key of RULE_CONSTANT_KEYS) {
+    if (!(key in sourceConstants)) continue;
+    if (Array.isArray(base.constants[key])) base.constants[key] = sanitizeNumberArray(base.constants[key], sourceConstants[key]);
+    else {
+      const parsed = toFiniteNumber(sourceConstants[key]);
+      if (parsed !== null) base.constants[key] = parsed;
+    }
+  }
+  if ("VEIN_SPAWN_BASE_CHANCE" in sourceConstants && !("VEIN_SPAWN_SOIL_CHANCES" in sourceConstants)) {
+    base.constants.VEIN_SPAWN_SOIL_CHANCES[0] = base.constants.VEIN_SPAWN_BASE_CHANCE;
+  }
+  mergeNumberTable(base.kinds, overrides.kinds || overrides.KINDS);
+  mergeNumberTable(base.veins, overrides.veins || overrides.VEIN);
+  mergeNumberTable(base.heroes, overrides.heroes || overrides.HERO_CLASSES);
+  return base;
+}
+
+function createRuntimeTables(ruleConfig) {
+  return {
+    KINDS: mergeRuntimeTable(KINDS, ruleConfig.kinds),
+    VEIN: mergeRuntimeTable(VEIN, ruleConfig.veins),
+    HERO_CLASSES: mergeRuntimeTable(HERO_CLASSES, ruleConfig.heroes),
+  };
+}
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
 export const PIXEL_ASSET_VERSION = "v19-adventurer-clear15";
@@ -176,6 +372,51 @@ function autoSeed() {
 
 export function createGame(options = {}) {
   let random = typeof options.random === "function" ? options.random : mulberry32(options.seed ?? autoSeed());
+  const ruleConfig = createRuleConfig(options.ruleConfig);
+  const runtimeTables = createRuntimeTables(ruleConfig);
+  const {
+    DIG_COST,
+    START_NUT,
+    CORE_MAX,
+    MONSTER_CAP,
+    BREED_LIMIT,
+    MAX_HEROES,
+    HEROES_PER_WAVE_CAP,
+    MAX_WAVE,
+    WAVE_INTERVAL,
+    FIRST_GRACE,
+    HERO_STAGGER,
+    HERO_ENTRY_HOLD,
+    MOVEMENT_TICK,
+    VEIN_CAP,
+    VEIN_SPAWN_TICK,
+    VEIN_SPAWN_BASE_CHANCE,
+    VEIN_SPAWN_SOIL_WEIGHT,
+    VEIN_SPAWN_SOIL_CHANCES,
+    VEIN_SPAWN_BURST_CAP,
+    EGG_HATCH,
+    EGG_CHECK,
+    EGG_CHANCE,
+    EGG_KIND_CAP,
+    EAT_CHECK,
+    EAT_CHANCE_STEP,
+    SOIL_MANA_MAX_STAGE,
+    SOIL_CHARGE_MOVES,
+    SOIL_MANA_EVO_STEP,
+    SOIL_MANA_EVO_MAX,
+    EFFECT_CAP,
+    ATK_ANIM,
+    MOVE_ANIM,
+    DIG_BREAK,
+    DIG_CD,
+    BORN_ANIM,
+    EVO_TIME,
+    VEIN_FADE_START,
+    VEIN_DECAY_TIME,
+    AMULET_DROP_CHANCE,
+    REAPER_SPAWN_CHANCE,
+  } = ruleConfig.constants;
+  const { KINDS, VEIN, HERO_CLASSES } = runtimeTables;
   let grid = [];
   let monsters = [];
   let heroes = [];
@@ -200,6 +441,7 @@ export function createGame(options = {}) {
   let waveSettled = 0;
   let movementTickTimer = 0;
   let veinSpawnTimer = 0;
+  let events = [];
   let idc = 0;
   let gameState = "title";
 
@@ -218,6 +460,25 @@ export function createGame(options = {}) {
     .map(([dc, dr]) => ({ col: CORE_COL + dc, row: CORE_ROW + dr }))
     .filter((p) => inBounds(p.col, p.row) && grid[p.row][p.col].t !== "bedrock" && canCoreAttackFrom(p.col, p.row, false));
   const isCoreAttackCell = (col, row) => cheb({ col, row }, { col: CORE_COL, row: CORE_ROW }) === 1;
+
+  function resolveHeroStats(cls, wave) {
+    const c = HERO_CLASSES[cls] || HERO_CLASSES.warrior;
+    const w = Math.max(0, wave || 0);
+    const hp = Math.max(12, Math.round((26 + w * 8) * c.hpMul));
+    const atk = Math.max(1, Math.round((4 + w * 1.2) * c.atkMul));
+    const heal = c.heal ? Math.max(1, Math.round((6 + w * 1.5) * (c.healMul || 1))) : 0;
+    return { hp, atk, defense: c.defense || 0, range: c.range, heal };
+  }
+
+  function emitEvent(type, data = {}) {
+    events.push({ type, ...data });
+  }
+
+  function drainEvents() {
+    const out = events;
+    events = [];
+    return out;
+  }
 
   function canCoreAttackFrom(col, row, checkOccupied = true) {
     if (!isCoreAttackCell(col, row)) return false;
@@ -722,6 +983,7 @@ export function createGame(options = {}) {
       prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
       nonCombatMs: 0, cardsHealCd: 0,
     });
+    emitEvent("discoverMonster", { kind });
   }
 
   function spawnMonsterNear(kind, col, row, radius = 2) {
@@ -965,6 +1227,7 @@ export function createGame(options = {}) {
       coreCd: 0, actCd: 300, healCd: 800, blockedMs: 0, atkAnim: 0, atkTX: 0, atkTY: 0,
       bob: rnd(0, 6.28), actionType: "idle", actionTime: 0, moveAnim: 0,
     });
+    emitEvent("discoverHero", { cls });
     return true;
   }
 
@@ -974,6 +1237,7 @@ export function createGame(options = {}) {
       return;
     }
     wave++;
+    emitEvent("waveReached", { wave });
     for (const key in VEIN) {
       const v = VEIN[key];
       if (v.unlock === wave && !unlocked.has(key)) {
@@ -2053,6 +2317,7 @@ export function createGame(options = {}) {
     waveSettled = 0;
     movementTickTimer = 0;
     veinSpawnTimer = 0;
+    events = [];
     idc = 0;
     unlocked = new Set(Object.keys(VEIN).filter((key) => VEIN[key].unlock <= 1));
     gameState = "playing";
@@ -2156,8 +2421,9 @@ export function createGame(options = {}) {
     get waveSettled() { return waveSettled; },
     get gameState() { return gameState; },
     set gameState(v) { gameState = v; },
+    get ruleConfig() { return clonePlain(ruleConfig); },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, clearCoreHitEffects,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, clearCoreHitEffects, drainEvents,
     hasAmulet, applyAmulet,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
@@ -2165,22 +2431,23 @@ export function createGame(options = {}) {
     isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+    KINDS, VEIN, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, CORE_MAX, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
-    EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
+    EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
     PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
 export const Core = {
+  DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig,
   VEIN, KINDS, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-  MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
   PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
   PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, heroDigDmg, resolveHeroStats, cx, cy,
 };

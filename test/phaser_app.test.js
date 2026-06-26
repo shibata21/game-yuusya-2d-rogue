@@ -15,6 +15,9 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('<script type="module" src="/src/main.js"></script>');
     expect(html).toContain('id="codexBtn"');
     expect(html).toContain('id="codexPanel"');
+    expect(html).toContain('id="devPanel"');
+    expect(html).toContain('id="resetDevBtn"');
+    expect(html).toContain('id="resetProgressBtn"');
     expect(html).toContain('id="startTitlePanel"');
     expect(html).not.toContain('id="startDialoguePanel"');
     expect(html).not.toContain('id="startPowerPanel"');
@@ -32,8 +35,11 @@ describe("Phaserアプリ構成", () => {
   it("Phaserシーンは3枚のアトラスをspritesheetとして読む", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     expect(src).toContain('import Phaser from "phaser"');
-    expect(src).toContain("let gameApi = createGame();");
+    expect(src).toContain("let gameApi = createConfiguredGame();");
     expect(src).not.toContain("let gameApi = createGame({ seed: 1 });");
+    expect(src).toContain("loadStoredRuleConfig");
+    expect(src).toContain("saveStoredRuleConfig");
+    expect(src).toContain("applyProgressEvents");
     expect(src).toContain('this.load.spritesheet("tiles"');
     expect(src).toContain('this.load.spritesheet("actors"');
     expect(src).toContain('this.load.spritesheet("effects"');
@@ -56,6 +62,8 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("preventDefaultDown: false");
     expect(src).toContain("renderCodex");
     expect(src).toContain("codexOpen");
+    expect(src).toContain("silhouette");
+    expect(src).toContain("discoveredMonsters");
     expect(src).toContain("進化モンスター");
     expect(src).not.toContain("上位モンスター");
   });
@@ -64,6 +72,9 @@ describe("Phaserアプリ構成", () => {
     const css = fs.readFileSync(path.join(repoDir, "src/style.css"), "utf8");
     expect(css).toContain("touch-action: pan-y");
     expect(css).toContain(".codex-card");
+    expect(css).toContain(".codex-card.locked");
+    expect(css).toContain(".codex-sprite.silhouette");
+    expect(css).toContain(".dev-panel");
     expect(css).toContain(".btn-codex");
     expect(css).toContain(".core-line.core-alert");
     expect(css).toContain(".amulet-flash");

@@ -406,6 +406,138 @@ button {
   padding: 0 4px;
 }
 
+.dev-panel {
+  background: #171121;
+  border: 2px solid #3a2c52;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #000;
+  color: var(--ink-dim);
+  font-size: 11px;
+  line-height: 1.35;
+  overflow: hidden;
+}
+
+.dev-panel > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 9px 10px;
+  color: var(--amber);
+  font-size: 13px;
+}
+
+.dev-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dev-panel > summary::before {
+  content: "▶";
+  display: inline-block;
+  width: 16px;
+  color: var(--gold);
+}
+
+.dev-panel[open] > summary::before {
+  content: "▼";
+}
+
+.dev-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 0 8px 8px;
+}
+
+.dev-actions span,
+.progress-status {
+  min-width: 0;
+  color: var(--ink-dim);
+}
+
+.dev-actions button {
+  padding: 6px 8px;
+  border: 1px solid #171020;
+  border-radius: 6px;
+  background: #2c213d;
+  color: var(--ink);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.progress-status {
+  padding: 0 8px 8px;
+  color: #9fe8d8;
+}
+
+.dev-fields {
+  max-height: min(52dvh, 520px);
+  overflow: auto;
+  padding: 0 8px 10px;
+}
+
+.dev-group,
+.dev-entity {
+  border: 1px solid #342844;
+  border-radius: 6px;
+  background: #120d1b;
+  margin-top: 6px;
+  overflow: hidden;
+}
+
+.dev-group > summary,
+.dev-entity > summary {
+  cursor: pointer;
+  padding: 7px 8px;
+  color: var(--ink);
+}
+
+.dev-entity {
+  margin: 6px;
+  background: #181123;
+}
+
+.dev-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(72px, 112px);
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-top: 1px solid #2a2038;
+}
+
+.dev-field span {
+  min-width: 0;
+}
+
+.dev-field b,
+.dev-field em {
+  display: block;
+}
+
+.dev-field b {
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.dev-field em {
+  margin-top: 2px;
+  color: var(--ink-dim);
+  font-style: normal;
+  font-size: 9px;
+}
+
+.dev-field input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #3a2c52;
+  border-radius: 5px;
+  background: #0c0814;
+  color: var(--ink);
+  font: inherit;
+  font-size: 11px;
+  padding: 5px 6px;
+}
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -572,6 +704,11 @@ button {
   padding: 8px;
 }
 
+.codex-card.locked {
+  border-color: #2c2634;
+  background: #15101c;
+}
+
 .codex-sprite-wrap {
   width: 64px;
   height: 64px;
@@ -590,6 +727,11 @@ button {
   image-rendering: pixelated;
   image-rendering: crisp-edges;
   transform: scale(1.25);
+}
+
+.codex-sprite.silhouette {
+  filter: brightness(0) contrast(1.4);
+  opacity: 0.72;
 }
 
 .codex-body {

@@ -1,0 +1,96 @@
+"use strict";
+
+import { RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS } from "./gameCore.js";
+
+export const CONSTANT_LABELS = {
+  DIG_COST: ["採掘コスト", "土を1マス掘るときに消費する栄養。"],
+  START_NUT: ["開始栄養", "防衛開始時に持っている栄養。"],
+  CORE_MAX: ["コア最大HP", "迷宮コアの最大体力。"],
+  MONSTER_CAP: ["魔物上限", "魔物と卵を合わせた盤面上限。"],
+  BREED_LIMIT: ["直接増殖回数", "直接増殖できる下位魔物の個体ごとの回数。"],
+  MAX_HEROES: ["冒険者同時上限", "同時に盤面へ存在できる冒険者数。"],
+  HEROES_PER_WAVE_CAP: ["1ウェーブ上限", "1回の襲来で出る冒険者の最大数。"],
+  MAX_WAVE: ["最終ウェーブ", "ここまで撃退すると防衛成功になるウェーブ。"],
+  WAVE_INTERVAL: ["襲来間隔", "通常時の次ウェーブまでの待ち時間ミリ秒。"],
+  FIRST_GRACE: ["初回猶予", "防衛開始から初回襲来までの待ち時間ミリ秒。"],
+  HERO_STAGGER: ["冒険者出現間隔", "同じウェーブ内で冒険者が順に出る間隔ミリ秒。"],
+  HERO_ENTRY_HOLD: ["出現後停止", "全冒険者出現後に戦闘を止める時間ミリ秒。"],
+  MOVEMENT_TICK: ["移動判定間隔", "移動AIを進める基本間隔ミリ秒。"],
+  VEIN_CAP: ["鉱脈上限", "盤面に存在できる鉱脈数の上限。"],
+  VEIN_SPAWN_TICK: ["鉱脈発生判定間隔", "自然鉱脈発生の判定間隔ミリ秒。"],
+  VEIN_SPAWN_BASE_CHANCE: ["基本鉱脈発生率", "土壌0段階の自然鉱脈発生率。"],
+  VEIN_SPAWN_SOIL_WEIGHT: ["土壌重み", "土壌養分が鉱脈配置抽選へ乗る強さ。"],
+  VEIN_SPAWN_SOIL_CHANCES: ["土壌別発生率", "土壌0段階から順に使う自然鉱脈発生率。カンマ区切り。"],
+  VEIN_SPAWN_BURST_CAP: ["同時鉱脈発生数", "1回の判定で増える鉱脈の最大数。"],
+  EGG_HATCH: ["卵孵化時間", "卵が孵化するまでの時間ミリ秒。"],
+  EGG_CHECK: ["産卵判定間隔", "卵を産める魔物が産卵を試す間隔ミリ秒。"],
+  EGG_CHANCE: ["共通産卵率", "産卵系処理で参照する共通確率。"],
+  EGG_KIND_CAP: ["種別卵上限", "同じ種類の卵が同時に存在できる数。"],
+  EAT_CHECK: ["捕食判定間隔", "捕食できる魔物が捕食を試す間隔ミリ秒。"],
+  EAT_CHANCE_STEP: ["捕食確率係数", "序列差ごとに増える捕食確率。"],
+  SOIL_MANA_MAX_STAGE: ["土壌最大段階", "土壌養分の最大段階。"],
+  SOIL_CHARGE_MOVES: ["土壌蓄積歩数", "魔物が何歩動くと周囲土壌へ養分を足すか。"],
+  SOIL_MANA_EVO_STEP: ["土壌進化補助間隔", "鉱脈進化必要接触数を下げる土壌段階の刻み。"],
+  SOIL_MANA_EVO_MAX: ["土壌進化補助上限", "土壌で減らせる進化必要接触数の上限。"],
+  EFFECT_CAP: ["演出上限", "同時に保持するエフェクト数の上限。"],
+  ATK_ANIM: ["攻撃演出時間", "攻撃・回復などの基本演出時間ミリ秒。"],
+  MOVE_ANIM: ["移動演出時間", "1マス移動の見た目の時間ミリ秒。"],
+  DIG_BREAK: ["冒険者採掘耐久", "冒険者が土を掘り抜くまでに必要な蓄積値。"],
+  DIG_CD: ["冒険者採掘間隔", "冒険者が採掘を繰り返す間隔ミリ秒。"],
+  BORN_ANIM: ["出現演出時間", "魔物や卵の出現演出時間ミリ秒。"],
+  EVO_TIME: ["進化演出基準", "進化関連の時間基準。"],
+  VEIN_FADE_START: ["鉱脈退色開始", "鉱脈が薄くなり始める経過時間ミリ秒。"],
+  VEIN_DECAY_TIME: ["鉱脈消滅時間", "掘られない鉱脈が消えるまでの時間ミリ秒。"],
+  AMULET_DROP_CHANCE: ["お守りドロップ率", "冒険者撃破時にお守り候補が出る確率。"],
+  REAPER_SPAWN_CHANCE: ["死神出現率", "冒険者撃破時に死神が現れる確率。"],
+};
+
+export const KIND_FIELD_LABELS = {
+  hp: ["HP", "出現時の最大体力。"],
+  atk: ["攻撃", "通常攻撃で与える基本ダメージ。"],
+  range: ["射程", "攻撃できるマス距離。"],
+  moveCd: ["移動間隔", "移動しやすさの基準ミリ秒。小さいほど速い。"],
+  atkCd: ["攻撃間隔", "攻撃を繰り返す間隔ミリ秒。小さいほど速い。"],
+  aggro: ["索敵範囲", "冒険者を追う距離。"],
+  rank: ["序列", "捕食や強さ判定に使う序列。"],
+  breedEvery: ["増殖間隔", "直接増殖の間隔ミリ秒。0は直接増殖なし。"],
+  breedCap: ["周辺増殖上限", "近くに同種が何体いると直接増殖を止めるか。"],
+  eggChance: ["産卵率", "産卵判定ごとの卵生成確率。"],
+  evoLevel: ["進化段階", "図鑑分類や進化段階の目安。"],
+};
+
+export const VEIN_FIELD_LABELS = {
+  unlock: ["解禁ウェーブ", "この鉱脈が自然発生候補になるウェーブ。"],
+  touchNeed: ["進化接触数", "上位鉱脈になるまでの接触回数。"],
+  finalTouchNeed: ["二段進化接触数", "最終鉱脈になるまでの接触回数。"],
+  spawnWeight: ["発生重み", "自然発生抽選での選ばれやすさ。"],
+  soilAffinity: ["土壌親和", "発生しやすい土壌養分段階。"],
+};
+
+export const HERO_FIELD_LABELS = {
+  rank: ["序列", "ウェーブごとの出現候補調整に使う強さ段階。"],
+  hpMul: ["HP倍率", "ウェーブ基礎HPに掛ける倍率。"],
+  atkMul: ["攻撃倍率", "ウェーブ基礎攻撃に掛ける倍率。"],
+  defense: ["防御", "受けるダメージを減らす防御値。"],
+  range: ["射程", "攻撃できるマス距離。"],
+  moveMul: ["移動間隔倍率", "移動間隔に掛ける倍率。大きいほど遅い。"],
+  atkCd: ["攻撃間隔", "攻撃を繰り返す間隔ミリ秒。"],
+  weight: ["出現重み", "出現抽選での選ばれやすさ。"],
+  unlock: ["解禁ウェーブ", "この冒険者が出現候補になるウェーブ。"],
+  healCd: ["回復間隔", "回復を繰り返す間隔ミリ秒。"],
+  healRange: ["回復範囲", "仲間を回復できる範囲。"],
+  healMul: ["回復倍率", "ウェーブ基礎回復量に掛ける倍率。"],
+  areaScale: ["範囲攻撃倍率", "範囲攻撃の追加対象へ入るダメージ倍率。"],
+  areaMax: ["範囲攻撃上限", "範囲攻撃で追加対象にできる最大数。"],
+  maxPerWave: ["同ウェーブ上限", "1ウェーブに出られる同クラスの最大数。"],
+  dodgeChance: ["回避率", "攻撃を避ける確率。"],
+  critChance: ["会心率", "会心攻撃が出る確率。"],
+  critMul: ["会心倍率", "会心時の攻撃倍率。"],
+};
+
+export const DEV_GROUPS = [
+  { key: "constants", title: "共通定数", keys: RULE_CONSTANT_KEYS, labels: CONSTANT_LABELS },
+  { key: "kinds", title: "モンスター", keys: RULE_TABLE_NUMBER_KEYS.kinds, labels: KIND_FIELD_LABELS },
+  { key: "veins", title: "鉱脈", keys: RULE_TABLE_NUMBER_KEYS.veins, labels: VEIN_FIELD_LABELS },
+  { key: "heroes", title: "冒険者", keys: RULE_TABLE_NUMBER_KEYS.heroes, labels: HERO_FIELD_LABELS },
+];

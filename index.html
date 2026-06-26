@@ -50,7 +50,7 @@
 
           <div class="overlay clear hidden" id="clearOverlay">
             <h2>迷宮、防衛成功</h2>
-            <div class="res">15ウェーブ突破<br>討ち取った冒険者 <b id="clearKills">0</b><br>最終スコア <b id="clearScore">0</b></div>
+            <div class="res"><span id="clearWaveLabel">15ウェーブ突破</span><br>討ち取った冒険者 <b id="clearKills">0</b><br>最終スコア <b id="clearScore">0</b></div>
             <button class="btn-start" id="clearRestartBtn">もう一度守る</button>
           </div>
         </div>
@@ -66,6 +66,17 @@
         <button class="btn-codex" id="codexBtn">キャラクター紹介</button>
         <div class="legend" id="legend"></div>
         <div class="hint">鉱脈を掘って魔物を出し、冒険者の進路に防衛線を作れ。</div>
+
+        <details class="dev-panel" id="devPanel">
+          <summary>開発設定</summary>
+          <div class="dev-actions">
+            <span id="devStatus">変更は次回開始時に反映</span>
+            <button type="button" id="resetDevBtn">設定初期化</button>
+            <button type="button" id="resetProgressBtn">図鑑初期化</button>
+          </div>
+          <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0</div>
+          <div class="dev-fields" id="devFields"></div>
+        </details>
       </div>
 
       <section class="codex hidden" id="codexPanel" aria-label="キャラクター紹介">

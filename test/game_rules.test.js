@@ -1413,6 +1413,61 @@ describe("ゲームルール", () => {
     expect(G.heroes.length).toBeLessThanOrEqual(G.MAX_HEROES);
   });
 
+  it("ruleConfigでゲーム単位のバランス値を上書きできる", () => {
+    const tuned = createGame({
+      seed: 1,
+      ruleConfig: {
+        constants: {
+          START_NUT: 40,
+          DIG_COST: 3,
+          CORE_MAX: 280,
+          MAX_WAVE: 3,
+          VEIN_SPAWN_SOIL_CHANCES: [0.01, 0.02],
+        },
+        kinds: {
+          slime: { hp: 24, atk: 6, breedEvery: 5000 },
+        },
+        veins: {
+          moss: { touchNeed: 9, finalTouchNeed: 18 },
+        },
+        heroes: {
+          warrior: { hpMul: 2, atkMul: 3, unlock: 1 },
+        },
+      },
+    });
+    tuned.resetGame(1);
+    expect(tuned.START_NUT).toBe(40);
+    expect(tuned.nutrients).toBe(40);
+    expect(tuned.DIG_COST).toBe(3);
+    expect(tuned.CORE_MAX).toBe(280);
+    expect(tuned.coreHP).toBe(280);
+    expect(tuned.MAX_WAVE).toBe(3);
+    expect(tuned.VEIN_SPAWN_SOIL_CHANCES).toEqual([0.01, 0.02]);
+    expect(tuned.KINDS.slime.hp).toBe(24);
+    expect(tuned.KINDS.slime.atk).toBe(6);
+    expect(tuned.KINDS.slime.breedEvery).toBe(5000);
+    expect(tuned.veinTouchNeed("moss")).toBe(9);
+    expect(tuned.veinNextTouchNeed("moss", { evoStage: 1, soilMana: 0 })).toBe(18);
+    expect(tuned.resolveHeroStats("warrior", 1)).toMatchObject({ hp: 68, atk: 16 });
+    expect(KINDS.slime.hp).toBe(10);
+
+    const chanceOnly = createGame({ seed: 1, ruleConfig: { constants: { VEIN_SPAWN_BASE_CHANCE: 0.02 } } });
+    expect(chanceOnly.VEIN_SPAWN_SOIL_CHANCES[0]).toBeCloseTo(0.02);
+  });
+
+  it("出現した魔物と冒険者と到達ウェーブをイベントで取り出せる", () => {
+    carveAll();
+    G.drainEvents();
+    G.spawnMonster("slime", 5, 5);
+    G.spawnHero("warrior", 4, 1);
+    G.startWave();
+    const events = G.drainEvents();
+    expect(events).toContainEqual({ type: "discoverMonster", kind: "slime" });
+    expect(events).toContainEqual({ type: "discoverHero", cls: "warrior" });
+    expect(events).toContainEqual({ type: "waveReached", wave: 1 });
+    expect(G.drainEvents()).toEqual([]);
+  });
+
   it("公開定数は既存バランスを維持する", () => {
     expect(G.TILE).toBe(48);
     expect(G.COLS).toBe(11);
