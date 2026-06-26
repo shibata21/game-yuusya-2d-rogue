@@ -278,8 +278,9 @@ function buildDefaultRuleConfig() {
 export const DEFAULT_RULE_CONFIG = buildDefaultRuleConfig();
 
 export function createRuleConfig(overrides = {}) {
+  if (!overrides || typeof overrides !== "object") overrides = {};
   const base = clonePlain(DEFAULT_RULE_CONFIG);
-  const sourceConstants = overrides && typeof overrides === "object" ? (overrides.constants || {}) : {};
+  const sourceConstants = overrides.constants || {};
   for (const key of RULE_CONSTANT_KEYS) {
     if (!(key in sourceConstants)) continue;
     if (Array.isArray(base.constants[key])) base.constants[key] = sanitizeNumberArray(base.constants[key], sourceConstants[key]);

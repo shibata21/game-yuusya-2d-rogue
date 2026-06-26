@@ -1,7 +1,7 @@
 "use strict";
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { createGame, KINDS, HERO_CLASSES, VEIN } from "../src/gameCore.js";
+import { createGame, createRuleConfig, KINDS, HERO_CLASSES, VEIN } from "../src/gameCore.js";
 
 let G;
 
@@ -1453,6 +1453,14 @@ describe("ゲームルール", () => {
 
     const chanceOnly = createGame({ seed: 1, ruleConfig: { constants: { VEIN_SPAWN_BASE_CHANCE: 0.02 } } });
     expect(chanceOnly.VEIN_SPAWN_SOIL_CHANCES[0]).toBeCloseTo(0.02);
+  });
+
+  it("保存設定が空の初回起動でもruleConfigを既定値に戻せる", () => {
+    expect(createRuleConfig(null).constants.START_NUT).toBe(25);
+    expect(createRuleConfig(false).constants.DIG_COST).toBe(1);
+    const firstBoot = createGame({ seed: 1, ruleConfig: null });
+    expect(firstBoot.START_NUT).toBe(25);
+    expect(firstBoot.gameState).toBe("title");
   });
 
   it("出現した魔物と冒険者と到達ウェーブをイベントで取り出せる", () => {
