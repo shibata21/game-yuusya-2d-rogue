@@ -199,6 +199,7 @@ async function run() {
     await client.send("Runtime.enable");
     await client.send("Network.enable");
     await client.send("Page.enable");
+    await client.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     await client.send("Page.navigate", { url: appUrl });
     await waitFor(client, "document.readyState === 'complete' && !!document.querySelector('canvas')", "初回ロード");
 
@@ -211,6 +212,30 @@ async function run() {
     if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || loaded.state !== "title") {
       throw new Error(`初回ロード状態が不正です: ${JSON.stringify(loaded)}`);
     }
+
+    await evaluate(client, `document.getElementById("codexBtn").click()`);
+    await waitFor(client, `!document.getElementById("codexPanel").classList.contains("hidden")`, "キャラクター紹介表示");
+    const initialCodex = await evaluate(client, `(() => {
+      const tabs = [...document.querySelectorAll("[data-codex-tab]")].map((button) => {
+        const rect = button.getBoundingClientRect();
+        return {
+          tab: button.dataset.codexTab,
+          text: button.textContent.trim(),
+          width: Math.round(rect.width),
+          height: Math.round(rect.height),
+          left: Math.round(rect.left),
+          right: Math.round(rect.right),
+          visible: rect.width > 0 && rect.height > 0 && rect.left >= 0 && rect.right <= innerWidth && getComputedStyle(button).visibility === "visible",
+        };
+      });
+      return { width: innerWidth, panelHidden: document.getElementById("codexPanel").classList.contains("hidden"), tabs };
+    })()`);
+    const amuletTab = initialCodex.tabs.find((tab) => tab.tab === "amulet");
+    if (initialCodex.panelHidden || initialCodex.width !== 390 || initialCodex.tabs.length !== 3 || !amuletTab || amuletTab.text !== "お守り" || !amuletTab.visible) {
+      throw new Error(`キャラクター紹介タブ表示が不正です: ${JSON.stringify(initialCodex)}`);
+    }
+    await evaluate(client, `document.getElementById("codexBackBtn").click()`);
+    await waitFor(client, `document.getElementById("codexPanel").classList.contains("hidden") && !document.getElementById("gameScreen").classList.contains("hidden")`, "キャラクター紹介を閉じる");
 
     await evaluate(client, `document.getElementById("startBtn").click()`);
     await waitFor(client, `globalThis.MakaiDefense?.current?.gameState === "playing"`, "開始ボタン後のplaying状態");
