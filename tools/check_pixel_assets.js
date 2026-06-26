@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { PNG } = require("pngjs");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, AMULET_ICONS,
   readPng, spritePath,
 } = require("./pixel_asset_common");
 
@@ -108,6 +108,7 @@ function validateSource() {
   for (const name of TILES) validatePng(spritePath("tiles", name), CELL, CELL, false);
   for (const name of ACTORS) for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("actors", name, f, dir, action), CELL, CELL, false);
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("effects", name, f), CELL, CELL, true);
+  for (const name of AMULET_ICONS) validatePng(spritePath("amulets", name), CELL, CELL, false);
   ok("個別PNGフレームを検査しました");
 }
 
@@ -121,6 +122,7 @@ function validateMeta() {
   if (JSON.stringify(Object.keys(meta.actors)) !== JSON.stringify(ACTORS)) fail("actors の順序が不正です");
   if (JSON.stringify(Object.keys(meta.tiles)) !== JSON.stringify(TILES)) fail("tiles の順序が不正です");
   if (JSON.stringify(Object.keys(meta.effects)) !== JSON.stringify(EFFECTS)) fail("effects の順序が不正です");
+  if (JSON.stringify(Object.keys(meta.amulets)) !== JSON.stringify(AMULET_ICONS)) fail("amulets の順序が不正です");
   ok("sprites.json を検査しました");
 }
 
@@ -128,6 +130,7 @@ function validateAtlas() {
   const actors = validatePng(path.join(OUT_DIR, "actors.png"), CELL * FRAMES * DIRECTIONS.length * ACTIONS.length, CELL * ACTORS.length, false);
   const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL, false);
   const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length, true);
+  const amulets = validatePng(path.join(OUT_DIR, "amulets.png"), CELL * AMULET_ICONS.length, CELL, false);
   for (let row = 0; row < ACTORS.length; row++) {
     for (let ai = 0; ai < ACTIONS.length; ai++) for (let di = 0; di < DIRECTIONS.length; di++) {
       for (let f = 0; f < FRAMES; f++) {
@@ -151,12 +154,19 @@ function validateAtlas() {
       nonEmpty(frame, "effects.png:" + EFFECTS[row] + ":" + f);
     }
   }
+  for (let col = 0; col < AMULET_ICONS.length; col++) {
+    const icon = new PNG({ width: CELL, height: CELL });
+    PNG.bitblt(amulets, icon, col * CELL, 0, CELL, CELL, 0, 0);
+    nonEmpty(icon, "amulets.png:" + AMULET_ICONS[col]);
+    const edge = whiteEdgeCount(icon);
+    if (edge > 0) fail("amulets.png:" + AMULET_ICONS[col] + " のセル外周に白系ピクセルがあります: " + edge);
+  }
   ok("アトラスPNGを検査しました");
 }
 
 async function validateGeneratedDiff() {
   const pixelmatch = (await import("pixelmatch")).default;
-  const files = ["actors.png", "tiles.png", "effects.png"];
+  const files = ["actors.png", "tiles.png", "effects.png", "amulets.png"];
   for (const file of files) {
     const img = readPng(path.join(OUT_DIR, file));
     const source = new PNG({ width: img.width, height: img.height });
@@ -170,10 +180,12 @@ async function validateGeneratedDiff() {
       });
     } else if (file === "tiles.png") {
       TILES.forEach((name, col) => PNG.bitblt(readPng(spritePath("tiles", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
-    } else {
+    } else if (file === "effects.png") {
       EFFECTS.forEach((name, row) => {
         for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("effects", name, f)), source, 0, 0, CELL, CELL, f * CELL, row * CELL);
       });
+    } else {
+      AMULET_ICONS.forEach((name, col) => PNG.bitblt(readPng(spritePath("amulets", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
     }
     const diff = new PNG({ width: img.width, height: img.height });
     const mismatches = pixelmatch(img.data, source.data, diff.data, img.width, img.height, { threshold: 0 });
@@ -305,6 +317,25 @@ function validateRichVeins() {
   ok("鉱脈の種別マークと進化枠発光を検査しました");
 }
 
+function validateAmuletIcons() {
+  const icons = AMULET_ICONS.map((name) => [name, readPng(spritePath("amulets", name))]);
+  for (const [name, img] of icons) {
+    const b = alphaBounds(img);
+    const w = b.maxX - b.minX + 1;
+    const h = b.maxY - b.minY + 1;
+    if (b.count < 160) fail(name + " のお守りアイコンが小さすぎます: " + b.count);
+    if (w < 20 || h < 20) fail(name + " のお守りアイコンのシルエットが小さすぎます: " + w + "x" + h);
+    if (uniqueOpaqueColors(img) < 6) fail(name + " のお守りアイコン色数が少なすぎます");
+  }
+  for (let i = 0; i < icons.length; i++) {
+    for (let j = i + 1; j < icons.length; j++) {
+      const d = diffRatio(icons[i][1], icons[j][1]);
+      if (d < 0.08) fail(icons[i][0] + "/" + icons[j][0] + " のお守りアイコン差分が小さすぎます: " + d.toFixed(3));
+    }
+  }
+  ok("お守りアイコンのシルエットと差分を検査しました");
+}
+
 function validateNoCircleSyntax() {
   const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
   const common = fs.readFileSync(path.join("tools", "pixel_asset_common.js"), "utf8");
@@ -356,6 +387,7 @@ function validateNoLegacyAssetSources() {
   validateElitePaletteVariants();
   validateEggShapes();
   validateRichVeins();
+  validateAmuletIcons();
   await validateGeneratedDiff();
   if (failed) process.exit(1);
   console.log("ピクセル素材検査が完了しました。");

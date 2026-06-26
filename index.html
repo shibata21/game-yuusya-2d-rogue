@@ -36,7 +36,7 @@
               <div class="scroll">
                 <span class="key gold">▸</span> 土を掘って鉱脈を開き、魔物を呼び出す。<br>
                 <span class="key">▸</span> 迫る冒険者から最下層の迷宮コアを守る。<br>
-                <span class="key pur">▸</span> 倒した冒険者が落とすお守りは、迷宮の戦況を大きく変える。
+                <span class="key pur">▸</span> ウェーブ撃退後に見つかるお守りは、迷宮の戦況を大きく変える。
               </div>
               <button class="btn-start" id="startBtn">防衛を開始する</button>
             </div>
@@ -52,6 +52,12 @@
             <h2>迷宮、防衛成功</h2>
             <div class="res"><span id="clearWaveLabel">15ウェーブ突破</span><br>討ち取った冒険者 <b id="clearKills">0</b><br>最終スコア <b id="clearScore">0</b></div>
             <button class="btn-start" id="clearRestartBtn">もう一度守る</button>
+          </div>
+
+          <div class="overlay amulet-choice hidden" id="amuletChoiceOverlay">
+            <h2>お守りを見つけた</h2>
+            <div class="amulet-choice-grid" id="amuletChoiceGrid"></div>
+            <button class="btn-skip-amulet" id="skipAmuletBtn" type="button">取らない</button>
           </div>
         </div>
 
@@ -71,10 +77,13 @@
           <summary>開発設定</summary>
           <div class="dev-actions">
             <span id="devStatus">変更は次回開始時に反映</span>
+            <button type="button" id="exportDevJsonBtn">JSON出力</button>
+            <button type="button" id="copyDevJsonBtn">コピー</button>
             <button type="button" id="resetDevBtn">設定初期化</button>
             <button type="button" id="resetProgressBtn">図鑑初期化</button>
           </div>
           <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0</div>
+          <textarea id="devJsonOutput" class="dev-json-output" readonly spellcheck="false" aria-label="開発設定JSON"></textarea>
           <div class="dev-fields" id="devFields"></div>
         </details>
       </div>

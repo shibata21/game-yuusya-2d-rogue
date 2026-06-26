@@ -18,6 +18,12 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="devPanel"');
     expect(html).toContain('id="resetDevBtn"');
     expect(html).toContain('id="resetProgressBtn"');
+    expect(html).toContain('id="exportDevJsonBtn"');
+    expect(html).toContain('id="copyDevJsonBtn"');
+    expect(html).toContain('id="devJsonOutput"');
+    expect(html).toContain('id="amuletChoiceOverlay"');
+    expect(html).toContain('id="amuletChoiceGrid"');
+    expect(html).toContain('id="skipAmuletBtn"');
     expect(html).toContain('id="startTitlePanel"');
     expect(html).not.toContain('id="startDialoguePanel"');
     expect(html).not.toContain('id="startPowerPanel"');
@@ -32,7 +38,7 @@ describe("Phaserアプリ構成", () => {
     expect(html).not.toContain("hakaishin_dungeon");
   });
 
-  it("Phaserシーンは3枚のアトラスをspritesheetとして読む", () => {
+  it("Phaserシーンは4枚のアトラスをspritesheetとして読む", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     expect(src).toContain('import Phaser from "phaser"');
     expect(src).toContain("let gameApi = createConfiguredGame();");
@@ -43,6 +49,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('this.load.spritesheet("tiles"');
     expect(src).toContain('this.load.spritesheet("actors"');
     expect(src).toContain('this.load.spritesheet("effects"');
+    expect(src).toContain('this.load.spritesheet("amulets"');
     expect(src).toContain("Phaser.Scale.FIT");
     expect(src).toContain("crackGraphics");
     expect(src).toContain("DIG_BREAK");
@@ -64,6 +71,10 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("codexOpen");
     expect(src).toContain("silhouette");
     expect(src).toContain("discoveredMonsters");
+    expect(src).toContain("renderAmuletOffer");
+    expect(src).toContain("chooseAmuletOffer");
+    expect(src).toContain("exportDevJson");
+    expect(src).toContain("copyDevJson");
     expect(src).toContain("進化モンスター");
     expect(src).not.toContain("上位モンスター");
   });
@@ -79,6 +90,9 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".core-line.core-alert");
     expect(css).toContain(".amulet-flash");
     expect(css).toContain(".amulet-used");
+    expect(css).toContain(".amulet-choice-card");
+    expect(css).toContain(".amulet-choice-icon");
+    expect(css).toContain(".dev-json-output");
     expect(css).not.toContain(".power-status");
     expect(css).not.toContain("demon-squirrel-king.png");
     expect(css).not.toContain(".btn-power");
@@ -97,7 +111,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v19-adventurer-clear15");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v20-amulet-icons");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

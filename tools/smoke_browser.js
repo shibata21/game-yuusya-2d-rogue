@@ -224,10 +224,57 @@ async function run() {
       throw new Error(`開始後状態が不正です: ${JSON.stringify(playing)}`);
     }
 
+    await evaluate(client, `document.getElementById("devPanel").open = true`);
+    await evaluate(client, `document.getElementById("exportDevJsonBtn").click()`);
+    const devJson = await evaluate(client, `(() => {
+      const value = document.getElementById("devJsonOutput").value;
+      const parsed = JSON.parse(value);
+      return {
+        hasValue: value.length > 100,
+        chance: parsed.constants.AMULET_WAVE_DROP_CHANCE,
+        hasKinds: !!parsed.kinds?.slime,
+        status: document.getElementById("devStatus").textContent,
+      };
+    })()`);
+    if (!devJson.hasValue || devJson.chance !== 0.35 || !devJson.hasKinds || devJson.status !== "JSONを出力しました") {
+      throw new Error(`開発JSON出力が不正です: ${JSON.stringify(devJson)}`);
+    }
+
+    await evaluate(client, `(() => {
+      const game = globalThis.MakaiDefense.current;
+      game.setRandom(() => 0);
+      game.wave = 1;
+      game.gameState = "playing";
+      game.heroes.length = 0;
+      game.spawnQueue.length = 0;
+      game.settleWave();
+    })()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "amuletChoice" && !document.getElementById("amuletChoiceOverlay").classList.contains("hidden") && document.querySelectorAll("[data-amulet-choice]").length === 3`, "お守り3択表示");
+    const offer = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      choices: globalThis.MakaiDefense.current.amuletOffer?.choices || [],
+      cards: document.querySelectorAll("[data-amulet-choice]").length,
+      label: document.getElementById("waveLabel").textContent,
+      timer: document.getElementById("waveTimer").textContent
+    })`);
+    if (offer.state !== "amuletChoice" || offer.cards !== 3 || offer.choices.join(",") !== "family,dogtag,lastStick" || offer.label !== "お守り選択" || offer.timer !== "時間停止中") {
+      throw new Error(`お守り3択表示が不正です: ${JSON.stringify(offer)}`);
+    }
+    await evaluate(client, `document.querySelector('[data-amulet-choice="dogtag"]').click()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("amuletChoiceOverlay").classList.contains("hidden")`, "お守り選択後の再開");
+    const amuletResult = await evaluate(client, `({
+      amulets: globalThis.MakaiDefense.current.amulets,
+      bar: document.getElementById("amuletBar").textContent,
+      icons: document.querySelectorAll(".amulet-icon").length
+    })`);
+    if (!amuletResult.amulets.includes("dogtag") || !amuletResult.bar.includes("ドッグタグ") || amuletResult.icons < 1) {
+      throw new Error(`お守り選択後状態が不正です: ${JSON.stringify(amuletResult)}`);
+    }
+
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロードと開始ボタン動作を検査しました");
+    console.log("OK: ブラウザ初回ロード、開始、開発JSON出力、お守り3択を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

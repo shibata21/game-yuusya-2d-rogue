@@ -1003,6 +1003,7 @@ describe("ゲームルール", () => {
 
   it("冒険者が全滅するまで次ウェーブのカウントを止める", () => {
     carveAll();
+    G.setRandom(() => 0.99);
     G.wave = 1;
     G.waveCountdown = 1000;
     G.heroes.push(hero("warrior", 5, 5));
@@ -1280,18 +1281,75 @@ describe("ゲームルール", () => {
     expect(sage.actionType).toBe("cast");
   });
 
-  it("冒険者死亡時にお守りを拾い、ウェーブ終了時に所持へ反映する", () => {
+  it("冒険者死亡時にはお守りを直接拾わない", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 5;
     const h = hero("warrior", 5, 5, { hp: 1, maxHp: 1, wave: 5 });
     G.heroes.push(h);
     G.killHero(h);
-    expect(G.pendingAmulets).toContain("family");
-    G.settleWave();
-    expect(G.amulets).toContain("family");
-    expect(G.amuletEvents.some((e) => e.id === "family")).toBe(true);
     expect(G.pendingAmulets).toHaveLength(0);
+    expect(G.amuletOffer).toBe(null);
+    expect(G.amulets).toHaveLength(0);
+  });
+
+  it("ウェーブ終了時にお守り3択を表示し、選ぶとゲームへ戻る", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.wave = 5;
+    G.gameState = "playing";
+    G.settleWave();
+    expect(G.gameState).toBe("amuletChoice");
+    expect(G.amuletOffer).toEqual({ wave: 5, choices: ["family", "dogtag", "lastStick"] });
+
+    expect(G.chooseAmuletOffer("dogtag")).toBe(true);
+    expect(G.gameState).toBe("playing");
+    expect(G.amuletOffer).toBe(null);
+    expect(G.amulets).toEqual(["dogtag"]);
+    expect(G.amuletEvents.some((e) => e.id === "dogtag")).toBe(true);
+  });
+
+  it("お守り3択は取らない選択もできる", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.wave = 4;
+    G.gameState = "playing";
+    G.settleWave();
+    expect(G.gameState).toBe("amuletChoice");
+    expect(G.chooseAmuletOffer(null)).toBe(true);
+    expect(G.gameState).toBe("playing");
+    expect(G.amulets).toHaveLength(0);
+    expect(G.amuletOffer).toBe(null);
+  });
+
+  it("お守り選択中はupdateでゲーム時間が進まない", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.wave = 4;
+    G.waveCountdown = 5000;
+    G.nutrients = 30;
+    G.gameState = "playing";
+    G.settleWave();
+    G.effects.push({ type: "float", x: 0, y: 0, text: "停止", life: 1000, max: 1000, vy: -0.1 });
+    const effect = G.effects[G.effects.length - 1];
+
+    G.update(1000);
+
+    expect(G.gameState).toBe("amuletChoice");
+    expect(G.waveCountdown).toBe(5000);
+    expect(G.nutrients).toBe(30);
+    expect(effect.life).toBe(1000);
+  });
+
+  it("最終ウェーブ終了時はお守りよりクリアを優先する", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.wave = G.MAX_WAVE;
+    G.gameState = "playing";
+    G.settleWave();
+    expect(G.gameState).toBe("clear");
+    expect(G.amuletOffer).toBe(null);
+    expect(G.amulets).toHaveLength(0);
   });
 
   it("お守り効果は攻撃、栄養、回復、取得時強化に反映される", () => {

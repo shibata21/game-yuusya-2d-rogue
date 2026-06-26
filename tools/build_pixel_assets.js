@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, AMULET_ICONS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
@@ -998,8 +998,86 @@ function drawEffect(name, frame) {
   return img;
 }
 
+function drawAmuletIcon(name) {
+  const img = image();
+  oval(img, 24, 34, 17, 5, "#0c0812", 82);
+  if (name === "family") {
+    rect(img, 10, 11, 28, 24, "#4a2d1f", 250);
+    rect(img, 13, 14, 22, 18, "#d9c38a", 245);
+    rect(img, 15, 16, 18, 14, "#6b8fb8", 230);
+    oval(img, 21, 22, 4, 5, "#e8b18a", 245);
+    oval(img, 28, 22, 4, 5, "#d69a72", 245);
+    rect(img, 17, 27, 15, 3, "#493414", 220);
+    line(img, 10, 11, 38, 35, "#1b1010", 2, 180);
+    diamond(img, 34, 15, 2, "#fff0a6", 170);
+  } else if (name === "dogtag") {
+    for (let i = 0; i < 7; i++) diamond(img, 12 + i * 4, 11 + (i % 2), 1, "#d8dde4", 210);
+    rect(img, 17, 19, 20, 15, "#6f7682", 250);
+    rect(img, 19, 21, 16, 11, "#b8c1cc", 245);
+    rect(img, 31, 22, 3, 3, "#2b3038", 245);
+    line(img, 21, 25, 30, 25, "#3a4250", 1, 220);
+    line(img, 21, 29, 28, 29, "#3a4250", 1, 180);
+    diamond(img, 19, 22, 1, "#fff7e8", 180);
+  } else if (name === "lastStick") {
+    line(img, 16, 35, 31, 17, "#6a4428", 5, 245);
+    line(img, 17, 35, 32, 18, "#d7a15d", 2, 245);
+    oval(img, 34, 14, 7, 10, "#7a1e08", 225);
+    tri(img, 28, 20, 35, 5, 41, 20, "#ff6b2a", 235);
+    tri(img, 31, 20, 36, 10, 39, 20, "#ffe06a", 245);
+    diamond(img, 18, 34, 3, "#2a1608", 225);
+    diamond(img, 25, 26, 2, "#fff0a6", 150);
+  } else if (name === "whiskey") {
+    rect(img, 20, 9, 9, 9, "#31415a", 245);
+    rect(img, 18, 17, 13, 20, "#4a2b16", 250);
+    rect(img, 20, 19, 9, 15, "#b66b28", 230);
+    rect(img, 21, 22, 7, 7, "#e0b35b", 245);
+    line(img, 29, 18, 32, 35, "#ffe0a0", 2, 120);
+    rect(img, 21, 8, 7, 3, "#d8dde4", 230);
+    diamond(img, 25, 25, 2, "#fff6c8", 185);
+  } else if (name === "letter") {
+    rect(img, 10, 16, 28, 20, "#d8c9a0", 250);
+    tri(img, 11, 17, 24, 29, 37, 17, "#f0e0b8", 245);
+    tri(img, 11, 35, 24, 24, 37, 35, "#b99868", 220);
+    line(img, 11, 17, 24, 29, "#7a5132", 1, 170);
+    line(img, 37, 17, 24, 29, "#7a5132", 1, 170);
+    diamond(img, 24, 27, 4, "#7d1f2a", 235);
+    diamond(img, 24, 27, 2, "#d6543f", 235);
+  } else if (name === "cards") {
+    rect(img, 13, 12, 15, 22, "#e8edf2", 250);
+    rect(img, 15, 14, 11, 18, "#f7fbff", 245);
+    rect(img, 23, 15, 15, 22, "#dfe7f2", 250);
+    rect(img, 25, 17, 11, 18, "#ffffff", 245);
+    diamond(img, 21, 23, 4, "#d6543f", 245);
+    tri(img, 29, 27, 34, 18, 39, 27, "#171b24", 235);
+    oval(img, 34, 28, 5, 4, "#171b24", 235);
+    line(img, 34, 29, 34, 34, "#171b24", 2, 235);
+  } else if (name === "coinPurse") {
+    oval(img, 24, 27, 14, 12, "#6b3342", 250);
+    rect(img, 15, 18, 18, 7, "#3d2430", 245);
+    line(img, 16, 21, 32, 21, "#d9a53d", 2, 230);
+    diamond(img, 20, 18, 2, "#ffcf4d", 240);
+    diamond(img, 29, 18, 2, "#ffcf4d", 240);
+    oval(img, 34, 34, 5, 3, "#d9a53d", 240);
+    oval(img, 38, 31, 4, 3, "#ffcf4d", 235);
+    line(img, 17, 29, 31, 29, "#9b5262", 2, 180);
+  } else if (name === "stitchedBear") {
+    oval(img, 17, 16, 5, 5, "#5a3828", 245);
+    oval(img, 31, 16, 5, 5, "#5a3828", 245);
+    oval(img, 24, 24, 13, 13, "#8a5a3c", 250);
+    oval(img, 24, 31, 10, 8, "#6d4330", 245);
+    rect(img, 19, 22, 3, 3, "#15101c", 245);
+    rect(img, 28, 22, 3, 3, "#15101c", 245);
+    diamond(img, 24, 27, 2, "#2a1608", 245);
+    line(img, 18, 31, 30, 18, "#d9c38a", 1, 230);
+    line(img, 17, 23, 21, 27, "#d9c38a", 1, 210);
+    line(img, 27, 31, 31, 35, "#d9c38a", 1, 210);
+  }
+  clearCellEdge(img);
+  return img;
+}
+
 function writeSourceFrames() {
-  for (const dir of ["actors", "tiles", "effects"]) ensureDir(path.join(SOURCE_DIR, dir));
+  for (const dir of ["actors", "tiles", "effects", "amulets"]) ensureDir(path.join(SOURCE_DIR, dir));
   for (const name of TILES) writePng(spritePath("tiles", name), drawTile(name));
   for (const name of ACTORS) {
     for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) {
@@ -1007,6 +1085,7 @@ function writeSourceFrames() {
     }
   }
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) writePng(spritePath("effects", name, f), drawEffect(name, f));
+  for (const name of AMULET_ICONS) writePng(spritePath("amulets", name), drawAmuletIcon(name));
 }
 
 function actorFrameX(actionIndex, dirIndex, frame) {
@@ -1030,15 +1109,20 @@ function writeAtlas() {
     for (let f = 0; f < FRAMES; f++) copyInto(effects, readPng(spritePath("effects", name, f)), f * CELL, row * CELL);
   });
   writePng(path.join(OUT_DIR, "effects.png"), effects);
+
+  const amulets = image(CELL * AMULET_ICONS.length, CELL);
+  AMULET_ICONS.forEach((name, col) => copyInto(amulets, readPng(spritePath("amulets", name)), col * CELL, 0));
+  writePng(path.join(OUT_DIR, "amulets.png"), amulets);
 }
 
 function writeMeta() {
-  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {} };
+  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, amulets: {} };
   ACTORS.forEach((name, row) => {
     meta.actors[name] = { sheet: "actors", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, directions: DIRECTIONS.length, actions: ACTIONS.length, anchor: [CELL / 2, Math.round(CELL * 0.75)] };
   });
   TILES.forEach((name, col) => { meta.tiles[name] = { sheet: "tiles", x: col * CELL, y: 0, w: CELL, h: CELL }; });
   EFFECTS.forEach((name, row) => { meta.effects[name] = { sheet: "effects", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, anchor: [CELL / 2, CELL / 2] }; });
+  AMULET_ICONS.forEach((name, col) => { meta.amulets[name] = { sheet: "amulets", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
   fs.writeFileSync(path.join(OUT_DIR, "sprites.json"), JSON.stringify(meta, null, 2) + "\n");
 }
 

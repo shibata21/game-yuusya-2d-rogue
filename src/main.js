@@ -8,6 +8,7 @@ import {
   pixelAssetUrl,
   pixelActorX,
   pixelActorFrameIndex,
+  pixelAmuletFrameIndex,
   COLS,
   ROWS,
   TILE,
@@ -19,6 +20,7 @@ import {
   PIXEL_ACTORS,
   PIXEL_TILES,
   PIXEL_EFFECTS,
+  PIXEL_AMULETS,
   PIXEL_FRAMES,
 } from "./gameCore.js";
 import { DEV_GROUPS } from "./devTuning.js";
@@ -43,6 +45,7 @@ let gameApi = createConfiguredGame();
 let progress = loadProgress();
 let codexOpen = false;
 let codexTab = "monster";
+let lastAmuletOfferKey = "";
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
@@ -112,6 +115,7 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet("tiles", pixelAssetUrl("tiles.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("actors", pixelAssetUrl("actors.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.spritesheet("amulets", pixelAssetUrl("amulets.png"), { frameWidth: TILE, frameHeight: TILE });
   }
 
   create() {
@@ -510,6 +514,21 @@ function statPill(label, value) {
   return `<span><b>${escapeHtml(label)}</b>${escapeHtml(value)}</span>`;
 }
 
+function amuletIconStyle(id, size = 24) {
+  const frame = pixelAmuletFrameIndex(id);
+  return [
+    `background-image:url("${pixelAssetUrl("amulets.png")}")`,
+    `background-size:${PIXEL_AMULETS.length * size}px ${size}px`,
+    `background-position:-${frame * size}px 0`,
+    `width:${size}px`,
+    `height:${size}px`,
+  ].join(";");
+}
+
+function amuletIconHtml(id, className = "amulet-icon", size = 24) {
+  return `<span class="${escapeHtml(className)}" aria-hidden="true" style='${amuletIconStyle(id, size)}'></span>`;
+}
+
 function monsterCard(kind) {
   const k = gameApi.KINDS[kind];
   const found = progressSets().monsters.has(kind);
@@ -687,15 +706,48 @@ function saveDevPanel() {
   updateDevStatus("保存済み。次回開始時に反映");
 }
 
+function exportDevJson() {
+  const output = document.getElementById("devJsonOutput");
+  if (!output) return "";
+  const json = JSON.stringify(readDevPanelConfig(), null, 2);
+  output.value = json;
+  updateDevStatus("JSONを出力しました");
+  return json;
+}
+
+async function copyDevJson() {
+  const output = document.getElementById("devJsonOutput");
+  const json = exportDevJson();
+  if (!json || !output) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      await navigator.clipboard.writeText(json);
+      updateDevStatus("JSONをコピーしました");
+      return;
+    } catch {
+      // ブラウザ権限がない場合は下の選択状態へ落とす。
+    }
+  }
+  output.focus();
+  output.select();
+  updateDevStatus("コピーできない環境です。JSONを選択しました");
+}
+
 function bindDevPanel() {
   renderDevPanel();
   updateProgressStatus();
   const fields = document.getElementById("devFields");
   if (fields) fields.addEventListener("change", saveDevPanel);
+  const exportJson = document.getElementById("exportDevJsonBtn");
+  if (exportJson) exportJson.addEventListener("click", exportDevJson);
+  const copyJson = document.getElementById("copyDevJsonBtn");
+  if (copyJson) copyJson.addEventListener("click", copyDevJson);
   const resetDev = document.getElementById("resetDevBtn");
   if (resetDev) resetDev.addEventListener("click", () => {
     clearStoredRuleConfig();
     renderDevPanel();
+    const output = document.getElementById("devJsonOutput");
+    if (output) output.value = "";
     updateDevStatus("開発設定を初期化");
   });
   const resetProgress = document.getElementById("resetProgressBtn");
@@ -724,7 +776,32 @@ function renderAmulets() {
     if (active.has(id)) classes.push("amulet-flash");
     if (used.has(id)) classes.push("amulet-used");
     const badge = used.has(id) ? `<i class="amulet-badge">済</i>` : "";
-    return `<span class="${classes.join(" ")}" title="${a.profile}"><b>${a.icon}</b>${a.name}${badge}</span>`;
+    return `<span class="${classes.join(" ")}" title="${escapeHtml(a.profile)}">${amuletIconHtml(id, "amulet-icon", 22)}${escapeHtml(a.name)}${badge}</span>`;
+  }).join("");
+}
+
+function renderAmuletOffer() {
+  const overlay = document.getElementById("amuletChoiceOverlay");
+  const grid = document.getElementById("amuletChoiceGrid");
+  if (!overlay || !grid) return;
+  const offer = gameApi.amuletOffer;
+  overlay.classList.toggle("hidden", !offer);
+  if (!offer) {
+    lastAmuletOfferKey = "";
+    grid.innerHTML = "";
+    return;
+  }
+  const key = `${offer.wave}:${offer.choices.join(",")}`;
+  if (key === lastAmuletOfferKey) return;
+  lastAmuletOfferKey = key;
+  grid.innerHTML = offer.choices.map((id) => {
+    const a = gameApi.AMULETS[id];
+    if (!a) return "";
+    return `
+      <button type="button" class="amulet-choice-card" data-amulet-choice="${escapeHtml(id)}">
+        ${amuletIconHtml(id, "amulet-choice-icon", 38)}
+        <span><b>${escapeHtml(a.name)}</b><em>${escapeHtml(a.profile)}</em></span>
+      </button>`;
   }).join("");
 }
 
@@ -739,12 +816,16 @@ function updateHud() {
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
   document.getElementById("scoreNum").textContent = gameApi.score;
   renderAmulets();
+  renderAmuletOffer();
   document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
   let waveLabel = "次の襲来まで";
   let waveTimer = `${Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000)} 秒`;
-  if (gameApi.heroes.length > 0) {
+  if (gameApi.gameState === "amuletChoice") {
+    waveLabel = "お守り選択";
+    waveTimer = "時間停止中";
+  } else if (gameApi.heroes.length > 0) {
     waveLabel = "冒険者殲滅まで";
     waveTimer = `あと ${activeHeroes} 体`;
   } else if (queue.length > 0) {
@@ -799,6 +880,17 @@ function boot() {
   document.getElementById("tauntBtn").addEventListener("click", () => {
     gameApi.tauntEarly();
     updateHud();
+  });
+  const amuletChoiceGrid = document.getElementById("amuletChoiceGrid");
+  if (amuletChoiceGrid) amuletChoiceGrid.addEventListener("click", (event) => {
+    const target = event.target && typeof event.target.closest === "function" ? event.target : null;
+    const button = target ? target.closest("[data-amulet-choice]") : null;
+    if (!button) return;
+    if (gameApi.chooseAmuletOffer(button.dataset.amuletChoice)) updateHud();
+  });
+  const skipAmulet = document.getElementById("skipAmuletBtn");
+  if (skipAmulet) skipAmulet.addEventListener("click", () => {
+    if (gameApi.chooseAmuletOffer(null)) updateHud();
   });
   bindDevPanel();
 

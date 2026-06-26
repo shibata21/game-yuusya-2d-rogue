@@ -50,7 +50,7 @@ export const EVO_TIME = 65000;
 export const VEIN_FADE_START = 120000;
 export const VEIN_DECAY_TIME = 240000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
-export const AMULET_DROP_CHANCE = 0.018;
+export const AMULET_WAVE_DROP_CHANCE = 0.35;
 export const REAPER_SPAWN_CHANCE = 0.002;
 
 export const RULE_CONSTANT_KEYS = [
@@ -92,7 +92,7 @@ export const RULE_CONSTANT_KEYS = [
   "EVO_TIME",
   "VEIN_FADE_START",
   "VEIN_DECAY_TIME",
-  "AMULET_DROP_CHANCE",
+  "AMULET_WAVE_DROP_CHANCE",
   "REAPER_SPAWN_CHANCE",
 ];
 
@@ -197,7 +197,7 @@ const RULE_CONSTANT_DEFAULTS = {
   EVO_TIME,
   VEIN_FADE_START,
   VEIN_DECAY_TIME,
-  AMULET_DROP_CHANCE,
+  AMULET_WAVE_DROP_CHANCE,
   REAPER_SPAWN_CHANCE,
 };
 
@@ -307,7 +307,7 @@ function createRuntimeTables(ruleConfig) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v19-adventurer-clear15";
+export const PIXEL_ASSET_VERSION = "v20-amulet-icons";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -315,6 +315,7 @@ export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat", "d
 export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame", "reaper", "chimera", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage", "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
+export const PIXEL_AMULETS = ["family", "dogtag", "lastStick", "whiskey", "letter", "cards", "coinPurse", "stitchedBear"];
 const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 
 export function pixelAssetUrl(name) {
@@ -355,6 +356,11 @@ export function pixelActorFrameIndex(name, action, dir, frame) {
   if (row < 0) return 0;
   const framesPerRow = PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length;
   return row * framesPerRow + Math.floor(pixelActorX(action, dir, frame) / PIXEL_CELL);
+}
+
+export function pixelAmuletFrameIndex(id) {
+  const col = PIXEL_AMULETS.indexOf(id);
+  return col < 0 ? 0 : col;
 }
 
 function mulberry32(seed) {
@@ -414,7 +420,7 @@ export function createGame(options = {}) {
     EVO_TIME,
     VEIN_FADE_START,
     VEIN_DECAY_TIME,
-    AMULET_DROP_CHANCE,
+    AMULET_WAVE_DROP_CHANCE,
     REAPER_SPAWN_CHANCE,
   } = ruleConfig.constants;
   const { KINDS, VEIN, HERO_CLASSES } = runtimeTables;
@@ -427,6 +433,7 @@ export function createGame(options = {}) {
   let pickups = [];
   let amulets = [];
   let pendingAmulets = [];
+  let amuletOffer = null;
   let amuletEvents = [];
   let usedAmulets = new Set();
   let deadMonsterMemory = { count: 0, hp: 0, atk: 0 };
@@ -501,10 +508,6 @@ export function createGame(options = {}) {
 
   function hasAmulet(id) {
     return amulets.includes(id);
-  }
-
-  function heldOrPendingAmulet(id) {
-    return hasAmulet(id) || pendingAmulets.includes(id);
   }
 
   function monsterAttackPower(m) {
@@ -837,18 +840,14 @@ export function createGame(options = {}) {
     effects.push({ type: "bite", sx, sy, tx, ty, x: tx, y: ty, color, life: 260, max: 260 });
   }
 
-  function chooseAmuletDrop() {
-    const pool = Object.keys(AMULETS).filter((id) => !heldOrPendingAmulet(id));
-    if (!pool.length) return null;
-    return pool[ri(0, pool.length - 1)];
-  }
-
-  function queueAmuletDrop() {
-    if (random() >= AMULET_DROP_CHANCE) return null;
-    const id = chooseAmuletDrop();
-    if (!id) return null;
-    pendingAmulets.push(id);
-    return id;
+  function chooseAmuletOfferChoices() {
+    const pool = Object.keys(AMULETS).filter((id) => !hasAmulet(id));
+    const choices = [];
+    while (pool.length && choices.length < 3) {
+      const idx = ri(0, pool.length - 1);
+      choices.push(pool.splice(idx, 1)[0]);
+    }
+    return choices;
   }
 
   function triggerAmulet(id, life = 1200) {
@@ -878,18 +877,35 @@ export function createGame(options = {}) {
   function settleWave() {
     if (wave <= 0 || waveSettled >= wave) return;
     waveSettled = wave;
-    if (pendingAmulets.length) {
-      const got = [...pendingAmulets];
-      pendingAmulets = [];
-      for (const id of got) {
-        if (!applyAmulet(id)) continue;
-        banner(`お守り『${AMULETS[id].name}』を入手`);
-      }
-    }
     if (wave >= MAX_WAVE) {
       gameState = "clear";
       banner("迷宮を守り抜いた");
+      return;
     }
+    if (random() < AMULET_WAVE_DROP_CHANCE) {
+      const choices = chooseAmuletOfferChoices();
+      if (choices.length) {
+        amuletOffer = { wave, choices };
+        gameState = "amuletChoice";
+        banner("お守りを見つけた");
+      }
+    }
+  }
+
+  function chooseAmuletOffer(id = null) {
+    if (!amuletOffer) return false;
+    if (id === null) {
+      amuletOffer = null;
+      if (gameState === "amuletChoice") gameState = "playing";
+      banner("お守りを見送った");
+      return true;
+    }
+    if (!amuletOffer.choices.includes(id) || hasAmulet(id)) return false;
+    if (!applyAmulet(id)) return false;
+    banner(`お守り『${AMULETS[id].name}』を入手`);
+    amuletOffer = null;
+    if (gameState === "amuletChoice") gameState = "playing";
+    return true;
   }
 
   function bestChimeraTarget() {
@@ -1713,8 +1729,6 @@ export function createGame(options = {}) {
     popDmg(h.px, h.py, `+${reward}`, "#ffcf4d");
     if (hasCoinPurse) triggerAmulet("coinPurse");
     effects.push({ type: "puff", x: h.px, y: h.py, life: 340, max: 340, color: "#cfd8e3" });
-    const drop = queueAmuletDrop();
-    if (drop) toast(h.col, h.row, "お守り", "#ffcf4d");
     if (random() < REAPER_SPAWN_CHANCE) {
       const reaper = spawnMonsterNear("reaper", h.col, h.row, 1);
       if (reaper) {
@@ -2247,7 +2261,6 @@ export function createGame(options = {}) {
     if (spawnQueue.length === 0 && heroes.length === 0) {
       settleWave();
       if (gameState !== "playing") {
-        updateEffects(dt);
         return;
       }
       waveCountdown -= dt;
@@ -2304,6 +2317,7 @@ export function createGame(options = {}) {
     pickups = [];
     amulets = [];
     pendingAmulets = [];
+    amuletOffer = null;
     amuletEvents = [];
     usedAmulets = new Set();
     deadMonsterMemory = { count: 0, hp: 0, atk: 0 };
@@ -2402,6 +2416,7 @@ export function createGame(options = {}) {
     get pickups() { return pickups; },
     get amulets() { return amulets; },
     get pendingAmulets() { return pendingAmulets; },
+    get amuletOffer() { return amuletOffer ? { wave: amuletOffer.wave, choices: [...amuletOffer.choices] } : null; },
     get amuletEvents() { return amuletEvents; },
     get usedAmulets() { return [...usedAmulets]; },
     get deadMonsterMemory() { return { ...deadMonsterMemory }; },
@@ -2424,7 +2439,7 @@ export function createGame(options = {}) {
     set gameState(v) { gameState = v; },
     get ruleConfig() { return clonePlain(ruleConfig); },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, clearCoreHitEffects, drainEvents,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseAmuletOffer, clearCoreHitEffects, drainEvents,
     hasAmulet, applyAmulet,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
@@ -2436,9 +2451,9 @@ export function createGame(options = {}) {
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
-    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
+    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_WAVE_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_AMULETS,
+    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelAmuletFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
@@ -2448,9 +2463,9 @@ export const Core = {
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS,
-  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, heroDigDmg, resolveHeroStats, cx, cy,
+  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, AMULET_WAVE_DROP_CHANCE, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_AMULETS,
+  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelAmuletFrameIndex, heroDigDmg, resolveHeroStats, cx, cy,
 };
 
 export function exposeGameNamespace(currentGame = null) {

@@ -116,9 +116,19 @@ body {
   white-space: nowrap;
 }
 
-.amulet b {
-  color: var(--gold);
-  font-size: 10px;
+.amulet-icon,
+.amulet-choice-icon {
+  display: inline-block;
+  flex: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.amulet-icon {
+  border: 1px solid #3a2c52;
+  border-radius: 4px;
+  background-color: #0c0814;
 }
 
 .amulet-flash {
@@ -442,7 +452,7 @@ button {
 
 .dev-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(0, 1fr) repeat(4, auto);
   gap: 6px;
   align-items: center;
   padding: 0 8px 8px;
@@ -467,6 +477,21 @@ button {
 .progress-status {
   padding: 0 8px 8px;
   color: #9fe8d8;
+}
+
+.dev-json-output {
+  width: calc(100% - 16px);
+  min-height: 108px;
+  margin: 0 8px 8px;
+  border: 1px solid #3a2c52;
+  border-radius: 6px;
+  background: #0c0814;
+  color: #9fe8d8;
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.35;
+  padding: 7px 8px;
+  resize: vertical;
 }
 
 .dev-fields {
@@ -584,6 +609,79 @@ button {
 
 .overlay.clear h2 {
   color: #9fe8d8;
+}
+
+.overlay.amulet-choice {
+  z-index: 8;
+  justify-content: center;
+  background: linear-gradient(180deg, rgba(9, 7, 13, 0.90), rgba(9, 7, 13, 0.97));
+  line-height: 1.2;
+}
+
+.amulet-choice-grid {
+  width: min(100%, 356px);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.amulet-choice-card {
+  width: 100%;
+  min-height: 82px;
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  text-align: left;
+  border: 2px solid #3a2c52;
+  border-radius: 8px;
+  background: #171121;
+  box-shadow: inset 0 0 0 1px #000, 0 3px 0 #0c0814;
+  color: var(--ink);
+  padding: 8px 10px;
+}
+
+.amulet-choice-card:active {
+  transform: translateY(2px);
+  box-shadow: inset 0 0 0 1px #000, 0 1px 0 #0c0814;
+}
+
+.amulet-choice-card span {
+  min-width: 0;
+}
+
+.amulet-choice-card b,
+.amulet-choice-card em {
+  display: block;
+}
+
+.amulet-choice-card b {
+  color: var(--gold);
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.amulet-choice-card em {
+  margin-top: 3px;
+  color: var(--ink-dim);
+  font-style: normal;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.amulet-choice-icon {
+  border: 1px solid #4a385f;
+  border-radius: 6px;
+  background-color: #0c0814;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.28);
+}
+
+.btn-skip-amulet {
+  min-width: 112px;
+  background: linear-gradient(180deg, #4a3c61, #2c213d);
+  border: 2px solid #171020;
+  box-shadow: 0 4px 0 #0c0814, inset 0 1px 0 #ffffff22;
+  color: var(--ink);
 }
 
 .scroll {
@@ -792,5 +890,15 @@ button {
 @media (min-width: 560px) {
   .codex-grid {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 430px) {
+  .dev-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dev-actions span {
+    grid-column: 1 / -1;
   }
 }

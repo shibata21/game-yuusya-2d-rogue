@@ -28,6 +28,7 @@ const TILES = [
   "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2",
 ];
 const EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
+const AMULET_ICONS = ["family", "dogtag", "lastStick", "whiskey", "letter", "cards", "coinPurse", "stitchedBear"];
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -137,6 +138,6 @@ function spritePath(group, name, frame = null, dir = null, action = null) {
 }
 
 module.exports = {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, AMULET_ICONS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 };
