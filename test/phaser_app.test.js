@@ -21,6 +21,7 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="exportDevJsonBtn"');
     expect(html).toContain('id="copyDevJsonBtn"');
     expect(html).toContain('id="devJsonOutput"');
+    expect(html).toContain('id="amuletPopup"');
     expect(html).toContain('id="amuletChoiceOverlay"');
     expect(html).toContain('id="amuletChoiceGrid"');
     expect(html).toContain('id="skipAmuletBtn"');
@@ -46,6 +47,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("loadStoredRuleConfig");
     expect(src).toContain("saveStoredRuleConfig");
     expect(src).toContain("applyProgressEvents");
+    expect(src).toContain("DEFAULT_RULE_CONFIG");
     expect(src).toContain('this.load.spritesheet("tiles"');
     expect(src).toContain('this.load.spritesheet("actors"');
     expect(src).toContain('this.load.spritesheet("effects"');
@@ -73,6 +75,10 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("discoveredMonsters");
     expect(src).toContain("renderAmuletOffer");
     expect(src).toContain("chooseAmuletOffer");
+    expect(src).toContain("bindAmuletHud");
+    expect(src).toContain("AMULET_LONG_PRESS_MS");
+    expect(src).toContain("showAmuletPopup");
+    expect(src).toContain("updateDevDefaultDiffs");
     expect(src).toContain("exportDevJson");
     expect(src).toContain("copyDevJson");
     expect(src).toContain("進化モンスター");
@@ -88,8 +94,12 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".dev-panel");
     expect(css).toContain(".btn-codex");
     expect(css).toContain(".core-line.core-alert");
-    expect(css).toContain(".amulet-flash");
+    expect(css).not.toContain(".amulet-flash");
     expect(css).toContain(".amulet-used");
+    expect(css).toContain(".amulet-popup");
+    expect(css).toContain(".dev-default");
+    expect(css).toContain("-webkit-user-select: none");
+    expect(css).toContain("-webkit-touch-callout: none");
     expect(css).toContain(".amulet-choice-card");
     expect(css).toContain(".amulet-choice-icon");
     expect(css).toContain(".dev-json-output");

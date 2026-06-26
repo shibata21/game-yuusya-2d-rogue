@@ -140,7 +140,7 @@ function collectIssues(events) {
 }
 
 async function evaluate(client, expression) {
-  const result = await client.send("Runtime.evaluate", { expression, returnByValue: true });
+  const result = await client.send("Runtime.evaluate", { expression, returnByValue: true, awaitPromise: true });
   if (result.result.exceptionDetails) {
     throw new Error(result.result.exceptionDetails.exception?.description || result.result.exceptionDetails.text);
   }
@@ -229,14 +229,20 @@ async function run() {
     const devJson = await evaluate(client, `(() => {
       const value = document.getElementById("devJsonOutput").value;
       const parsed = JSON.parse(value);
+      const startNut = document.querySelector('[data-dev-path="constants.START_NUT"]');
+      const startNutDefault = startNut.closest(".dev-field").querySelector(".dev-default");
+      startNut.value = "26";
+      startNut.dispatchEvent(new Event("input", { bubbles: true }));
       return {
         hasValue: value.length > 100,
         chance: parsed.constants.AMULET_WAVE_DROP_CHANCE,
         hasKinds: !!parsed.kinds?.slime,
         status: document.getElementById("devStatus").textContent,
+        defaultLabel: startNutDefault.textContent,
+        defaultDiff: startNutDefault.classList.contains("dev-default-diff"),
       };
     })()`);
-    if (!devJson.hasValue || devJson.chance !== 0.35 || !devJson.hasKinds || devJson.status !== "JSONを出力しました") {
+    if (!devJson.hasValue || devJson.chance !== 0.35 || !devJson.hasKinds || devJson.status !== "JSONを出力しました" || !devJson.defaultLabel.includes("初期 25") || !devJson.defaultDiff) {
       throw new Error(`開発JSON出力が不正です: ${JSON.stringify(devJson)}`);
     }
 
@@ -265,16 +271,37 @@ async function run() {
     const amuletResult = await evaluate(client, `({
       amulets: globalThis.MakaiDefense.current.amulets,
       bar: document.getElementById("amuletBar").textContent,
-      icons: document.querySelectorAll(".amulet-icon").length
+      icons: document.querySelectorAll(".amulet-icon").length,
+      buttonLabel: document.querySelector('[data-amulet-id="dogtag"]')?.getAttribute("aria-label") || "",
+      popupExists: !!document.getElementById("amuletPopup")
     })`);
-    if (!amuletResult.amulets.includes("dogtag") || !amuletResult.bar.includes("ドッグタグ") || amuletResult.icons < 1) {
+    if (!amuletResult.amulets.includes("dogtag") || amuletResult.bar.includes("ドッグタグ") || amuletResult.icons < 1 || !amuletResult.buttonLabel.includes("ドッグタグ") || !amuletResult.popupExists) {
       throw new Error(`お守り選択後状態が不正です: ${JSON.stringify(amuletResult)}`);
+    }
+    const popupResult = await evaluate(client, `new Promise((resolve) => {
+      const button = document.querySelector('[data-amulet-id="dogtag"]');
+      const rect = button.getBoundingClientRect();
+      const x = rect.left + rect.width / 2;
+      const y = rect.top + rect.height / 2;
+      button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 7, clientX: x, clientY: y, pointerType: "touch" }));
+      setTimeout(() => {
+        button.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 7, clientX: x, clientY: y, pointerType: "touch" }));
+        const popup = document.getElementById("amuletPopup");
+        resolve({
+          hidden: popup.classList.contains("hidden"),
+          text: popup.textContent,
+          selection: String(getSelection()),
+        });
+      }, 650);
+    })`);
+    if (popupResult.hidden || !popupResult.text.includes("ドッグタグ") || !popupResult.text.includes("体力が全快") || popupResult.selection) {
+      throw new Error(`お守り長押しポップアップが不正です: ${JSON.stringify(popupResult)}`);
     }
 
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、開始、開発JSON出力、お守り3択を検査しました");
+    console.log("OK: ブラウザ初回ロード、開始、開発JSON出力、お守り3択、長押しポップアップを検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

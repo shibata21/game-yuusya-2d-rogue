@@ -32,6 +32,16 @@ body {
   padding: env(safe-area-inset-top) 8px env(safe-area-inset-bottom);
   overflow-x: hidden;
   letter-spacing: 0;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+  -webkit-touch-callout: default;
 }
 
 #app {
@@ -87,10 +97,11 @@ body {
   grid-column: 1 / -1;
   display: flex;
   gap: 5px;
-  min-height: 24px;
+  min-height: 30px;
   align-items: center;
   overflow-x: auto;
   scrollbar-width: none;
+  touch-action: pan-x;
 }
 
 .amulets::-webkit-scrollbar {
@@ -103,10 +114,12 @@ body {
   overflow: hidden;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  min-height: 22px;
+  min-width: 32px;
+  min-height: 30px;
   flex: none;
-  padding: 3px 6px;
+  padding: 3px;
   border: 1px solid #3a2c52;
   border-radius: 6px;
   background: #120d1b;
@@ -114,6 +127,8 @@ body {
   font-size: 10px;
   line-height: 1;
   white-space: nowrap;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
 }
 
 .amulet-icon,
@@ -131,26 +146,6 @@ body {
   background-color: #0c0814;
 }
 
-.amulet-flash {
-  color: #fff7ce;
-  border-color: #ffcf4d;
-  background: linear-gradient(180deg, #3a2a16, #18101a);
-  box-shadow:
-    0 0 0 1px rgba(255, 247, 206, 0.55) inset,
-    0 0 18px rgba(255, 207, 77, 0.7),
-    0 0 34px rgba(255, 90, 80, 0.28);
-  animation: amuletPulse 0.9s ease-in-out infinite;
-}
-
-.amulet-flash::after {
-  content: "";
-  position: absolute;
-  inset: -40% -30%;
-  background: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.75) 48%, transparent 64%);
-  transform: translateX(-72%);
-  animation: amuletSweep 1.1s ease-out infinite;
-}
-
 .amulet-used {
   opacity: 0.72;
   border-color: #5a4b32;
@@ -165,24 +160,55 @@ body {
   font-size: 9px;
 }
 
-@keyframes amuletPulse {
-  0%, 100% {
-    transform: translateY(0) scale(1);
-    filter: brightness(1);
-  }
-  50% {
-    transform: translateY(-1px) scale(1.05);
-    filter: brightness(1.22);
-  }
+.amulet-popup {
+  position: fixed;
+  z-index: 30;
+  max-width: min(280px, calc(100vw - 16px));
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 2px solid #4a385f;
+  border-radius: 8px;
+  background: #120d1b;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.5), inset 0 0 0 1px #000;
+  color: var(--ink);
+  pointer-events: auto;
+  line-height: 1.35;
 }
 
-@keyframes amuletSweep {
-  0% {
-    transform: translateX(-72%);
-  }
-  58%, 100% {
-    transform: translateX(82%);
-  }
+.amulet-popup.hidden {
+  display: none;
+}
+
+.amulet-popup b,
+.amulet-popup em {
+  display: block;
+}
+
+.amulet-popup b {
+  color: var(--gold);
+  font-size: 12px;
+}
+
+.amulet-popup em {
+  margin-top: 2px;
+  color: var(--ink-dim);
+  font-style: normal;
+  font-size: 10px;
+}
+
+.amulet-popup-icon {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  border: 1px solid #3a2c52;
+  border-radius: 5px;
+  background-color: #0c0814;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
 }
 
 .core-line {
@@ -523,7 +549,7 @@ button {
 
 .dev-field {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(72px, 112px);
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 190px);
   gap: 8px;
   align-items: center;
   padding: 6px 8px;
@@ -551,6 +577,14 @@ button {
   font-size: 9px;
 }
 
+.dev-input-wrap {
+  display: grid;
+  grid-template-columns: minmax(72px, 1fr) auto;
+  gap: 6px;
+  align-items: center;
+  min-width: 0;
+}
+
 .dev-field input {
   width: 100%;
   min-width: 0;
@@ -561,6 +595,16 @@ button {
   font: inherit;
   font-size: 11px;
   padding: 5px 6px;
+}
+
+.dev-default {
+  color: #6f657c;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.dev-default-diff {
+  color: #ff6b6b;
 }
 
 .overlay {
@@ -900,5 +944,13 @@ button {
 
   .dev-actions span {
     grid-column: 1 / -1;
+  }
+
+  .dev-field {
+    grid-template-columns: 1fr;
+  }
+
+  .dev-input-wrap {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 }

@@ -4,6 +4,7 @@ import Phaser from "phaser";
 import {
   createGame,
   createRuleConfig,
+  DEFAULT_RULE_CONFIG,
   exposeGameNamespace,
   pixelAssetUrl,
   pixelActorX,
@@ -46,12 +47,16 @@ let progress = loadProgress();
 let codexOpen = false;
 let codexTab = "monster";
 let lastAmuletOfferKey = "";
+let lastAmuletBarKey = "";
+let amuletPress = null;
+let activeAmuletPopupId = null;
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
+const AMULET_LONG_PRESS_MS = 520;
 
 function tileKey(tile) {
   if (tile.t === "earth" && tile.sub) {
@@ -514,6 +519,10 @@ function statPill(label, value) {
   return `<span><b>${escapeHtml(label)}</b>${escapeHtml(value)}</span>`;
 }
 
+function clampNumber(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function amuletIconStyle(id, size = 24) {
   const frame = pixelAmuletFrameIndex(id);
   return [
@@ -527,6 +536,12 @@ function amuletIconStyle(id, size = 24) {
 
 function amuletIconHtml(id, className = "amulet-icon", size = 24) {
   return `<span class="${escapeHtml(className)}" aria-hidden="true" style='${amuletIconStyle(id, size)}'></span>`;
+}
+
+function amuletLabel(id) {
+  const a = gameApi.AMULETS[id];
+  if (!a) return id;
+  return `${a.name}: ${a.profile}`;
 }
 
 function monsterCard(kind) {
@@ -622,16 +637,66 @@ function devFieldInfo(labels, key) {
   return { label: found[0], help: found[1] };
 }
 
+function devValueText(value) {
+  return Array.isArray(value) ? value.join(", ") : String(value);
+}
+
+function parseDevInputValue(input) {
+  if (input.dataset.devArray === "1") {
+    return input.value.split(",").map((part) => Number(part.trim())).filter((n) => Number.isFinite(n));
+  }
+  const value = Number(input.value);
+  return Number.isFinite(value) ? value : null;
+}
+
+function devValuesEqual(a, b) {
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((value, i) => Number(value) === Number(b[i]));
+  }
+  return Number(a) === Number(b);
+}
+
+function defaultValueForPath(path) {
+  const parts = path.split(".");
+  if (parts.length === 2 && parts[0] === "constants") return DEFAULT_RULE_CONFIG.constants[parts[1]];
+  if (parts.length === 3 && DEFAULT_RULE_CONFIG[parts[0]] && DEFAULT_RULE_CONFIG[parts[0]][parts[1]]) {
+    return DEFAULT_RULE_CONFIG[parts[0]][parts[1]][parts[2]];
+  }
+  return null;
+}
+
+function updateDevDefaultDiffs(root = document) {
+  for (const input of root.querySelectorAll("[data-dev-path]")) {
+    const badge = input.closest(".dev-input-wrap")?.querySelector(".dev-default");
+    if (!badge) continue;
+    let defaultValue = null;
+    try {
+      defaultValue = JSON.parse(input.dataset.devDefault || "null");
+    } catch {
+      defaultValue = null;
+    }
+    const current = parseDevInputValue(input);
+    badge.classList.toggle("dev-default-diff", !devValuesEqual(current, defaultValue));
+  }
+}
+
 function devInputHtml(path, key, value, labels) {
   const info = devFieldInfo(labels, key);
   const isArray = Array.isArray(value);
   const textValue = isArray ? value.join(", ") : value;
   const type = isArray ? "text" : "number";
   const step = isArray ? "" : ' step="any"';
+  const defaultValue = defaultValueForPath(path);
+  const defaultText = devValueText(defaultValue);
+  const differs = !devValuesEqual(value, defaultValue);
   return `
     <label class="dev-field">
       <span><b>${escapeHtml(info.label)}</b><em>${escapeHtml(info.help)}</em></span>
-      <input type="${type}"${step} data-dev-path="${escapeHtml(path)}" data-dev-array="${isArray ? "1" : "0"}" value="${escapeHtml(textValue)}">
+      <span class="dev-input-wrap">
+        <input type="${type}"${step} data-dev-path="${escapeHtml(path)}" data-dev-array="${isArray ? "1" : "0"}" data-dev-default="${escapeHtml(JSON.stringify(defaultValue))}" value="${escapeHtml(textValue)}">
+        <em class="dev-default${differs ? " dev-default-diff" : ""}">初期 ${escapeHtml(defaultText)}</em>
+      </span>
     </label>`;
 }
 
@@ -666,6 +731,7 @@ function renderDevPanel() {
     html += "</details>";
   }
   root.innerHTML = html;
+  updateDevDefaultDiffs(root);
 }
 
 function setDevValue(config, path, value) {
@@ -702,6 +768,7 @@ function updateProgressStatus() {
 }
 
 function saveDevPanel() {
+  updateDevDefaultDiffs();
   saveStoredRuleConfig(readDevPanelConfig());
   updateDevStatus("保存済み。次回開始時に反映");
 }
@@ -737,7 +804,10 @@ function bindDevPanel() {
   renderDevPanel();
   updateProgressStatus();
   const fields = document.getElementById("devFields");
-  if (fields) fields.addEventListener("change", saveDevPanel);
+  if (fields) {
+    fields.addEventListener("input", () => updateDevDefaultDiffs(fields));
+    fields.addEventListener("change", saveDevPanel);
+  }
   const exportJson = document.getElementById("exportDevJsonBtn");
   if (exportJson) exportJson.addEventListener("click", exportDevJson);
   const copyJson = document.getElementById("copyDevJsonBtn");
@@ -759,24 +829,117 @@ function bindDevPanel() {
   });
 }
 
+function hideAmuletPopup() {
+  const popup = document.getElementById("amuletPopup");
+  if (!popup) return;
+  popup.classList.add("hidden");
+  popup.style.visibility = "";
+  activeAmuletPopupId = null;
+}
+
+function showAmuletPopup(id, target) {
+  const popup = document.getElementById("amuletPopup");
+  const a = gameApi.AMULETS[id];
+  if (!popup || !a || !target) return;
+  popup.innerHTML = `
+    ${amuletIconHtml(id, "amulet-popup-icon", 30)}
+    <span><b>${escapeHtml(a.name)}</b><em>${escapeHtml(a.profile)}</em></span>`;
+  popup.classList.remove("hidden");
+  popup.style.visibility = "hidden";
+  popup.style.left = "0px";
+  popup.style.top = "0px";
+  const targetRect = target.getBoundingClientRect();
+  const popupRect = popup.getBoundingClientRect();
+  const left = clampNumber(targetRect.left + targetRect.width / 2 - popupRect.width / 2, 8, window.innerWidth - popupRect.width - 8);
+  let top = targetRect.bottom + 8;
+  if (top + popupRect.height > window.innerHeight - 8) top = targetRect.top - popupRect.height - 8;
+  popup.style.left = `${Math.round(left)}px`;
+  popup.style.top = `${Math.round(clampNumber(top, 8, window.innerHeight - popupRect.height - 8))}px`;
+  popup.style.visibility = "";
+  activeAmuletPopupId = id;
+}
+
+function clearAmuletPress() {
+  if (!amuletPress) return;
+  clearTimeout(amuletPress.timer);
+  amuletPress = null;
+}
+
+function startAmuletPress(event, button) {
+  clearAmuletPress();
+  const id = button.dataset.amuletId;
+  if (!id) return;
+  event.preventDefault();
+  try {
+    button.setPointerCapture(event.pointerId);
+  } catch {
+    // ブラウザによっては捕捉できない。
+  }
+  const startX = event.clientX;
+  const startY = event.clientY;
+  amuletPress = {
+    id,
+    button,
+    startX,
+    startY,
+    timer: setTimeout(() => {
+      if (!amuletPress || amuletPress.id !== id) return;
+      showAmuletPopup(id, button);
+    }, AMULET_LONG_PRESS_MS),
+  };
+}
+
+function moveAmuletPress(event) {
+  if (!amuletPress) return;
+  if (Math.hypot(event.clientX - amuletPress.startX, event.clientY - amuletPress.startY) > TAP_MOVE_CANCEL) clearAmuletPress();
+}
+
+function bindAmuletHud() {
+  const bar = document.getElementById("amuletBar");
+  if (!bar) return;
+  bar.addEventListener("pointerdown", (event) => {
+    const button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-amulet-id]") : null;
+    if (!button) return;
+    startAmuletPress(event, button);
+  });
+  bar.addEventListener("pointermove", moveAmuletPress);
+  for (const type of ["pointerup", "pointercancel", "pointerleave"]) bar.addEventListener(type, clearAmuletPress);
+  bar.addEventListener("contextmenu", (event) => {
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-amulet-id]")) event.preventDefault();
+  });
+  bar.addEventListener("selectstart", (event) => {
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-amulet-id]")) event.preventDefault();
+  });
+  document.addEventListener("pointerdown", (event) => {
+    const target = event.target && typeof event.target.closest === "function" ? event.target : null;
+    if (target && (target.closest("#amuletBar [data-amulet-id]") || target.closest("#amuletPopup"))) return;
+    hideAmuletPopup();
+  });
+  window.addEventListener("scroll", hideAmuletPopup, { passive: true });
+  window.addEventListener("resize", hideAmuletPopup);
+}
+
 function renderAmulets() {
   const bar = document.getElementById("amuletBar");
   if (!bar) return;
   const held = gameApi.amulets;
+  const used = new Set(gameApi.usedAmulets);
+  const key = held.join(",") + "|" + [...used].sort().join(",");
+  if (key === lastAmuletBarKey) return;
+  lastAmuletBarKey = key;
+  if (activeAmuletPopupId && !held.includes(activeAmuletPopupId)) hideAmuletPopup();
   if (!held.length) {
     bar.innerHTML = `<span class="amulet-empty">お守りなし</span>`;
     return;
   }
-  const active = new Set(gameApi.amuletEvents.map((e) => e.id));
-  const used = new Set(gameApi.usedAmulets);
   bar.innerHTML = held.map((id) => {
     const a = gameApi.AMULETS[id];
     if (!a) return "";
     const classes = ["amulet"];
-    if (active.has(id)) classes.push("amulet-flash");
     if (used.has(id)) classes.push("amulet-used");
     const badge = used.has(id) ? `<i class="amulet-badge">済</i>` : "";
-    return `<span class="${classes.join(" ")}" title="${escapeHtml(a.profile)}">${amuletIconHtml(id, "amulet-icon", 22)}${escapeHtml(a.name)}${badge}</span>`;
+    const label = amuletLabel(id);
+    return `<button type="button" class="${classes.join(" ")}" data-amulet-id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${amuletIconHtml(id, "amulet-icon", 24)}${badge}</button>`;
   }).join("");
 }
 
@@ -852,6 +1015,8 @@ function updateHud() {
 }
 
 function startGame() {
+  hideAmuletPopup();
+  lastAmuletBarKey = "";
   gameApi = createConfiguredGame();
   gameApi.startGame();
   syncProgressEvents();
@@ -859,6 +1024,8 @@ function startGame() {
 }
 
 function openStartFlow() {
+  hideAmuletPopup();
+  lastAmuletBarKey = "";
   gameApi = createConfiguredGame();
   gameApi.gameState = "title";
   syncProgressEvents();
@@ -892,6 +1059,7 @@ function boot() {
   if (skipAmulet) skipAmulet.addEventListener("click", () => {
     if (gameApi.chooseAmuletOffer(null)) updateHud();
   });
+  bindAmuletHud();
   bindDevPanel();
 
   updateHud();
