@@ -597,13 +597,13 @@ button {
   padding: 5px 6px;
 }
 
-.dev-default {
+.dev-field .dev-default {
   color: #6f657c;
   font-size: 9px;
   white-space: nowrap;
 }
 
-.dev-default-diff {
+.dev-field .dev-default.dev-default-diff {
   color: #ff6b6b;
 }
 
@@ -811,7 +811,7 @@ button {
 
 .codex-tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 8px;
 }
 
@@ -872,6 +872,18 @@ button {
 }
 
 .codex-sprite.silhouette {
+  filter: brightness(0) contrast(1.4);
+  opacity: 0.72;
+}
+
+.codex-amulet-icon {
+  display: inline-block;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.codex-amulet-icon.silhouette {
   filter: brightness(0) contrast(1.4);
   opacity: 0.72;
 }

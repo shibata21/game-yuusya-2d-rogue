@@ -858,6 +858,7 @@ export function createGame(options = {}) {
   function applyAmulet(id) {
     if (!AMULETS[id] || hasAmulet(id)) return false;
     amulets.push(id);
+    emitEvent("discoverAmulet", { id });
     triggerAmulet(id);
     if (id === "lastStick") {
       for (const m of monsters) {

@@ -83,7 +83,7 @@
             <button type="button" id="resetDevBtn">設定初期化</button>
             <button type="button" id="resetProgressBtn">図鑑初期化</button>
           </div>
-          <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0</div>
+          <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0 / お守り 0</div>
           <textarea id="devJsonOutput" class="dev-json-output" readonly spellcheck="false" aria-label="開発設定JSON"></textarea>
           <div class="dev-fields" id="devFields"></div>
         </details>
@@ -100,6 +100,7 @@
         <div class="codex-tabs" role="tablist" aria-label="紹介切替">
           <button class="codex-tab active" data-codex-tab="monster" role="tab" aria-selected="true">モンスター</button>
           <button class="codex-tab" data-codex-tab="hero" role="tab" aria-selected="false">冒険者</button>
+          <button class="codex-tab" data-codex-tab="amulet" role="tab" aria-selected="false">お守り</button>
         </div>
         <div class="codex-grid" id="codexGrid"></div>
       </section>

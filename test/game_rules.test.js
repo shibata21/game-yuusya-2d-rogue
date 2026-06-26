@@ -1316,10 +1316,12 @@ describe("ゲームルール", () => {
     G.gameState = "playing";
     G.settleWave();
     expect(G.gameState).toBe("amuletChoice");
+    G.drainEvents();
     expect(G.chooseAmuletOffer(null)).toBe(true);
     expect(G.gameState).toBe("playing");
     expect(G.amulets).toHaveLength(0);
     expect(G.amuletOffer).toBe(null);
+    expect(G.drainEvents().some((e) => e.type === "discoverAmulet")).toBe(false);
   });
 
   it("お守り選択中はupdateでゲーム時間が進まない", () => {
@@ -1526,10 +1528,12 @@ describe("ゲームルール", () => {
     G.drainEvents();
     G.spawnMonster("slime", 5, 5);
     G.spawnHero("warrior", 4, 1);
+    G.applyAmulet("dogtag");
     G.startWave();
     const events = G.drainEvents();
     expect(events).toContainEqual({ type: "discoverMonster", kind: "slime" });
     expect(events).toContainEqual({ type: "discoverHero", cls: "warrior" });
+    expect(events).toContainEqual({ type: "discoverAmulet", id: "dogtag" });
     expect(events).toContainEqual({ type: "waveReached", wave: 1 });
     expect(G.drainEvents()).toEqual([]);
   });

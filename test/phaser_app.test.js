@@ -15,6 +15,7 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('<script type="module" src="/src/main.js"></script>');
     expect(html).toContain('id="codexBtn"');
     expect(html).toContain('id="codexPanel"');
+    expect(html).toContain('data-codex-tab="amulet"');
     expect(html).toContain('id="devPanel"');
     expect(html).toContain('id="resetDevBtn"');
     expect(html).toContain('id="resetProgressBtn"');
@@ -73,6 +74,8 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("codexOpen");
     expect(src).toContain("silhouette");
     expect(src).toContain("discoveredMonsters");
+    expect(src).toContain("discoveredAmulets");
+    expect(src).toContain("amuletCard");
     expect(src).toContain("renderAmuletOffer");
     expect(src).toContain("chooseAmuletOffer");
     expect(src).toContain("bindAmuletHud");
@@ -91,6 +94,7 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".codex-card");
     expect(css).toContain(".codex-card.locked");
     expect(css).toContain(".codex-sprite.silhouette");
+    expect(css).toContain(".codex-amulet-icon");
     expect(css).toContain(".dev-panel");
     expect(css).toContain(".btn-codex");
     expect(css).toContain(".core-line.core-alert");
@@ -98,6 +102,7 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".amulet-used");
     expect(css).toContain(".amulet-popup");
     expect(css).toContain(".dev-default");
+    expect(css).toContain(".dev-field .dev-default.dev-default-diff");
     expect(css).toContain("-webkit-user-select: none");
     expect(css).toContain("-webkit-touch-callout: none");
     expect(css).toContain(".amulet-choice-card");

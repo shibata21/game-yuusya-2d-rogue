@@ -7,6 +7,7 @@ export const EMPTY_PROGRESS = {
   highestWave: 0,
   discoveredMonsters: [],
   discoveredHeroes: [],
+  discoveredAmulets: [],
 };
 
 function browserStorageAdapter() {
@@ -74,6 +75,7 @@ export function loadProgress() {
     highestWave: Math.max(0, Math.floor(Number(raw.highestWave) || 0)),
     discoveredMonsters: uniqueStrings(raw.discoveredMonsters),
     discoveredHeroes: uniqueStrings(raw.discoveredHeroes),
+    discoveredAmulets: uniqueStrings(raw.discoveredAmulets),
   };
 }
 
@@ -82,6 +84,7 @@ export function saveProgress(progress) {
     highestWave: Math.max(0, Math.floor(Number(progress && progress.highestWave) || 0)),
     discoveredMonsters: uniqueStrings(progress && progress.discoveredMonsters),
     discoveredHeroes: uniqueStrings(progress && progress.discoveredHeroes),
+    discoveredAmulets: uniqueStrings(progress && progress.discoveredAmulets),
   };
   return browserStorageAdapter().write(PROGRESS_KEY, JSON.stringify(clean));
 }
@@ -95,10 +98,12 @@ export function applyProgressEvents(progress, events) {
     highestWave: Math.max(0, Math.floor(Number(progress && progress.highestWave) || 0)),
     discoveredMonsters: uniqueStrings(progress && progress.discoveredMonsters),
     discoveredHeroes: uniqueStrings(progress && progress.discoveredHeroes),
+    discoveredAmulets: uniqueStrings(progress && progress.discoveredAmulets),
   };
   let changed = false;
   const monsters = new Set(next.discoveredMonsters);
   const heroes = new Set(next.discoveredHeroes);
+  const amulets = new Set(next.discoveredAmulets);
   for (const event of Array.isArray(events) ? events : []) {
     if (event.type === "waveReached") {
       const wave = Math.max(0, Math.floor(Number(event.wave) || 0));
@@ -115,8 +120,13 @@ export function applyProgressEvents(progress, events) {
       heroes.add(event.cls);
       changed = true;
     }
+    if (event.type === "discoverAmulet" && typeof event.id === "string" && !amulets.has(event.id)) {
+      amulets.add(event.id);
+      changed = true;
+    }
   }
   next.discoveredMonsters = [...monsters];
   next.discoveredHeroes = [...heroes];
+  next.discoveredAmulets = [...amulets];
   return { progress: next, changed };
 }

@@ -240,9 +240,10 @@ async function run() {
         status: document.getElementById("devStatus").textContent,
         defaultLabel: startNutDefault.textContent,
         defaultDiff: startNutDefault.classList.contains("dev-default-diff"),
+        defaultColor: getComputedStyle(startNutDefault).color,
       };
     })()`);
-    if (!devJson.hasValue || devJson.chance !== 0.35 || !devJson.hasKinds || devJson.status !== "JSONを出力しました" || !devJson.defaultLabel.includes("初期 25") || !devJson.defaultDiff) {
+    if (!devJson.hasValue || devJson.chance !== 0.35 || !devJson.hasKinds || devJson.status !== "JSONを出力しました" || !devJson.defaultLabel.includes("初期 25") || !devJson.defaultDiff || devJson.defaultColor !== "rgb(255, 107, 107)") {
       throw new Error(`開発JSON出力が不正です: ${JSON.stringify(devJson)}`);
     }
 
@@ -298,10 +299,32 @@ async function run() {
       throw new Error(`お守り長押しポップアップが不正です: ${JSON.stringify(popupResult)}`);
     }
 
+    await waitFor(client, `JSON.parse(localStorage.getItem("makaiDefense.progress.v1") || "{}").discoveredAmulets?.includes("dogtag")`, "お守り発見の保存");
+    await evaluate(client, `document.getElementById("codexBtn").click()`);
+    await waitFor(client, `!document.getElementById("codexPanel").classList.contains("hidden")`, "キャラクター紹介表示");
+    await evaluate(client, `document.querySelector('[data-codex-tab="amulet"]').click()`);
+    const codex = await evaluate(client, `(() => {
+      const cards = [...document.querySelectorAll("#codexGrid .codex-card")];
+      const dogtag = cards.find((card) => card.textContent.includes("ドッグタグ"));
+      const locked = cards.filter((card) => card.classList.contains("locked"));
+      return {
+        active: document.querySelector('[data-codex-tab="amulet"]').classList.contains("active"),
+        cards: cards.length,
+        dogtagText: dogtag?.textContent || "",
+        dogtagLocked: dogtag?.classList.contains("locked") ?? null,
+        lockedCount: locked.length,
+        lockedText: locked[0]?.textContent || "",
+        progressText: document.getElementById("progressStatus").textContent,
+      };
+    })()`);
+    if (!codex.active || codex.cards !== 8 || !codex.dogtagText.includes("体力が全快") || codex.dogtagLocked || codex.lockedCount < 1 || !codex.lockedText.includes("???") || !codex.progressText.includes("お守り 1/8")) {
+      throw new Error(`お守り図鑑表示が不正です: ${JSON.stringify(codex)}`);
+    }
+
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、開始、開発JSON出力、お守り3択、長押しポップアップを検査しました");
+    console.log("OK: ブラウザ初回ロード、開始、開発JSON出力、お守り3択、長押しポップアップ、お守り図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

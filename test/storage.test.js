@@ -52,12 +52,15 @@ describe("ローカル保存", () => {
       { type: "discoverMonster", kind: "slime" },
       { type: "discoverMonster", kind: "slime" },
       { type: "discoverHero", cls: "warrior" },
+      { type: "discoverAmulet", id: "dogtag" },
+      { type: "discoverAmulet", id: "dogtag" },
     ]);
     expect(result.changed).toBe(true);
     expect(result.progress).toEqual({
       highestWave: 3,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
+      discoveredAmulets: ["dogtag"],
     });
     expect(saveProgress(result.progress)).toBe(true);
     expect(loadProgress()).toEqual(result.progress);
@@ -72,6 +75,21 @@ describe("ローカル保存", () => {
       highestWave: 0,
       discoveredMonsters: [],
       discoveredHeroes: [],
+      discoveredAmulets: [],
+    });
+  });
+
+  it("旧形式の進行データはお守り未発見として読み込む", () => {
+    globalThis.localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+      highestWave: 2,
+      discoveredMonsters: ["slime"],
+      discoveredHeroes: ["warrior"],
+    }));
+    expect(loadProgress()).toEqual({
+      highestWave: 2,
+      discoveredMonsters: ["slime"],
+      discoveredHeroes: ["warrior"],
+      discoveredAmulets: [],
     });
   });
 });

@@ -53,6 +53,7 @@ let activeAmuletPopupId = null;
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
+const AMULET_CODEX_ORDER = PIXEL_AMULETS;
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
@@ -466,6 +467,7 @@ function progressSets() {
   return {
     monsters: new Set(progress.discoveredMonsters),
     heroes: new Set(progress.discoveredHeroes),
+    amulets: new Set(progress.discoveredAmulets),
   };
 }
 
@@ -605,12 +607,44 @@ function heroCard(cls) {
     </article>`;
 }
 
+function amuletCard(id) {
+  const a = gameApi.AMULETS[id];
+  const found = progressSets().amulets.has(id);
+  if (!found) {
+    return `
+      <article class="codex-card locked">
+        <div class="codex-sprite-wrap">${amuletIconHtml(id, "codex-amulet-icon silhouette", 48)}</div>
+        <div class="codex-body">
+          <div class="codex-title"><strong>???</strong><em>未発見</em></div>
+          <div class="codex-stats">
+            ${statPill("種別", "???")}${statPill("効果", "???")}
+          </div>
+          <p>まだ記録がない。</p>
+        </div>
+      </article>`;
+  }
+  return `
+    <article class="codex-card">
+      <div class="codex-sprite-wrap">${amuletIconHtml(id, "codex-amulet-icon", 48)}</div>
+      <div class="codex-body">
+        <div class="codex-title"><strong>${escapeHtml(a.name)}</strong><em>${a.passive ? "常時" : "取得時"}</em></div>
+        <div class="codex-stats">
+          ${statPill("種別", a.passive ? "常時" : "取得時")}
+        </div>
+        <p>${escapeHtml(a.profile)}</p>
+      </div>
+    </article>`;
+}
+
 function renderCodex() {
   const grid = document.getElementById("codexGrid");
   if (!grid) return;
-  grid.innerHTML = codexTab === "monster"
-    ? MONSTER_CODEX_ORDER.map(monsterCard).join("")
-    : HERO_CODEX_ORDER.map(heroCard).join("");
+  const htmlByTab = {
+    monster: MONSTER_CODEX_ORDER.map(monsterCard).join(""),
+    hero: HERO_CODEX_ORDER.map(heroCard).join(""),
+    amulet: AMULET_CODEX_ORDER.map(amuletCard).join(""),
+  };
+  grid.innerHTML = htmlByTab[codexTab] || htmlByTab.monster;
   for (const btn of document.querySelectorAll("[data-codex-tab]")) {
     const active = btn.dataset.codexTab === codexTab;
     btn.classList.toggle("active", active);
@@ -764,7 +798,7 @@ function updateDevStatus(text = "変更は次回開始時に反映") {
 function updateProgressStatus() {
   const status = document.getElementById("progressStatus");
   if (!status) return;
-  status.textContent = `最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length}`;
+  status.textContent = `最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / お守り ${progress.discoveredAmulets.length}/${AMULET_CODEX_ORDER.length}`;
 }
 
 function saveDevPanel() {
