@@ -19,9 +19,12 @@
 npm run assets:check
 npm test
 npm run build
+npm run smoke
 ```
 
 `npm test` には通常の仕様テストに加えて、`createGame()` と `update(ms)` でゲームを長時間・複数seed進行させるシミュレーションテストも含める。移動AI、勇者AI、繁殖、捕食、ウェーブ、コア攻撃などの時間進行ロジックに触る変更では、短い仕様テストだけで済ませず、シミュレーションテストを追加または更新して通す。将来シミュレーションテストを専用npm scriptに分けた場合は、この正規検証コマンド列にも追加する。
+
+`npm run smoke` は `npm run build` 後の `dist` を Vite preview で一時配信し、空のChromeプロファイルでブラウザ初回ロードを確認する。`localStorage` が空の初回起動、Phaser canvas生成、公開名前空間の `title` 状態、開始ボタン押下後の `playing` 状態、実行時例外と素材404がないことまで見る。UI、起動処理、保存処理、Vite/Phaser連携に触った変更では、このスモーク確認を省略しない。
 
 開発サーバー:
 
@@ -30,6 +33,7 @@ npm run dev
 ```
 
 通常の動作確認は GitHub Pages で行う。ユーザーから明示指示がない限り、実装後にローカル開発サーバーを起動しない。
+ただし `npm run smoke` は検証用にローカル preview サーバーを一時起動し、完了後に停止するため、この禁止事項の例外として毎回実行する。
 
 素材生成を触った場合:
 
