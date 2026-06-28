@@ -50,8 +50,8 @@ const heroPalettes = {
   supermage: { dark: "#203456", mid: "#4d74c8", light: "#c6dcff", skin: "#e9b58f", metal: "#d8ecff", accent: "#6ff0ff", weapon: "gem_staff" },
   sage: { dark: "#293047", mid: "#91b885", light: "#efffd0", skin: "#e9b58f", metal: "#fff7d0", accent: "#fff06a", weapon: "glow_staff" },
   max: { dark: "#07080c", mid: "#171b24", light: "#303849", skin: "#d39a73", metal: "#dbe4ef", accent: "#1f1f27", weapon: "fist" },
-  shon: { dark: "#20242f", mid: "#5c6978", light: "#c4d1dd", skin: "#e0aa80", metal: "#e8edf2", accent: "#ffcf4d", weapon: "handgun" },
-  hori: { dark: "#51332b", mid: "#b56f55", light: "#f3c092", skin: "#e3a679", metal: "#d8dde4", accent: "#8ed36f", weapon: "rocket" },
+  shon: { dark: "#171a22", mid: "#5c6978", light: "#c4d1dd", skin: "#e0aa80", metal: "#f0f4f8", accent: "#ffcf4d", weapon: "handgun" },
+  hori: { dark: "#51332b", mid: "#b56f55", light: "#f3c092", skin: "#e3a679", metal: "#d8dde4", accent: "#8ed36f", weapon: "vegetable" },
 };
 
 const eggPalette = {
@@ -689,31 +689,37 @@ function drawFist(img, cx, cy, dx, dy, frame, pal) {
 
 function drawHandgun(img, cx, cy, dx, dy, frame, pal) {
   const fx = dx || 1;
-  const recoil = frame >= 2 ? -2 : 0;
-  const gx = cx + fx * (12 + recoil);
-  const gy = cy - 5 + dy * 4;
-  line(img, cx + fx * 5, cy, gx, gy, pal.skin, 3, 235);
-  rect(img, gx - (fx < 0 ? 9 : 0), gy - 3, 9, 5, "#171b22", 245);
-  rect(img, gx + fx * 7 - (fx < 0 ? 5 : 0), gy - 2, 7, 3, pal.metal, 235);
-  rect(img, gx - (fx < 0 ? 2 : 0), gy + 1, 3, 6, "#0b0d12", 245);
+  const recoil = frame >= 2 ? -3 : 0;
+  const gx = cx + fx * (13 + recoil);
+  const gy = cy - 6 + dy * 4;
+  line(img, cx + fx * 5, cy, gx, gy, pal.skin, 4, 235);
+  rect(img, gx - (fx < 0 ? 13 : 0), gy - 4, 13, 7, "#10131a", 250);
+  rect(img, gx + fx * 7 - (fx < 0 ? 11 : 0), gy - 3, 13, 5, pal.metal, 245);
+  rect(img, gx + fx * 2 - (fx < 0 ? 8 : 0), gy - 2, 8, 3, "#394454", 235);
+  rect(img, gx - (fx < 0 ? 3 : 0), gy + 1, 4, 8, "#080a10", 250);
   if (frame >= 2) {
-    diamond(img, gx + fx * 16, gy - 1, 3, "#fff1a6", 220);
-    line(img, gx + fx * 10, gy - 1, gx + fx * 18, gy - 1, "#ffcf4d", 1, 150);
+    diamond(img, gx + fx * 20, gy - 1, 4, "#fff1a6", 230);
+    line(img, gx + fx * 12, gy - 1, gx + fx * 24, gy - 1, "#ffcf4d", 2, 155);
   }
 }
 
-function drawRocketLauncher(img, cx, cy, dx, dy, frame, pal) {
+function drawVegetable(img, cx, cy, rx = 5, ry = 7, alpha = 245) {
+  oval(img, cx, cy, rx, ry, "#8ed36f", alpha);
+  oval(img, cx - 1, cy + 1, Math.max(2, rx - 2), Math.max(3, ry - 2), "#5fb85d", Math.max(0, alpha - 20));
+  line(img, cx - 1, cy - ry, cx + 4, cy - ry - 5, "#6fb85a", 2, alpha);
+  diamond(img, cx + 3, cy - ry - 4, 2, "#b8f08a", Math.max(0, alpha - 10));
+}
+
+function drawVegetableThrow(img, cx, cy, dx, dy, frame, pal) {
   const fx = dx || 1;
-  const lift = frame >= 2 ? -2 : 0;
-  const bx = cx + fx * 2;
-  const by = cy - 6 + dy * 5 + lift;
-  line(img, cx - fx * 7, cy + 4, bx, by, pal.skin, 3, 230);
-  line(img, bx - fx * 12, by, bx + fx * 15, by - 3, "#29313c", 8, 245);
-  line(img, bx - fx * 10, by, bx + fx * 13, by - 3, pal.metal, 4, 235);
-  tri(img, bx + fx * 15, by - 3, bx + fx * 21, by - 8, bx + fx * 21, by + 2, "#cfd8e3", 230);
+  const wind = [0, 2, 8, 4][frame];
+  const sx = cx + fx * 8;
+  const sy = cy - 3 + dy * 4;
+  line(img, cx + fx * 4, cy + 2, sx, sy, pal.skin, 4, 235);
+  drawVegetable(img, sx + fx * (5 + wind), sy - 2, 5, 7, 245);
   if (frame >= 2) {
-    tri(img, bx + fx * 23, by - 3, bx + fx * 31, by - 11, bx + fx * 31, by + 5, "#ffcf4d", 180);
-    tri(img, bx + fx * 25, by - 3, bx + fx * 29, by - 7, bx + fx * 29, by + 1, "#ff5a28", 220);
+    line(img, sx - fx * 2, sy + 2, sx - fx * 10, sy + 5, "#b8f08a", 1, 120);
+    diamond(img, sx + fx * (14 + wind), sy - 3, 2, "#fff1a6", 150);
   }
 }
 
@@ -815,6 +821,11 @@ function drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame) {
     rect(img, cx - 9, cy - 5, 18, 20, pal.mid, 235);
     line(img, cx - 8, cy - 3, cx + 8, cy + 4, pal.light, 2, 150);
   }
+  if (name === "shon") {
+    rect(img, headX - 8, headY - 8, 16, 18, "#131720", 235);
+    tri(img, headX - 8, headY - 3, headX - 3, headY + 14, headX + 1, headY + 2, "#10131a", 230);
+    tri(img, headX + 8, headY - 3, headX + 3, headY + 14, headX - 1, headY + 2, "#10131a", 230);
+  }
   oval(img, headX, headY, name === "hori" ? 9 : 8, 8, pal.skin, 245);
   if (name === "max") {
     rect(img, headX - 4, headY + 5, 8, 3, "#05060a", 235);
@@ -826,7 +837,10 @@ function drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame) {
     rect(img, headX - 5, headY - 1 + dy, 2, 1, "#3b4659", 170);
     rect(img, headX + 3, headY - 1 + dy, 2, 1, "#3b4659", 170);
   } else if (name === "shon") {
-    rect(img, headX - 7, headY - 8, 14, 5, "#2f3540", 230);
+    rect(img, headX - 8, headY - 9, 16, 6, "#10131a", 245);
+    rect(img, headX - 9, headY - 4, 4, 12, "#10131a", 230);
+    rect(img, headX + 5, headY - 4, 4, 12, "#10131a", 230);
+    line(img, headX - 7, headY - 7, headX + 7, headY - 5, "#343b48", 1, 160);
     rect(img, headX - 4, headY - 1 + dy, 3, 2, "#171b24", 230);
     rect(img, headX + 2, headY - 1 + dy, 3, 2, "#171b24", 230);
   } else {
@@ -886,12 +900,11 @@ function drawHero(img, name, action, dir, frame) {
     drawFist(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
   } else if (weapon === "handgun") {
     drawHandgun(img, cx, cy, dx, dy, action === "attack" || action === "cast" ? frame : 0, pal);
-  } else if (weapon === "rocket") {
+  } else if (weapon === "vegetable") {
     if (action === "attack") drawFist(img, cx, cy, dx, dy, frame, pal);
     else if (action === "eat") {
-      oval(img, cx + (dx || 1) * 10, cy - 4 + dy * 4, 5, 7, "#8ed36f", 245);
-      line(img, cx + (dx || 1) * 10, cy - 10 + dy * 4, cx + (dx || 1) * 14, cy - 14 + dy * 4, "#6fb85a", 2, 230);
-    } else drawRocketLauncher(img, cx, cy, dx, dy, action === "cast" ? frame : 0, pal);
+      drawVegetable(img, cx + (dx || 1) * 10, cy - 4 + dy * 4, 5, 7, 245);
+    } else drawVegetableThrow(img, cx, cy, dx, dy, action === "cast" ? frame : 0, pal);
   } else {
     drawSword(img, cx, cy, dx, dy, action === "attack" ? frame : 0, pal);
   }

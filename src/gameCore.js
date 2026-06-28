@@ -116,17 +116,17 @@ export const AMULETS = {
 };
 
 export const KINDS = {
-  slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 1, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68", name: "スライム", profile: "迷宮の湿気が集まると出てくる。本人たちは採用面接に受かったと思っている。" },
+  slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 3, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68", name: "スライム", profile: "迷宮の湿気が集まると出てくる。本人たちは採用面接に受かったと思っている。" },
   carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣", profile: "首輪はないが飼われている顔をしている。褒められると通路を余計に走る。" },
   spitter: { hp: 34, atk: 8, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "毒蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
   golem: { hp: 125, atk: 5, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.08, col: "#6f86c4", name: "ゴーレム", profile: "動き出すまでが長い。動き出してからも長い。本人は慎重派と言っている。" },
   flame: { hp: 84, atk: 18, range: 3, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.055, lineFire: true, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
-  superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 1, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム", profile: "ぷるぷる界の御曹司。怒ると少し赤くなるが、照れても同じ色になる。" },
+  superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム", profile: "ぷるぷる界の御曹司。怒ると少し赤くなるが、照れても同じ色になる。" },
   evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣", profile: "牙の手入れにうるさい。鏡がないので、水たまりの前でよく止まる。" },
   tarantula: { hp: 108, atk: 19, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
   titan: { hp: 285, atk: 16, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.035, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "昔は山だったと言い張る。否定すると返事が翌朝まで返ってこない。" },
   infernal: { hp: 195, atk: 34, range: 3, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.025, lineFire: true, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
-  crownslime: { hp: 112, atk: 14, range: 1, moveCd: 500, atkCd: 650, aggro: 2, rank: 4, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
+  crownslime: { hp: 112, atk: 14, range: 1, moveCd: 500, atkCd: 650, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
   direfang: { hp: 178, atk: 30, range: 1, moveCd: 610, atkCd: 640, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, col: "#5f2020", eliteOf: "evolved", evoLevel: 2, name: "裂牙獣", profile: "走るたびに地面へ爪痕を残す。本人は道しるべのつもりらしい。" },
   goldweaver: { hp: 205, atk: 36, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
   goldcore: { hp: 540, atk: 31, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.012, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
@@ -157,7 +157,7 @@ export const HERO_CLASSES = {
   captain: { name: "騎士団長", role: "fighter", rank: 5, hpMul: 1.85, atkMul: 1.75, defense: 42, range: 1, moveMul: 1.0, atkCd: 600, weight: 0.35, unlock: 12, weapon: "gold_sword_shield", maxPerWave: 1, msg: "騎士団長が現れた ─ 金色の剣と盾を持つ強敵", profile: "金色装備は自腹らしい。部下には節約をすすめるので微妙な空気になる。" },
   max: { name: "マックス", role: "fighter", rank: 6, hpMul: 2.05, atkMul: 2.05, defense: 30, range: 1, moveMul: 0.85, atkCd: 520, weight: 0.36, unlock: 13, weapon: "fist", dodgeChance: 0.20, critChance: 0.20, critMul: 5, maxPerWave: 1, msg: "マックスが現れた ─ 黒いロングコートの格闘冒険者", profile: "黒いロングコートとサングラスで迷宮に入る。拳が当たると冗談では済まない。" },
   shon: { name: "ション", role: "caster", rank: 7, hpMul: 1.95, atkMul: 2.20, defense: 18, range: 4, moveMul: 0.9, atkCd: 620, weight: 0.32, unlock: 14, weapon: "handgun", dodgeChance: 0.38, maxPerWave: 1, msg: "ションが現れた ─ ハンドガンを構える冒険者", profile: "ジャケット姿で銃口だけが迷いなく動く。回避の一歩がやけに小さい。" },
-  hori: { name: "ホリ", role: "fighter", rank: 8, hpMul: 2.75, atkMul: 2.35, defense: 34, range: 3, moveMul: 1.25, atkCd: 780, weight: 0.28, unlock: 15, weapon: "rocket", dodgeChance: 0.08, maxPerWave: 1, msg: "ホリが現れた ─ ロケットと拳と野菜で押し込む", profile: "ベッカムヘアの太った男。攻撃手段が多すぎて本人も順番を忘れる。" },
+  hori: { name: "ホリ", role: "fighter", rank: 8, hpMul: 2.75, atkMul: 2.35, defense: 34, range: 3, moveMul: 1.25, atkCd: 780, weight: 0.28, unlock: 15, weapon: "vegetable", dodgeChance: 0.08, maxPerWave: 1, msg: "ホリが現れた ─ 拳と野菜で押し込む", profile: "ベッカムヘアの太った男。手元の野菜を投げるか食べるか、本人も直前まで迷っている。" },
 };
 
 const RULE_CONSTANT_DEFAULTS = {
@@ -310,7 +310,7 @@ function createRuntimeTables(ruleConfig) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v21-max-coat";
+export const PIXEL_ASSET_VERSION = "v22-hori-shon";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -2086,7 +2086,7 @@ export function createGame(options = {}) {
         damage = Math.max(1, Math.round(damage * 1.35));
         action = "cast";
         ranged = true;
-        shotColor = "#ff9f43";
+        shotColor = "#8ed36f";
       } else {
         action = "attack";
         ranged = false;

@@ -252,6 +252,22 @@ function validateMaxCoatAndSunglasses() {
   ok("マックスのロングコートとサングラスを検査しました");
 }
 
+function validateHoriAndShonRedesign() {
+  const hori = actorFrame("hori", "cast", "e", 2);
+  const vegetable = pixelsIn(hori, (x, y, r, g, b) => x >= 26 && x <= 46 && y >= 8 && y <= 25 && g > r + 20 && g > b + 20);
+  const longMetal = pixelsIn(hori, (x, y, r, g, b) => x >= 25 && x <= 46 && y >= 10 && y <= 22 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18 && r > 55 && r < 225);
+  if (vegetable <= 20) fail("ホリの投げ野菜が小さすぎます: " + vegetable);
+  if (longMetal >= 18) fail("ホリにバズーカ風の長い金属シルエットが残っています: " + longMetal);
+
+  const shonIdle = actorFrame("shon", "idle", "s", 1);
+  const shonAttack = actorFrame("shon", "attack", "e", 2);
+  const longHair = pixelsIn(shonIdle, (x, y, r, g, b) => x >= 14 && x <= 34 && y >= 5 && y <= 26 && r < 35 && g < 40 && b < 50);
+  const gunMetal = pixelsIn(shonAttack, (x, y, r, g, b) => x >= 30 && x <= 47 && y >= 10 && y <= 23 && r >= 180 && g >= 180 && b >= 180);
+  if (longHair <= 80) fail("ションのロン毛シルエットが小さすぎます: " + longHair);
+  if (gunMetal <= 12) fail("ションのハンドガンの金属シルエットが小さすぎます: " + gunMetal);
+  ok("ホリの野菜投げとションのロン毛・ハンドガンを検査しました");
+}
+
 function paletteStats(base, elite) {
   let union = 0, alphaDiff = 0, colorDiff = 0, redDominant = 0, opaque = 0;
   for (let i = 0; i < base.data.length; i += 4) {
@@ -397,6 +413,7 @@ function validateNoLegacyAssetSources() {
   validateHeroActionDiff();
   validateDodgeActionDiff();
   validateMaxCoatAndSunglasses();
+  validateHoriAndShonRedesign();
   validateElitePaletteVariants();
   validateEggShapes();
   validateRichVeins();

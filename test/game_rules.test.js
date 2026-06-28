@@ -396,6 +396,9 @@ describe("ゲームルール", () => {
   });
 
   it("蜘蛛以降のモンスターは中強化したステータスを持つ", () => {
+    expect(KINDS.slime).toMatchObject({ aggro: 3 });
+    expect(KINDS.superslime).toMatchObject({ aggro: 3 });
+    expect(KINDS.crownslime).toMatchObject({ aggro: 4 });
     expect(KINDS.spitter).toMatchObject({ hp: 34, atk: 8 });
     expect(KINDS.golem).toMatchObject({ hp: 125, atk: 5 });
     expect(KINDS.flame).toMatchObject({ hp: 84, atk: 18, range: 3 });
@@ -872,6 +875,38 @@ describe("ゲームルール", () => {
     expect(G.reachableMonsterCells(1, 5).some((cell) => cell.col === 8 && cell.row === 5)).toBe(true);
   });
 
+  it("スライムは見えている勇者を追い、壁越しでは追わない", () => {
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    for (const c of [5, 6, 7, 8]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
+    G.heroes.push(hero("warrior", 5, 5, { actCd: 999999, atkCd: 999999, moveCd: 999999 }));
+    G.spawnMonster("slime", 8, 5);
+    const hunter = G.monsters[0];
+    hunter.moveCd = 0;
+    hunter.moveCharge = 1;
+    hunter.eatCd = 999999;
+    hunter.atkCd = 999999;
+
+    G.update(100);
+
+    expect(hunter.moveIntent.kind).toBe("chase");
+    expect(hunter.col).toBe(7);
+    expect(hunter.row).toBe(5);
+
+    G.resetGame(1);
+    for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
+    G.grid[5][5] = { t: "tunnel", sub: null, shade: 0 };
+    G.grid[5][8] = { t: "tunnel", sub: null, shade: 0 };
+    G.heroes.push(hero("warrior", 5, 5, { actCd: 999999, atkCd: 999999, moveCd: 999999 }));
+    G.spawnMonster("slime", 8, 5);
+    const hidden = G.monsters[0];
+    hidden.moveCd = 999999;
+    hidden.eatCd = 999999;
+
+    G.update(20);
+
+    expect(hidden.moveIntent.kind).toBe("wander");
+  });
+
   it("予約制移動では空く予定のマスへ隊列移動できる", () => {
     for (let r = 0; r < G.ROWS; r++) for (let c = 0; c < G.COLS; c++) G.grid[r][c] = { t: "bedrock", sub: null, shade: 0 };
     for (const c of [5, 6, 7]) G.grid[5][c] = { t: "tunnel", sub: null, shade: 0 };
@@ -1232,7 +1267,7 @@ describe("ゲームルール", () => {
     expect(m.hp).toBe(m.maxHp - 50);
   });
 
-  it("ションは遠距離から射撃し、ホリはロケットと野菜行動を使う", () => {
+  it("ションは遠距離から射撃し、ホリは野菜投げと野菜食べを使う", () => {
     carveAll();
     const shon = hero("shon", 5, 5, { atk: 10, atkCd: 0, actCd: 999999 });
     G.heroes.push(shon);
@@ -1247,13 +1282,13 @@ describe("ゲームルール", () => {
     G.resetGame(1);
     carveAll();
     G.setRandom(() => 0.3);
-    const horiRocket = hero("hori", 5, 5, { atk: 10, atkCd: 0, actCd: 999999 });
-    G.heroes.push(horiRocket);
+    const horiThrow = hero("hori", 5, 5, { atk: 10, atkCd: 0, actCd: 999999 });
+    G.heroes.push(horiThrow);
     G.spawnMonster("golem", 7, 5);
     G.monsters[0].atkCd = 999999;
     G.monsters[0].moveCd = 999999;
     G.update(100);
-    expect(horiRocket.actionType).toBe("cast");
+    expect(horiThrow.actionType).toBe("cast");
     expect(G.monsters[0].hp).toBe(G.monsters[0].maxHp - 14);
 
     G.resetGame(1);

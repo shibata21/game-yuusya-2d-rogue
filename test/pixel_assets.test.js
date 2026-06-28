@@ -198,9 +198,9 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v21-max-coat");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v21-max-coat");
-    expect(pixelAssetUrl("amulets.png")).toBe("assets/pixel/amulets.png?v=v21-max-coat");
+    expect(PIXEL_ASSET_VERSION).toBe("v22-hori-shon");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v22-hori-shon");
+    expect(pixelAssetUrl("amulets.png")).toBe("assets/pixel/amulets.png?v=v22-hori-shon");
     expect(pixelAmuletFrameIndex("coinPurse")).toBe(PIXEL_AMULETS.indexOf("coinPurse"));
   });
 
@@ -254,6 +254,23 @@ describe("ピクセル素材", () => {
     expect(coat).toBeGreaterThan(180);
     expect(glasses).toBeGreaterThan(12);
     expect(foreheadBand).toBeLessThan(10);
+  });
+
+  it("ホリはバズーカを持たず野菜投げが読める", () => {
+    const cast = actorCrop("hori", "cast", "e", 2);
+    const vegetable = pixelsIn(cast, (x, y, r, g, b) => x >= 26 && x <= 46 && y >= 8 && y <= 25 && g > r + 20 && g > b + 20);
+    const longMetal = pixelsIn(cast, (x, y, r, g, b) => x >= 25 && x <= 46 && y >= 10 && y <= 22 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18 && r > 55 && r < 225);
+    expect(vegetable).toBeGreaterThan(20);
+    expect(longMetal).toBeLessThan(18);
+  });
+
+  it("ションはロン毛と大きいハンドガンが読める", () => {
+    const idle = actorCrop("shon", "idle", "s", 1);
+    const attack = actorCrop("shon", "attack", "e", 2);
+    const longHair = pixelsIn(idle, (x, y, r, g, b) => x >= 14 && x <= 34 && y >= 5 && y <= 26 && r < 35 && g < 40 && b < 50);
+    const gunMetal = pixelsIn(attack, (x, y, r, g, b) => x >= 30 && x <= 47 && y >= 10 && y <= 23 && r >= 180 && g >= 180 && b >= 180);
+    expect(longHair).toBeGreaterThan(80);
+    expect(gunMetal).toBeGreaterThan(12);
   });
 
   it("下向き冒険者の剣は下へ突き出さず体の前で振る", () => {
