@@ -7,8 +7,8 @@ import { describe, expect, it } from "vitest";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const specs = {
-  "bgm_dungeon_loop.wav": [15.5, 16.5],
-  "dig.wav": [0.18, 0.28],
+  "bgm_dungeon_loop.wav": [23.5, 24.5],
+  "dig.wav": [0.32, 0.42],
   "button.wav": [0.09, 0.16],
   "hero_death_1.wav": [0.65, 0.80],
   "hero_death_2.wav": [0.65, 0.80],
