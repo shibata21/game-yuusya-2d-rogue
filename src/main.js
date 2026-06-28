@@ -53,6 +53,7 @@ let activeAmuletPopupId = null;
 let activeScene = null;
 let bgmSound = null;
 let audioSaveTimer = null;
+let lastCoreHitSoundAt = 0;
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
@@ -61,7 +62,7 @@ const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
 const AMULET_LONG_PRESS_MS = 520;
-const AUDIO_ASSET_VERSION = "v1-ominous-retro";
+const AUDIO_ASSET_VERSION = "v2-core-hit";
 const AUDIO_DB_NAME = "makaiDefense.audio.v1";
 const AUDIO_STORE_NAME = "settings";
 const AUDIO_SETTINGS_KEY = "volume";
@@ -70,6 +71,7 @@ const AUDIO_KEYS = {
   bgm: "bgmDungeon",
   dig: "digSe",
   button: "buttonSe",
+  coreHit: "coreHitSe",
   heroDeaths: ["heroDeath1", "heroDeath2", "heroDeath3"],
 };
 let audioSettings = { ...AUDIO_DEFAULTS };
@@ -225,6 +227,13 @@ function playDigSound() {
   playAudio(AUDIO_KEYS.dig, "se");
 }
 
+function playCoreHitSound() {
+  const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+  if (now - lastCoreHitSoundAt < 120) return;
+  lastCoreHitSoundAt = now;
+  playAudio(AUDIO_KEYS.coreHit, "se");
+}
+
 function playHeroDeathVoice() {
   const keys = AUDIO_KEYS.heroDeaths;
   const key = keys[Math.floor(Math.random() * keys.length) % keys.length];
@@ -282,6 +291,7 @@ function bindAudioPanel() {
 
 function handleGameEvents(events) {
   for (const event of events) {
+    if (event.type === "coreHit") playCoreHitSound();
     if (event.type === "heroKilled") playHeroDeathVoice();
   }
 }
@@ -307,6 +317,7 @@ class MainScene extends Phaser.Scene {
     this.load.audio(AUDIO_KEYS.bgm, audioAssetUrl("bgm_dungeon_loop.wav"));
     this.load.audio(AUDIO_KEYS.dig, audioAssetUrl("dig.wav"));
     this.load.audio(AUDIO_KEYS.button, audioAssetUrl("button.wav"));
+    this.load.audio(AUDIO_KEYS.coreHit, audioAssetUrl("core_hit.wav"));
     this.load.audio(AUDIO_KEYS.heroDeaths[0], audioAssetUrl("hero_death_1.wav"));
     this.load.audio(AUDIO_KEYS.heroDeaths[1], audioAssetUrl("hero_death_2.wav"));
     this.load.audio(AUDIO_KEYS.heroDeaths[2], audioAssetUrl("hero_death_3.wav"));

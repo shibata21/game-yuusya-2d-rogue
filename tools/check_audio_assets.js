@@ -8,6 +8,7 @@ const SPECS = {
   "bgm_dungeon_loop.wav": { min: 23.5, max: 24.5 },
   "dig.wav": { min: 0.32, max: 0.42 },
   "button.wav": { min: 0.09, max: 0.16 },
+  "core_hit.wav": { min: 0.36, max: 0.48 },
   "hero_death_1.wav": { min: 0.65, max: 0.80 },
   "hero_death_2.wav": { min: 0.65, max: 0.80 },
   "hero_death_3.wav": { min: 0.65, max: 0.80 },

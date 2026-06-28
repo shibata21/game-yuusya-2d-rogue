@@ -738,12 +738,14 @@ describe("ゲームルール", () => {
     const h = hero("warrior", G.CORE_COL, 1, { actCd: 0, atk: 7, coreCd: 0 });
     G.heroes.push(h);
     const before = G.coreHP;
+    G.drainEvents();
     for (let i = 0; i < 80 && G.coreHP === before; i++) G.update(250);
     expect(G.isCoreAttackCell(h.col, h.row)).toBe(true);
     expect(h.col === G.CORE_COL && h.row === G.CORE_ROW).toBe(false);
     expect(G.coreHP).toBeLessThan(before);
     expect(G.effects.some((e) => e.type === "corehit")).toBe(true);
     expect(G.effects.some((e) => e.type === "coreShock")).toBe(true);
+    expect(G.drainEvents().some((e) => e.type === "coreHit" && e.cls === "warrior" && e.damage === 7)).toBe(true);
   });
 
   it("コアHPが0になったらコア揺れエフェクトを残さない", () => {

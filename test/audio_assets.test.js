@@ -10,6 +10,7 @@ const specs = {
   "bgm_dungeon_loop.wav": [23.5, 24.5],
   "dig.wav": [0.32, 0.42],
   "button.wav": [0.09, 0.16],
+  "core_hit.wav": [0.36, 0.48],
   "hero_death_1.wav": [0.65, 0.80],
   "hero_death_2.wav": [0.65, 0.80],
   "hero_death_3.wav": [0.65, 0.80],

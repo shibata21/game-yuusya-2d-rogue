@@ -145,6 +145,19 @@ function buildButton() {
   });
 }
 
+function buildCoreHit() {
+  const n = noise(0xc0ce0717);
+  return render(0.42, (t) => {
+    const impact = pulseAt(t, 0, 0.22);
+    const after = pulseAt(t, 0.055, 0.34);
+    const thud = Math.sin(Math.PI * 2 * (78 - t * 35) * t) * impact * 0.42;
+    const crack = square(Math.PI * 2 * 92 * t + Math.sin(t * 38) * 1.6) * after * 0.16;
+    const magic = Math.sin(Math.PI * 2 * (410 + Math.sin(t * 26) * 70) * t) * after * 0.15;
+    const dust = n() * after * 0.13;
+    return thud + crack + magic + dust;
+  });
+}
+
 function buildHeroDeath(seed, baseFreq, bend) {
   const n = noise(seed);
   return render(0.72, (t) => {
@@ -160,6 +173,7 @@ function main() {
   writeWav("bgm_dungeon_loop.wav", buildBgm());
   writeWav("dig.wav", buildDig());
   writeWav("button.wav", buildButton());
+  writeWav("core_hit.wav", buildCoreHit());
   writeWav("hero_death_1.wav", buildHeroDeath(0xdead01, 310, 250));
   writeWav("hero_death_2.wav", buildHeroDeath(0xdead02, 260, 190));
   writeWav("hero_death_3.wav", buildHeroDeath(0xdead03, 360, 320));

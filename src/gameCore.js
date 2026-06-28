@@ -2170,6 +2170,7 @@ export function createGame(options = {}) {
         if (h.coreCd <= 0) {
           const dmg = heroAttackPower(h);
           coreHP -= dmg;
+          emitEvent("coreHit", { cls: h.cls, wave: h.wave, damage: dmg, x: cx(CORE_COL), y: cy(CORE_ROW) });
           popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `-${dmg}`, "#e0556b");
           effects.push({ type: "corehit", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#e0556b", life: 420, max: 420 });
           effects.push({ type: "coreShock", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#ff3355", life: 460, max: 460 });

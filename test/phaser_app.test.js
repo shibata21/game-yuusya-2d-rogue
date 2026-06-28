@@ -58,9 +58,11 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('this.load.spritesheet("amulets"');
     expect(src).toContain("this.load.audio(AUDIO_KEYS.bgm");
     expect(src).toContain("bgm_dungeon_loop.wav");
+    expect(src).toContain("core_hit.wav");
     expect(src).toContain("hero_death_1.wav");
     expect(src).toContain("indexedDB.open(AUDIO_DB_NAME");
     expect(src).toContain("handleGameEvents");
+    expect(src).toContain("playCoreHitSound");
     expect(src).toContain("playHeroDeathVoice");
     expect(src).not.toContain("localStorage.setItem(\"makaiDefense.audio");
     expect(src).toContain("Phaser.Scale.FIT");
