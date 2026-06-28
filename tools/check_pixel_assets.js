@@ -240,6 +240,18 @@ function validateDodgeActionDiff() {
   }
   ok("回避アクション差分を検査しました");
 }
+
+function validateMaxCoatAndSunglasses() {
+  const img = actorFrame("max", "idle", "s", 1);
+  const coat = pixelsIn(img, (x, y, r, g, b) => x >= 10 && x <= 38 && y >= 18 && y <= 43 && r < 35 && g < 38 && b < 48);
+  const glasses = pixelsIn(img, (x, y, r, g, b) => x >= 16 && x <= 32 && y >= 8 && y <= 15 && r < 30 && g < 32 && b < 40);
+  const foreheadBand = pixelsIn(img, (x, y, r, g, b) => x >= 15 && x <= 33 && y >= 5 && y <= 9 && r < 30 && g < 32 && b < 40);
+  if (coat <= 180) fail("マックスのロングコートの黒シルエットが小さすぎます: " + coat);
+  if (glasses <= 12) fail("マックスのサングラスが小さすぎます: " + glasses);
+  if (foreheadBand >= 10) fail("マックスの額にバンダナ風の黒帯が残っています: " + foreheadBand);
+  ok("マックスのロングコートとサングラスを検査しました");
+}
+
 function paletteStats(base, elite) {
   let union = 0, alphaDiff = 0, colorDiff = 0, redDominant = 0, opaque = 0;
   for (let i = 0; i < base.data.length; i += 4) {
@@ -384,6 +396,7 @@ function validateNoLegacyAssetSources() {
   validateActorDirectionDiff();
   validateHeroActionDiff();
   validateDodgeActionDiff();
+  validateMaxCoatAndSunglasses();
   validateElitePaletteVariants();
   validateEggShapes();
   validateRichVeins();

@@ -23,12 +23,13 @@ export const WAVE_INTERVAL = 10000;
 export const FIRST_GRACE = 27000;
 export const HERO_STAGGER = 520;
 export const HERO_ENTRY_HOLD = 500;
+export const WAVE_SETTLE_DELAY = 900;
 export const MOVEMENT_TICK = 100;
 export const VEIN_CAP = 44;
 export const VEIN_SPAWN_TICK = 1000;
 export const VEIN_SPAWN_BASE_CHANCE = 0.0006;
 export const VEIN_SPAWN_SOIL_WEIGHT = 0.45;
-export const VEIN_SPAWN_SOIL_CHANCES = [0.0006, 0.0010, 0.0018, 0.0032, 0.007, 0.014, 0.026, 0.045];
+export const VEIN_SPAWN_SOIL_CHANCES = [0.0006, 0.0014, 0.0026, 0.0048, 0.0095, 0.018, 0.034, 0.060];
 export const VEIN_SPAWN_BURST_CAP = 3;
 export const EGG_HATCH = 40000;
 export const EGG_CHECK = 10000;
@@ -66,6 +67,7 @@ export const RULE_CONSTANT_KEYS = [
   "FIRST_GRACE",
   "HERO_STAGGER",
   "HERO_ENTRY_HOLD",
+  "WAVE_SETTLE_DELAY",
   "MOVEMENT_TICK",
   "VEIN_CAP",
   "VEIN_SPAWN_TICK",
@@ -171,6 +173,7 @@ const RULE_CONSTANT_DEFAULTS = {
   FIRST_GRACE,
   HERO_STAGGER,
   HERO_ENTRY_HOLD,
+  WAVE_SETTLE_DELAY,
   MOVEMENT_TICK,
   VEIN_CAP,
   VEIN_SPAWN_TICK,
@@ -307,7 +310,7 @@ function createRuntimeTables(ruleConfig) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v20-amulet-icons";
+export const PIXEL_ASSET_VERSION = "v21-max-coat";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -394,6 +397,7 @@ export function createGame(options = {}) {
     FIRST_GRACE,
     HERO_STAGGER,
     HERO_ENTRY_HOLD,
+    WAVE_SETTLE_DELAY,
     MOVEMENT_TICK,
     VEIN_CAP,
     VEIN_SPAWN_TICK,
@@ -446,6 +450,7 @@ export function createGame(options = {}) {
   let playerDigCount = 0;
   let waveCountdown = FIRST_GRACE;
   let heroEntryHold = 0;
+  let waveSettleDelay = 0;
   let waveSettled = 0;
   let movementTickTimer = 0;
   let veinSpawnTimer = 0;
@@ -877,6 +882,7 @@ export function createGame(options = {}) {
 
   function settleWave() {
     if (wave <= 0 || waveSettled >= wave) return;
+    waveSettleDelay = 0;
     waveSettled = wave;
     if (wave >= MAX_WAVE) {
       gameState = "clear";
@@ -960,12 +966,12 @@ export function createGame(options = {}) {
   }
 
   function tryDig(col, row) {
-    if (gameState !== "playing" || !isDigTarget(col, row)) return;
+    if (gameState !== "playing" || !isDigTarget(col, row)) return false;
     const tile = grid[row][col];
     const cost = digCost(row);
     if (nutrients < cost) {
       toast(col, row, "不足", "#ffb84d");
-      return;
+      return false;
     }
     nutrients -= cost;
     if (tile.sub) {
@@ -987,6 +993,7 @@ export function createGame(options = {}) {
     }
     playerDigCount++;
     effects.push({ type: "dig", x: cx(col), y: cy(row), life: 340, max: 340 });
+    return true;
   }
 
   function spawnMonster(kind, col, row) {
@@ -1254,6 +1261,7 @@ export function createGame(options = {}) {
       settleWave();
       return;
     }
+    waveSettleDelay = 0;
     wave++;
     emitEvent("waveReached", { wave });
     for (const key in VEIN) {
@@ -1727,6 +1735,7 @@ export function createGame(options = {}) {
     nutrients += reward;
     score += 80 * h.wave + 20;
     kills++;
+    emitEvent("heroKilled", { cls: h.cls, wave: h.wave, x: h.px, y: h.py });
     popDmg(h.px, h.py, `+${reward}`, "#ffcf4d");
     if (hasCoinPurse) triggerAmulet("coinPurse");
     effects.push({ type: "puff", x: h.px, y: h.py, life: 340, max: 340, color: "#cfd8e3" });
@@ -2260,9 +2269,19 @@ export function createGame(options = {}) {
   function update(dt) {
     if (gameState !== "playing") return;
     if (spawnQueue.length === 0 && heroes.length === 0) {
-      settleWave();
-      if (gameState !== "playing") {
-        return;
+      if (wave > 0 && waveSettled < wave) {
+        if (waveSettleDelay <= 0) waveSettleDelay = WAVE_SETTLE_DELAY;
+        waveSettleDelay = Math.max(0, waveSettleDelay - dt);
+        if (waveSettleDelay > 0) {
+          updatePickups(dt);
+          updateAmuletEvents(dt);
+          updateEffects(dt);
+          return;
+        }
+        settleWave();
+        if (gameState !== "playing") return;
+      } else {
+        waveSettleDelay = 0;
       }
       waveCountdown -= dt;
       if (waveCountdown <= 0) startWave();
@@ -2330,6 +2349,7 @@ export function createGame(options = {}) {
     playerDigCount = 0;
     waveCountdown = FIRST_GRACE;
     heroEntryHold = 0;
+    waveSettleDelay = 0;
     waveSettled = 0;
     movementTickTimer = 0;
     veinSpawnTimer = 0;
@@ -2435,6 +2455,7 @@ export function createGame(options = {}) {
     set waveCountdown(v) { waveCountdown = v; },
     get heroEntryHold() { return heroEntryHold; },
     set heroEntryHold(v) { heroEntryHold = v; },
+    get waveSettleDelay() { return waveSettleDelay; },
     get waveSettled() { return waveSettled; },
     get gameState() { return gameState; },
     set gameState(v) { gameState = v; },
@@ -2448,7 +2469,7 @@ export function createGame(options = {}) {
     isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, CORE_MAX, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+    KINDS, VEIN, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, CORE_MAX, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
@@ -2460,7 +2481,7 @@ export function createGame(options = {}) {
 
 export const Core = {
   DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig,
-  VEIN, KINDS, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+  VEIN, KINDS, HERO_CLASSES, AMULETS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,

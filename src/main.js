@@ -50,6 +50,9 @@ let lastAmuletOfferKey = "";
 let lastAmuletBarKey = "";
 let amuletPress = null;
 let activeAmuletPopupId = null;
+let activeScene = null;
+let bgmSound = null;
+let audioSaveTimer = null;
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
@@ -58,6 +61,22 @@ const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
 const AMULET_LONG_PRESS_MS = 520;
+const AUDIO_ASSET_VERSION = "v1-ominous-retro";
+const AUDIO_DB_NAME = "makaiDefense.audio.v1";
+const AUDIO_STORE_NAME = "settings";
+const AUDIO_SETTINGS_KEY = "volume";
+const AUDIO_DEFAULTS = Object.freeze({ master: 0.8, bgm: 0.45, se: 0.75, voice: 0.85 });
+const AUDIO_KEYS = {
+  bgm: "bgmDungeon",
+  dig: "digSe",
+  button: "buttonSe",
+  heroDeaths: ["heroDeath1", "heroDeath2", "heroDeath3"],
+};
+let audioSettings = { ...AUDIO_DEFAULTS };
+
+function audioAssetUrl(name) {
+  return `assets/audio/${name}?v=${AUDIO_ASSET_VERSION}`;
+}
 
 function tileKey(tile) {
   if (tile.t === "earth" && tile.sub) {
@@ -104,6 +123,169 @@ function effectLevel(type) {
   return level;
 }
 
+function clampVolume(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, Math.min(1, n));
+}
+
+function normalizeAudioSettings(value) {
+  const out = { ...AUDIO_DEFAULTS };
+  if (value && typeof value === "object") {
+    for (const key of Object.keys(out)) out[key] = clampVolume(value[key] ?? out[key]);
+  }
+  return out;
+}
+
+function effectiveVolume(channel) {
+  return clampVolume(audioSettings.master) * clampVolume(audioSettings[channel]);
+}
+
+function openAudioDb() {
+  return new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      resolve(null);
+      return;
+    }
+    const request = indexedDB.open(AUDIO_DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(AUDIO_STORE_NAME)) db.createObjectStore(AUDIO_STORE_NAME);
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function loadAudioSettings() {
+  try {
+    const db = await openAudioDb();
+    if (!db) return { ...AUDIO_DEFAULTS };
+    return await new Promise((resolve) => {
+      const tx = db.transaction(AUDIO_STORE_NAME, "readonly");
+      const request = tx.objectStore(AUDIO_STORE_NAME).get(AUDIO_SETTINGS_KEY);
+      request.onsuccess = () => resolve(normalizeAudioSettings(request.result));
+      request.onerror = () => resolve({ ...AUDIO_DEFAULTS });
+      tx.oncomplete = () => db.close();
+      tx.onerror = () => db.close();
+    });
+  } catch {
+    return { ...AUDIO_DEFAULTS };
+  }
+}
+
+async function saveAudioSettingsNow() {
+  try {
+    const db = await openAudioDb();
+    if (!db) return false;
+    return await new Promise((resolve) => {
+      const tx = db.transaction(AUDIO_STORE_NAME, "readwrite");
+      tx.objectStore(AUDIO_STORE_NAME).put(normalizeAudioSettings(audioSettings), AUDIO_SETTINGS_KEY);
+      tx.oncomplete = () => {
+        db.close();
+        resolve(true);
+      };
+      tx.onerror = () => {
+        db.close();
+        resolve(false);
+      };
+    });
+  } catch {
+    return false;
+  }
+}
+
+function scheduleAudioSettingsSave() {
+  clearTimeout(audioSaveTimer);
+  audioSaveTimer = setTimeout(saveAudioSettingsNow, 180);
+}
+
+function unlockAudio() {
+  const context = activeScene && activeScene.sound && activeScene.sound.context;
+  if (context && context.state === "suspended" && typeof context.resume === "function") {
+    context.resume().catch(() => {});
+  }
+}
+
+function playAudio(key, channel, extra = {}) {
+  if (!activeScene || !activeScene.sound || !key) return;
+  unlockAudio();
+  try {
+    activeScene.sound.play(key, { volume: effectiveVolume(channel), ...extra });
+  } catch {
+    // 音声再生はブラウザの自動再生制限に左右されるため、失敗してもゲームは止めない。
+  }
+}
+
+function playButtonSound() {
+  playAudio(AUDIO_KEYS.button, "se");
+}
+
+function playDigSound() {
+  playAudio(AUDIO_KEYS.dig, "se");
+}
+
+function playHeroDeathVoice() {
+  const keys = AUDIO_KEYS.heroDeaths;
+  const key = keys[Math.floor(Math.random() * keys.length) % keys.length];
+  playAudio(key, "voice");
+}
+
+function syncAudioState(forceStart = false) {
+  if (!activeScene || !activeScene.sound) return;
+  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "amuletChoice";
+  if (!shouldPlay) {
+    if (bgmSound && bgmSound.isPlaying) bgmSound.stop();
+    return;
+  }
+  try {
+    if (!bgmSound) bgmSound = activeScene.sound.add(AUDIO_KEYS.bgm, { loop: true, volume: effectiveVolume("bgm") });
+    if (typeof bgmSound.setVolume === "function") bgmSound.setVolume(effectiveVolume("bgm"));
+    if ((forceStart || !bgmSound.isPlaying) && !bgmSound.isPaused) {
+      unlockAudio();
+      bgmSound.play();
+    }
+  } catch {
+    bgmSound = null;
+  }
+}
+
+function renderAudioControls() {
+  for (const key of Object.keys(AUDIO_DEFAULTS)) {
+    const input = document.querySelector(`[data-audio-volume="${key}"]`);
+    const label = document.getElementById(`${key}VolumeValue`);
+    const value = Math.round(clampVolume(audioSettings[key]) * 100);
+    if (input && Number(input.value) !== value) input.value = String(value);
+    if (label) label.textContent = `${value}%`;
+  }
+}
+
+function bindAudioPanel() {
+  renderAudioControls();
+  const fields = document.getElementById("soundFields");
+  if (!fields) return;
+  fields.addEventListener("input", (event) => {
+    const input = event.target && typeof event.target.matches === "function" && event.target.matches("[data-audio-volume]") ? event.target : null;
+    if (!input) return;
+    audioSettings = normalizeAudioSettings({ ...audioSettings, [input.dataset.audioVolume]: Number(input.value) / 100 });
+    renderAudioControls();
+    syncAudioState();
+    scheduleAudioSettingsSave();
+  });
+  fields.addEventListener("change", scheduleAudioSettingsSave);
+  loadAudioSettings().then((settings) => {
+    audioSettings = settings;
+    renderAudioControls();
+    syncAudioState();
+  });
+}
+
+function handleGameEvents(events) {
+  for (const event of events) {
+    if (event.type === "heroKilled") playHeroDeathVoice();
+  }
+}
+
 class MainScene extends Phaser.Scene {
   constructor() {
     super("MainScene");
@@ -122,9 +304,16 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet("actors", pixelAssetUrl("actors.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("amulets", pixelAssetUrl("amulets.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.audio(AUDIO_KEYS.bgm, audioAssetUrl("bgm_dungeon_loop.wav"));
+    this.load.audio(AUDIO_KEYS.dig, audioAssetUrl("dig.wav"));
+    this.load.audio(AUDIO_KEYS.button, audioAssetUrl("button.wav"));
+    this.load.audio(AUDIO_KEYS.heroDeaths[0], audioAssetUrl("hero_death_1.wav"));
+    this.load.audio(AUDIO_KEYS.heroDeaths[1], audioAssetUrl("hero_death_2.wav"));
+    this.load.audio(AUDIO_KEYS.heroDeaths[2], audioAssetUrl("hero_death_3.wav"));
   }
 
   create() {
+    activeScene = this;
     this.cameras.main.setBackgroundColor("#120c1a");
     this.input.on("pointerdown", (pointer) => {
       this.pressStart = {
@@ -147,7 +336,7 @@ class MainScene extends Phaser.Scene {
       if (codexOpen || gameApi.gameState !== "playing" || moved || elapsed > TAP_MAX_MS) return;
       const col = Math.floor(pointer.x / TILE);
       const row = Math.floor(pointer.y / TILE);
-      gameApi.tryDig(col, row);
+      if (gameApi.tryDig(col, row)) playDigSound();
       syncProgressEvents();
       updateHud();
     });
@@ -173,6 +362,7 @@ class MainScene extends Phaser.Scene {
     this.crackGraphics.setDepth(80);
     this.flameGraphics = this.add.graphics();
     this.flameGraphics.setDepth(490);
+    syncAudioState();
   }
 
   update(_time, delta) {
@@ -473,7 +663,9 @@ function progressSets() {
 
 function syncProgressEvents() {
   if (!gameApi.drainEvents) return;
-  const result = applyProgressEvents(progress, gameApi.drainEvents());
+  const events = gameApi.drainEvents();
+  handleGameEvents(events);
+  const result = applyProgressEvents(progress, events);
   if (!result.changed) return;
   progress = result.progress;
   saveProgress(progress);
@@ -1022,6 +1214,9 @@ function updateHud() {
   if (gameApi.gameState === "amuletChoice") {
     waveLabel = "お守り選択";
     waveTimer = "時間停止中";
+  } else if (gameApi.waveSettleDelay > 0) {
+    waveLabel = "撃退確認中";
+    waveTimer = `${Math.ceil(gameApi.waveSettleDelay / 1000)} 秒`;
   } else if (gameApi.heroes.length > 0) {
     waveLabel = "冒険者殲滅まで";
     waveTimer = `あと ${activeHeroes} 体`;
@@ -1044,8 +1239,9 @@ function updateHud() {
   document.getElementById("clearWaveLabel").textContent = `${gameApi.MAX_WAVE}ウェーブ突破`;
   document.getElementById("clearKills").textContent = gameApi.kills;
   document.getElementById("clearScore").textContent = gameApi.score;
-  document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveCountdown <= 3000;
+  document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveSettleDelay > 0 || gameApi.waveCountdown <= 3000;
   updateProgressStatus();
+  syncAudioState();
 }
 
 function startGame() {
@@ -1053,6 +1249,7 @@ function startGame() {
   lastAmuletBarKey = "";
   gameApi = createConfiguredGame();
   gameApi.startGame();
+  syncAudioState(true);
   syncProgressEvents();
   updateHud();
 }
@@ -1062,8 +1259,19 @@ function openStartFlow() {
   lastAmuletBarKey = "";
   gameApi = createConfiguredGame();
   gameApi.gameState = "title";
+  syncAudioState();
   syncProgressEvents();
   updateHud();
+}
+
+function bindButtonSounds() {
+  document.addEventListener("pointerdown", unlockAudio, { passive: true });
+  document.addEventListener("click", (event) => {
+    const target = event.target && typeof event.target.closest === "function" ? event.target : null;
+    const button = target ? target.closest("button") : null;
+    if (!button || button.disabled) return;
+    playButtonSound();
+  });
 }
 
 function boot() {
@@ -1094,6 +1302,8 @@ function boot() {
     if (gameApi.chooseAmuletOffer(null)) updateHud();
   });
   bindAmuletHud();
+  bindButtonSounds();
+  bindAudioPanel();
   bindDevPanel();
 
   updateHud();

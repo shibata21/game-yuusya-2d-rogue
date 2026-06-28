@@ -207,9 +207,11 @@ async function run() {
       title: document.title,
       app: !!document.querySelector("#app"),
       canvas: !!document.querySelector("canvas"),
-      state: globalThis.MakaiDefense?.current?.gameState || null
+      state: globalThis.MakaiDefense?.current?.gameState || null,
+      soundPanel: !!document.getElementById("soundPanel"),
+      soundSliders: document.querySelectorAll("[data-audio-volume]").length
     })`);
-    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || loaded.state !== "title") {
+    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || loaded.state !== "title" || !loaded.soundPanel || loaded.soundSliders !== 4) {
       throw new Error(`初回ロード状態が不正です: ${JSON.stringify(loaded)}`);
     }
 
@@ -247,6 +249,37 @@ async function run() {
     })`);
     if (playing.state !== "playing" || !playing.startHidden || playing.coreHP <= 0 || playing.nutrients < 0) {
       throw new Error(`開始後状態が不正です: ${JSON.stringify(playing)}`);
+    }
+
+    await evaluate(client, `(() => {
+      document.getElementById("soundPanel").open = true;
+      const voice = document.querySelector('[data-audio-volume="voice"]');
+      voice.value = "40";
+      voice.dispatchEvent(new Event("input", { bubbles: true }));
+    })()`);
+    await sleep(350);
+    const soundSettings = await evaluate(client, `new Promise((resolve) => {
+      const request = indexedDB.open("makaiDefense.audio.v1", 1);
+      request.onerror = () => resolve({ ok: false, error: "open" });
+      request.onsuccess = () => {
+        const db = request.result;
+        const tx = db.transaction("settings", "readonly");
+        const get = tx.objectStore("settings").get("volume");
+        get.onerror = () => resolve({ ok: false, error: "get" });
+        get.onsuccess = () => {
+          const value = get.result || {};
+          resolve({
+            ok: Math.round((value.voice || 0) * 100) === 40,
+            voice: value.voice,
+            label: document.getElementById("voiceVolumeValue").textContent,
+          });
+        };
+        tx.oncomplete = () => db.close();
+        tx.onerror = () => db.close();
+      };
+    })`);
+    if (!soundSettings.ok || soundSettings.label !== "40%") {
+      throw new Error(`音量設定保存が不正です: ${JSON.stringify(soundSettings)}`);
     }
 
     await evaluate(client, `document.getElementById("devPanel").open = true`);
@@ -349,7 +382,7 @@ async function run() {
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、開始、開発JSON出力、お守り3択、長押しポップアップ、お守り図鑑を検査しました");
+    console.log("OK: ブラウザ初回ロード、開始、音量設定、開発JSON出力、お守り3択、長押しポップアップ、お守り図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

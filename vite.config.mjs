@@ -12,18 +12,19 @@ function copyDir(src, dest) {
   }
 }
 
-function copyPixelAssets() {
+function copyStaticAssets() {
   return {
-    name: "copy-pixel-assets",
+    name: "copy-static-assets",
     closeBundle() {
       copyDir("assets/pixel", "dist/assets/pixel");
+      copyDir("assets/audio", "dist/assets/audio");
     },
   };
 }
 
 export default defineConfig({
   base: "./",
-  plugins: [copyPixelAssets()],
+  plugins: [copyStaticAssets()],
   build: {
     chunkSizeWarningLimit: 1600,
   },

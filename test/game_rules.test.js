@@ -1036,6 +1036,8 @@ describe("ゲームルール", () => {
     G.heroes.length = 0;
     G.spawnQueue.length = 0;
     G.update(1);
+    expect(G.gameState).toBe("playing");
+    G.update(G.WAVE_SETTLE_DELAY - 1);
     expect(G.gameState).toBe("clear");
     expect(G.wave).toBe(G.MAX_WAVE);
     G.startWave();
@@ -1309,6 +1311,25 @@ describe("ゲームルール", () => {
     expect(G.amuletEvents.some((e) => e.id === "dogtag")).toBe(true);
   });
 
+  it("update経由のウェーブ終了は最後の冒険者死亡後に余韻を挟む", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.wave = 5;
+    G.gameState = "playing";
+    G.spawnQueue.length = 0;
+    G.heroes.length = 0;
+    G.update(G.WAVE_SETTLE_DELAY - 1);
+    expect(G.gameState).toBe("playing");
+    expect(G.waveSettled).toBe(0);
+    expect(G.waveSettleDelay).toBe(1);
+    expect(G.amuletOffer).toBe(null);
+
+    G.update(1);
+    expect(G.gameState).toBe("amuletChoice");
+    expect(G.waveSettled).toBe(5);
+    expect(G.amuletOffer).toEqual({ wave: 5, choices: ["family", "dogtag", "lastStick"] });
+  });
+
   it("お守り3択は取らない選択もできる", () => {
     carveAll();
     G.setRandom(() => 0);
@@ -1463,8 +1484,10 @@ describe("ゲームルール", () => {
     const h = hero("warrior", 5, 5, { hp: 1, maxHp: 1, wave: 5 });
     G.heroes.push(h);
     const before = G.nutrients;
+    G.drainEvents();
     G.killHero(h);
     expect(G.nutrients).toBe(before + 9);
+    expect(G.drainEvents()).toContainEqual({ type: "heroKilled", cls: "warrior", wave: 5, x: G.cx(5), y: G.cy(5) });
 
     G.resetGame(1);
     G.gameState = "playing";
@@ -1547,6 +1570,7 @@ describe("ゲームルール", () => {
     expect(G.FIRST_GRACE).toBe(27000);
     expect(G.WAVE_INTERVAL).toBe(10000);
     expect(G.HERO_ENTRY_HOLD).toBe(500);
+    expect(G.WAVE_SETTLE_DELAY).toBe(900);
     expect(G.MOVEMENT_TICK).toBe(100);
     expect(G.HEROES_PER_WAVE_CAP).toBe(5);
     expect(G.MAX_WAVE).toBe(15);
@@ -1554,6 +1578,7 @@ describe("ゲームルール", () => {
     expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0006);
     expect(G.VEIN_SPAWN_SOIL_WEIGHT).toBeCloseTo(0.45);
     expect(G.VEIN_SPAWN_SOIL_CHANCES[0]).toBeCloseTo(G.VEIN_SPAWN_BASE_CHANCE);
+    expect(G.VEIN_SPAWN_SOIL_CHANCES).toEqual([0.0006, 0.0014, 0.0026, 0.0048, 0.0095, 0.018, 0.034, 0.060]);
     expect(G.VEIN_SPAWN_BURST_CAP).toBe(3);
     expect(G.VEIN_FADE_START).toBe(120000);
     expect(G.VEIN_DECAY_TIME).toBe(240000);

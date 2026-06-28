@@ -198,9 +198,9 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v20-amulet-icons");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v20-amulet-icons");
-    expect(pixelAssetUrl("amulets.png")).toBe("assets/pixel/amulets.png?v=v20-amulet-icons");
+    expect(PIXEL_ASSET_VERSION).toBe("v21-max-coat");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v21-max-coat");
+    expect(pixelAssetUrl("amulets.png")).toBe("assets/pixel/amulets.png?v=v21-max-coat");
     expect(pixelAmuletFrameIndex("coinPurse")).toBe(PIXEL_AMULETS.indexOf("coinPurse"));
   });
 
@@ -244,6 +244,16 @@ describe("ピクセル素材", () => {
     expect(diffRatio(actorCrop("shon", "idle", "e", 1), actorCrop("shon", "attack", "e", 2))).toBeGreaterThan(0.18);
     expect(diffRatio(actorCrop("hori", "idle", "e", 1), actorCrop("hori", "cast", "e", 2))).toBeGreaterThan(0.18);
     expect(diffRatio(actorCrop("shon", "idle", "e", 1), actorCrop("shon", "dodge", "e", 2))).toBeGreaterThan(0.12);
+  });
+
+  it("マックスはロングコートとサングラスが読める", () => {
+    const max = actorCrop("max", "idle", "s", 1);
+    const coat = pixelsIn(max, (x, y, r, g, b) => x >= 10 && x <= 38 && y >= 18 && y <= 43 && r < 35 && g < 38 && b < 48);
+    const glasses = pixelsIn(max, (x, y, r, g, b) => x >= 16 && x <= 32 && y >= 8 && y <= 15 && r < 30 && g < 32 && b < 40);
+    const foreheadBand = pixelsIn(max, (x, y, r, g, b) => x >= 15 && x <= 33 && y >= 5 && y <= 9 && r < 30 && g < 32 && b < 40);
+    expect(coat).toBeGreaterThan(180);
+    expect(glasses).toBeGreaterThan(12);
+    expect(foreheadBand).toBeLessThan(10);
   });
 
   it("下向き冒険者の剣は下へ突き出さず体の前で振る", () => {

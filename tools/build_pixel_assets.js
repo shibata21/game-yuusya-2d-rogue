@@ -803,9 +803,13 @@ function drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame) {
     oval(img, cx, cy + 2, 12, 11, pal.mid, 235);
     rect(img, cx - 10, cy - 2, 20, 7, "#f0f4fa", 190);
   } else if (name === "max") {
-    tri(img, cx - 11, cy + 15, cx, cy - 8, cx + 11, cy + 15, "#05060a", 250);
-    tri(img, cx - 8, cy + 14, cx + dx * 2, cy - 5, cx + 8, cy + 14, pal.mid, 220);
-    line(img, cx - 8, cy + 1, cx + 8, cy + 1, "#303849", 2, 190);
+    rect(img, cx - 10, cy - 5, 20, 24, "#05060a", 250);
+    tri(img, cx - 14, cy + 19, cx - 8, cy - 1, cx - 2, cy + 19, "#030409", 245);
+    tri(img, cx + 14, cy + 19, cx + 8, cy - 1, cx + 2, cy + 19, "#030409", 245);
+    tri(img, cx - 9, cy - 5, cx - 2 + dx * 2, cy + 8, cx, cy - 5, pal.light, 180);
+    tri(img, cx + 9, cy - 5, cx + 2 + dx * 2, cy + 8, cx, cy - 5, pal.mid, 210);
+    line(img, cx, cy - 3, cx, cy + 18, "#0f1320", 2, 210);
+    line(img, cx - 9, cy + 3, cx + 9, cy + 3, "#303849", 1, 150);
   } else {
     oval(img, cx, cy + 4, 11, 12, pal.dark, 245);
     rect(img, cx - 9, cy - 5, 18, 20, pal.mid, 235);
@@ -813,9 +817,14 @@ function drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame) {
   }
   oval(img, headX, headY, name === "hori" ? 9 : 8, 8, pal.skin, 245);
   if (name === "max") {
-    rect(img, headX - 8, headY - 4, 16, 5, "#05060a", 245);
-    rect(img, headX - 6, headY - 2 + dy, 5, 2, "#0a0b10", 255);
-    rect(img, headX + 1, headY - 2 + dy, 5, 2, "#0a0b10", 255);
+    rect(img, headX - 4, headY + 5, 8, 3, "#05060a", 235);
+    tri(img, headX - 7, headY + 4, headX - 2, headY + 10, headX + 1, headY + 4, "#05060a", 230);
+    tri(img, headX + 7, headY + 4, headX + 2, headY + 10, headX - 1, headY + 4, "#05060a", 230);
+    rect(img, headX - 7, headY - 2 + dy, 6, 3, "#05060a", 255);
+    rect(img, headX + 1, headY - 2 + dy, 6, 3, "#05060a", 255);
+    rect(img, headX - 1, headY - 1 + dy, 2, 1, "#05060a", 255);
+    rect(img, headX - 5, headY - 1 + dy, 2, 1, "#3b4659", 170);
+    rect(img, headX + 3, headY - 1 + dy, 2, 1, "#3b4659", 170);
   } else if (name === "shon") {
     rect(img, headX - 7, headY - 8, 14, 5, "#2f3540", 230);
     rect(img, headX - 4, headY - 1 + dy, 3, 2, "#171b24", 230);

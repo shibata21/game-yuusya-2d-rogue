@@ -22,6 +22,9 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="exportDevJsonBtn"');
     expect(html).toContain('id="copyDevJsonBtn"');
     expect(html).toContain('id="devJsonOutput"');
+    expect(html).toContain('id="soundPanel"');
+    expect(html).toContain('data-audio-volume="master"');
+    expect(html).toContain('data-audio-volume="voice"');
     expect(html).toContain('id="amuletPopup"');
     expect(html).toContain('id="amuletChoiceOverlay"');
     expect(html).toContain('id="amuletChoiceGrid"');
@@ -53,6 +56,13 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('this.load.spritesheet("actors"');
     expect(src).toContain('this.load.spritesheet("effects"');
     expect(src).toContain('this.load.spritesheet("amulets"');
+    expect(src).toContain("this.load.audio(AUDIO_KEYS.bgm");
+    expect(src).toContain("bgm_dungeon_loop.wav");
+    expect(src).toContain("hero_death_1.wav");
+    expect(src).toContain("indexedDB.open(AUDIO_DB_NAME");
+    expect(src).toContain("handleGameEvents");
+    expect(src).toContain("playHeroDeathVoice");
+    expect(src).not.toContain("localStorage.setItem(\"makaiDefense.audio");
     expect(src).toContain("Phaser.Scale.FIT");
     expect(src).toContain("crackGraphics");
     expect(src).toContain("DIG_BREAK");
@@ -96,6 +106,8 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".codex-sprite.silhouette");
     expect(css).toContain(".codex-amulet-icon");
     expect(css).toContain(".dev-panel");
+    expect(css).toContain(".sound-panel");
+    expect(css).toContain(".sound-fields input[type=\"range\"]");
     expect(css).toContain(".btn-codex");
     expect(css).toContain(".core-line.core-alert");
     expect(css).not.toContain(".amulet-flash");
@@ -117,6 +129,7 @@ describe("Phaserアプリ構成", () => {
   it("ViteビルドはPages配下で読める相対baseを使う", () => {
     const config = fs.readFileSync(path.join(repoDir, "vite.config.mjs"), "utf8");
     expect(config).toContain('base: "./"');
+    expect(config).toContain('copyDir("assets/audio", "dist/assets/audio")');
   });
 
   it("公開名前空間から独立したゲームを生成できる", async () => {
@@ -126,7 +139,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v20-amulet-icons");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v21-max-coat");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

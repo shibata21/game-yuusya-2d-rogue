@@ -70,6 +70,16 @@
           <button class="btn-taunt" id="tauntBtn">すぐ襲来<br>待ち時間を短縮</button>
         </div>
 
+        <details class="sound-panel" id="soundPanel">
+          <summary>音量設定</summary>
+          <div class="sound-fields" id="soundFields">
+            <label><span><b>マスター</b><em id="masterVolumeValue">80%</em></span><input id="masterVolume" data-audio-volume="master" type="range" min="0" max="100" value="80" aria-label="マスター音量"></label>
+            <label><span><b>BGM</b><em id="bgmVolumeValue">45%</em></span><input id="bgmVolume" data-audio-volume="bgm" type="range" min="0" max="100" value="45" aria-label="BGM音量"></label>
+            <label><span><b>効果音</b><em id="seVolumeValue">75%</em></span><input id="seVolume" data-audio-volume="se" type="range" min="0" max="100" value="75" aria-label="効果音量"></label>
+            <label><span><b>音声</b><em id="voiceVolumeValue">85%</em></span><input id="voiceVolume" data-audio-volume="voice" type="range" min="0" max="100" value="85" aria-label="音声音量"></label>
+          </div>
+        </details>
+
         <button class="btn-codex" id="codexBtn">キャラクター紹介</button>
         <div class="legend" id="legend"></div>
         <div class="hint">鉱脈を掘って魔物を出し、冒険者の進路に防衛線を作れ。</div>

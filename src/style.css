@@ -393,6 +393,62 @@ button {
   font-size: 15px;
 }
 
+.sound-panel {
+  background: #171122;
+  border: 2px solid var(--frame);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #000;
+  overflow: hidden;
+}
+
+.sound-panel > summary {
+  cursor: pointer;
+  padding: 8px 10px;
+  color: var(--amber);
+  font-size: 12px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.sound-fields {
+  display: grid;
+  gap: 7px;
+  padding: 0 10px 10px;
+}
+
+.sound-fields label {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+}
+
+.sound-fields span {
+  min-width: 0;
+}
+
+.sound-fields b,
+.sound-fields em {
+  display: block;
+}
+
+.sound-fields b {
+  color: var(--ink);
+  font-size: 11px;
+}
+
+.sound-fields em {
+  color: var(--ink-dim);
+  font-size: 10px;
+  font-style: normal;
+}
+
+.sound-fields input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  accent-color: var(--amber);
+}
+
 .btn-back {
   min-width: 72px;
   color: var(--amber);

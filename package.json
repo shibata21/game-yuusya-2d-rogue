@@ -4,8 +4,10 @@
   "description": "迷宮を守るPhaser版とローカル自製素材生成・検証",
   "main": "src/main.js",
   "scripts": {
-    "assets:build": "node tools/build_pixel_assets.js",
-    "assets:check": "node tools/check_pixel_assets.js",
+    "assets:build": "node tools/build_pixel_assets.js && node tools/build_audio_assets.js",
+    "assets:check": "node tools/check_pixel_assets.js && node tools/check_audio_assets.js",
+    "audio:build": "node tools/build_audio_assets.js",
+    "audio:check": "node tools/check_audio_assets.js",
     "dev": "node node_modules/vite/bin/vite.js --host 0.0.0.0",
     "build": "node node_modules/vite/bin/vite.js build",
     "preview": "node node_modules/vite/bin/vite.js preview --host 0.0.0.0",
