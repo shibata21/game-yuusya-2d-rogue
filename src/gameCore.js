@@ -27,9 +27,9 @@ export const WAVE_SETTLE_DELAY = 900;
 export const MOVEMENT_TICK = 100;
 export const VEIN_CAP = 44;
 export const VEIN_SPAWN_TICK = 1000;
-export const VEIN_SPAWN_BASE_CHANCE = 0.0006;
+export const VEIN_SPAWN_BASE_CHANCE = 0.0005;
 export const VEIN_SPAWN_SOIL_WEIGHT = 0.45;
-export const VEIN_SPAWN_SOIL_CHANCES = [0.0006, 0.0014, 0.0026, 0.0048, 0.0095, 0.018, 0.034, 0.060];
+export const VEIN_SPAWN_SOIL_CHANCES = [0.0005, 0.0022, 0.0036, 0.0058, 0.0102, 0.018, 0.034, 0.060];
 export const VEIN_SPAWN_BURST_CAP = 3;
 export const EGG_HATCH = 40000;
 export const EGG_CHECK = 10000;
@@ -2156,6 +2156,10 @@ export function createGame(options = {}) {
       if (monsterTarget) faceToward(h, monsterTarget.px, monsterTarget.py);
       if (monsterTarget && h.atkCd <= 0) {
         performHeroAttack(h, c, monsterTarget);
+        continue;
+      }
+      if (monsterTarget) {
+        h.blockedMs = 0;
         continue;
       }
       if (hasAdjacentMonster(h)) {

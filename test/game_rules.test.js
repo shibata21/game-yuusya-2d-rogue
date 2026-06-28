@@ -260,6 +260,7 @@ describe("ゲームルール", () => {
 
   it("魔素の高い土壌ほど鉱脈が自然発生しやすい", () => {
     expect(G.VEIN_SPAWN_SOIL_CHANCES).toHaveLength(G.SOIL_MANA_MAX_STAGE + 1);
+    expect(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 1 })).toBeGreaterThan(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 0 }) * 4);
     expect(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 7 })).toBeGreaterThan(G.veinSpawnChance({ t: "earth", sub: null, soilMana: 0 }));
     expect(G.veinSpawnChance({ t: "tunnel", sub: null, soilMana: 7 })).toBe(0);
     expect(G.veinSpawnChance({ t: "earth", sub: "moss", soilMana: 7 })).toBe(0);
@@ -713,6 +714,31 @@ describe("ゲームルール", () => {
 
     expect(adventurer.hp).toBeLessThan(60);
     expect(monster.actionType).toBe("attack");
+  });
+
+  it("攻撃可能な魔物と戦闘中の勇者はクールダウン中に後退しない", () => {
+    carveAll();
+    G.grid[7][4].t = "earth";
+    G.grid[7][6].t = "earth";
+    G.spawnMonster("slime", 5, 8);
+    const monster = G.monsters[0];
+    monster.atkCd = 999999;
+    monster.moveCd = 999999;
+    monster.eatCd = 999999;
+    const adventurer = hero("warrior", 5, 7, {
+      atkCd: 999999,
+      actCd: 999999,
+      blockedMs: 4490,
+      moveCharge: 1,
+    });
+    G.heroes.push(adventurer);
+
+    G.update(120);
+
+    expect(adventurer.col).toBe(5);
+    expect(adventurer.row).toBe(7);
+    expect(adventurer.moveIntent).toBeNull();
+    expect(adventurer.blockedMs).toBe(0);
   });
 
   it("移動中の対象は攻撃されない", () => {
@@ -1577,10 +1603,10 @@ describe("ゲームルール", () => {
     expect(G.HEROES_PER_WAVE_CAP).toBe(5);
     expect(G.MAX_WAVE).toBe(15);
     expect(G.VEIN_SPAWN_TICK).toBe(1000);
-    expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0006);
+    expect(G.VEIN_SPAWN_BASE_CHANCE).toBeCloseTo(0.0005);
     expect(G.VEIN_SPAWN_SOIL_WEIGHT).toBeCloseTo(0.45);
     expect(G.VEIN_SPAWN_SOIL_CHANCES[0]).toBeCloseTo(G.VEIN_SPAWN_BASE_CHANCE);
-    expect(G.VEIN_SPAWN_SOIL_CHANCES).toEqual([0.0006, 0.0014, 0.0026, 0.0048, 0.0095, 0.018, 0.034, 0.060]);
+    expect(G.VEIN_SPAWN_SOIL_CHANCES).toEqual([0.0005, 0.0022, 0.0036, 0.0058, 0.0102, 0.018, 0.034, 0.060]);
     expect(G.VEIN_SPAWN_BURST_CAP).toBe(3);
     expect(G.VEIN_FADE_START).toBe(120000);
     expect(G.VEIN_DECAY_TIME).toBe(240000);
