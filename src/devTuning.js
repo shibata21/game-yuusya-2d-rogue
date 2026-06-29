@@ -42,7 +42,6 @@ export const CONSTANT_LABELS = {
   EVO_TIME: ["進化演出基準", "進化関連の時間基準。"],
   VEIN_FADE_START: ["鉱脈退色開始", "鉱脈が薄くなり始める経過時間ミリ秒。"],
   VEIN_DECAY_TIME: ["鉱脈消滅時間", "掘られない鉱脈が消えるまでの時間ミリ秒。"],
-  AMULET_WAVE_DROP_CHANCE: ["お守り報酬率", "ウェーブ撃退後にお守り3択が出る確率。"],
   REAPER_SPAWN_CHANCE: ["死神出現率", "冒険者撃破時に死神が現れる確率。"],
 };
 

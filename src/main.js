@@ -9,7 +9,7 @@ import {
   pixelAssetUrl,
   pixelActorX,
   pixelActorFrameIndex,
-  pixelAmuletFrameIndex,
+  pixelItemFrameIndex,
   COLS,
   ROWS,
   TILE,
@@ -21,7 +21,7 @@ import {
   PIXEL_ACTORS,
   PIXEL_TILES,
   PIXEL_EFFECTS,
-  PIXEL_AMULETS,
+  PIXEL_ITEMS,
   PIXEL_FRAMES,
 } from "./gameCore.js";
 import { DEV_GROUPS } from "./devTuning.js";
@@ -46,10 +46,10 @@ let gameApi = createConfiguredGame();
 let progress = loadProgress();
 let codexOpen = false;
 let codexTab = "monster";
-let lastAmuletOfferKey = "";
-let lastAmuletBarKey = "";
-let amuletPress = null;
-let activeAmuletPopupId = null;
+let lastItemOfferKey = "";
+let lastItemBarKey = "";
+let itemPress = null;
+let activeItemPopupId = null;
 let activeScene = null;
 let bgmSound = null;
 let audioSaveTimer = null;
@@ -57,11 +57,11 @@ let lastCoreHitSoundAt = 0;
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
-const AMULET_CODEX_ORDER = PIXEL_AMULETS;
+const ITEM_CODEX_ORDER = PIXEL_ITEMS;
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
-const AMULET_LONG_PRESS_MS = 520;
+const ITEM_LONG_PRESS_MS = 520;
 const AUDIO_ASSET_VERSION = "v2-core-hit";
 const AUDIO_DB_NAME = "makaiDefense.audio.v1";
 const AUDIO_STORE_NAME = "settings";
@@ -242,7 +242,7 @@ function playHeroDeathVoice() {
 
 function syncAudioState(forceStart = false) {
   if (!activeScene || !activeScene.sound) return;
-  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "amuletChoice";
+  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "itemChoice";
   if (!shouldPlay) {
     if (bgmSound && bgmSound.isPlaying) bgmSound.stop();
     return;
@@ -313,7 +313,7 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet("tiles", pixelAssetUrl("tiles.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("actors", pixelAssetUrl("actors.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
-    this.load.spritesheet("amulets", pixelAssetUrl("amulets.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.spritesheet("items", pixelAssetUrl("items.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.audio(AUDIO_KEYS.bgm, audioAssetUrl("bgm_dungeon_loop.wav"));
     this.load.audio(AUDIO_KEYS.dig, audioAssetUrl("dig.wav"));
     this.load.audio(AUDIO_KEYS.button, audioAssetUrl("button.wav"));
@@ -464,6 +464,15 @@ class MainScene extends Phaser.Scene {
     const stage = soilStage(tile);
     const x = col * TILE;
     const y = row * TILE;
+    const hint = gameApi.itemHighlights && gameApi.itemHighlights().find((cell) => cell.col === col && cell.row === row);
+    if (hint) {
+      const tint = tintFromColor(gameApi.VEIN[hint.type] && gameApi.VEIN[hint.type].color) || 0xffcf4d;
+      const pulse = 0.45 + 0.55 * Math.sin(this.time.now / 280 + col + row);
+      this.soilGraphics.lineStyle(2, tint, 0.22 + pulse * 0.18);
+      this.soilGraphics.strokeRect(x + 6, y + 6, TILE - 12, TILE - 12);
+      this.soilGraphics.fillStyle(tint, 0.05 + pulse * 0.04);
+      this.soilGraphics.fillRect(x + 8, y + 8, TILE - 16, TILE - 16);
+    }
     if (stage > 0) {
       const tint = SOIL_TINTS[stage - 1] || SOIL_TINTS[SOIL_TINTS.length - 1];
       this.soilGraphics.fillStyle(tint, 0.03 + stage * 0.016);
@@ -608,6 +617,15 @@ class MainScene extends Phaser.Scene {
   drawFlameLines() {
     if (!this.flameGraphics) return;
     this.flameGraphics.clear();
+    for (const f of gameApi.slowFields || []) {
+      const alpha = Math.max(0, Math.min(1, f.life / f.max));
+      const x = gameApi.cx(f.col);
+      const y = gameApi.cy(f.row);
+      this.flameGraphics.fillStyle(0x5a6dff, 0.08 + alpha * 0.10);
+      this.flameGraphics.fillRect(x - TILE / 2 + 6, y - TILE / 2 + 6, TILE - 12, TILE - 12);
+      this.flameGraphics.lineStyle(1, 0xb6a6ff, 0.20 + alpha * 0.20);
+      this.flameGraphics.strokeRect(x - TILE / 2 + 9, y - TILE / 2 + 9, TILE - 18, TILE - 18);
+    }
     for (const p of gameApi.pickups) {
       const alpha = Math.max(0, Math.min(1, p.life / p.max));
       const pulse = 0.5 + 0.5 * Math.sin(this.time.now / 120);
@@ -668,7 +686,7 @@ function progressSets() {
   return {
     monsters: new Set(progress.discoveredMonsters),
     heroes: new Set(progress.discoveredHeroes),
-    amulets: new Set(progress.discoveredAmulets),
+    items: new Set(progress.discoveredItems),
   };
 }
 
@@ -728,23 +746,23 @@ function clampNumber(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function amuletIconStyle(id, size = 24) {
-  const frame = pixelAmuletFrameIndex(id);
+function itemIconStyle(id, size = 24) {
+  const frame = pixelItemFrameIndex(id);
   return [
-    `background-image:url("${pixelAssetUrl("amulets.png")}")`,
-    `background-size:${PIXEL_AMULETS.length * size}px ${size}px`,
+    `background-image:url("${pixelAssetUrl("items.png")}")`,
+    `background-size:${PIXEL_ITEMS.length * size}px ${size}px`,
     `background-position:-${frame * size}px 0`,
     `width:${size}px`,
     `height:${size}px`,
   ].join(";");
 }
 
-function amuletIconHtml(id, className = "amulet-icon", size = 24) {
-  return `<span class="${escapeHtml(className)}" aria-hidden="true" style='${amuletIconStyle(id, size)}'></span>`;
+function itemIconHtml(id, className = "item-icon", size = 24) {
+  return `<span class="${escapeHtml(className)}" aria-hidden="true" style='${itemIconStyle(id, size)}'></span>`;
 }
 
-function amuletLabel(id) {
-  const a = gameApi.AMULETS[id];
+function itemLabel(id) {
+  const a = gameApi.ITEMS[id];
   if (!a) return id;
   return `${a.name}: ${a.profile}`;
 }
@@ -810,13 +828,13 @@ function heroCard(cls) {
     </article>`;
 }
 
-function amuletCard(id) {
-  const a = gameApi.AMULETS[id];
-  const found = progressSets().amulets.has(id);
+function itemCard(id) {
+  const a = gameApi.ITEMS[id];
+  const found = progressSets().items.has(id);
   if (!found) {
     return `
       <article class="codex-card locked">
-        <div class="codex-sprite-wrap">${amuletIconHtml(id, "codex-amulet-icon silhouette", 48)}</div>
+        <div class="codex-sprite-wrap">${itemIconHtml(id, "codex-item-icon silhouette", 48)}</div>
         <div class="codex-body">
           <div class="codex-title"><strong>???</strong><em>未発見</em></div>
           <div class="codex-stats">
@@ -828,7 +846,7 @@ function amuletCard(id) {
   }
   return `
     <article class="codex-card">
-      <div class="codex-sprite-wrap">${amuletIconHtml(id, "codex-amulet-icon", 48)}</div>
+      <div class="codex-sprite-wrap">${itemIconHtml(id, "codex-item-icon", 48)}</div>
       <div class="codex-body">
         <div class="codex-title"><strong>${escapeHtml(a.name)}</strong><em>${a.passive ? "常時" : "取得時"}</em></div>
         <div class="codex-stats">
@@ -845,7 +863,7 @@ function renderCodex() {
   const htmlByTab = {
     monster: MONSTER_CODEX_ORDER.map(monsterCard).join(""),
     hero: HERO_CODEX_ORDER.map(heroCard).join(""),
-    amulet: AMULET_CODEX_ORDER.map(amuletCard).join(""),
+    item: ITEM_CODEX_ORDER.map(itemCard).join(""),
   };
   grid.innerHTML = htmlByTab[codexTab] || htmlByTab.monster;
   for (const btn of document.querySelectorAll("[data-codex-tab]")) {
@@ -1001,7 +1019,7 @@ function updateDevStatus(text = "変更は次回開始時に反映") {
 function updateProgressStatus() {
   const status = document.getElementById("progressStatus");
   if (!status) return;
-  status.textContent = `最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / お守り ${progress.discoveredAmulets.length}/${AMULET_CODEX_ORDER.length}`;
+  status.textContent = `最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}`;
 }
 
 function saveDevPanel() {
@@ -1066,20 +1084,20 @@ function bindDevPanel() {
   });
 }
 
-function hideAmuletPopup() {
-  const popup = document.getElementById("amuletPopup");
+function hideItemPopup() {
+  const popup = document.getElementById("itemPopup");
   if (!popup) return;
   popup.classList.add("hidden");
   popup.style.visibility = "";
-  activeAmuletPopupId = null;
+  activeItemPopupId = null;
 }
 
-function showAmuletPopup(id, target) {
-  const popup = document.getElementById("amuletPopup");
-  const a = gameApi.AMULETS[id];
+function showItemPopup(id, target) {
+  const popup = document.getElementById("itemPopup");
+  const a = gameApi.ITEMS[id];
   if (!popup || !a || !target) return;
   popup.innerHTML = `
-    ${amuletIconHtml(id, "amulet-popup-icon", 30)}
+    ${itemIconHtml(id, "item-popup-icon", 30)}
     <span><b>${escapeHtml(a.name)}</b><em>${escapeHtml(a.profile)}</em></span>`;
   popup.classList.remove("hidden");
   popup.style.visibility = "hidden";
@@ -1093,18 +1111,18 @@ function showAmuletPopup(id, target) {
   popup.style.left = `${Math.round(left)}px`;
   popup.style.top = `${Math.round(clampNumber(top, 8, window.innerHeight - popupRect.height - 8))}px`;
   popup.style.visibility = "";
-  activeAmuletPopupId = id;
+  activeItemPopupId = id;
 }
 
-function clearAmuletPress() {
-  if (!amuletPress) return;
-  clearTimeout(amuletPress.timer);
-  amuletPress = null;
+function clearItemPress() {
+  if (!itemPress) return;
+  clearTimeout(itemPress.timer);
+  itemPress = null;
 }
 
-function startAmuletPress(event, button) {
-  clearAmuletPress();
-  const id = button.dataset.amuletId;
+function startItemPress(event, button) {
+  clearItemPress();
+  const id = button.dataset.itemId;
   if (!id) return;
   event.preventDefault();
   try {
@@ -1114,92 +1132,94 @@ function startAmuletPress(event, button) {
   }
   const startX = event.clientX;
   const startY = event.clientY;
-  amuletPress = {
+  itemPress = {
     id,
     button,
     startX,
     startY,
     timer: setTimeout(() => {
-      if (!amuletPress || amuletPress.id !== id) return;
-      showAmuletPopup(id, button);
-    }, AMULET_LONG_PRESS_MS),
+      if (!itemPress || itemPress.id !== id) return;
+      showItemPopup(id, button);
+    }, ITEM_LONG_PRESS_MS),
   };
 }
 
-function moveAmuletPress(event) {
-  if (!amuletPress) return;
-  if (Math.hypot(event.clientX - amuletPress.startX, event.clientY - amuletPress.startY) > TAP_MOVE_CANCEL) clearAmuletPress();
+function moveItemPress(event) {
+  if (!itemPress) return;
+  if (Math.hypot(event.clientX - itemPress.startX, event.clientY - itemPress.startY) > TAP_MOVE_CANCEL) clearItemPress();
 }
 
-function bindAmuletHud() {
-  const bar = document.getElementById("amuletBar");
+function bindItemHud() {
+  const bar = document.getElementById("itemBar");
   if (!bar) return;
   bar.addEventListener("pointerdown", (event) => {
-    const button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-amulet-id]") : null;
+    const button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-item-id]") : null;
     if (!button) return;
-    startAmuletPress(event, button);
+    startItemPress(event, button);
   });
-  bar.addEventListener("pointermove", moveAmuletPress);
-  for (const type of ["pointerup", "pointercancel", "pointerleave"]) bar.addEventListener(type, clearAmuletPress);
+  bar.addEventListener("pointermove", moveItemPress);
+  for (const type of ["pointerup", "pointercancel", "pointerleave"]) bar.addEventListener(type, clearItemPress);
   bar.addEventListener("contextmenu", (event) => {
-    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-amulet-id]")) event.preventDefault();
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id]")) event.preventDefault();
   });
   bar.addEventListener("selectstart", (event) => {
-    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-amulet-id]")) event.preventDefault();
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id]")) event.preventDefault();
   });
   document.addEventListener("pointerdown", (event) => {
     const target = event.target && typeof event.target.closest === "function" ? event.target : null;
-    if (target && (target.closest("#amuletBar [data-amulet-id]") || target.closest("#amuletPopup"))) return;
-    hideAmuletPopup();
+    if (target && (target.closest("#itemBar [data-item-id]") || target.closest("#itemPopup"))) return;
+    hideItemPopup();
   });
-  window.addEventListener("scroll", hideAmuletPopup, { passive: true });
-  window.addEventListener("resize", hideAmuletPopup);
+  window.addEventListener("scroll", hideItemPopup, { passive: true });
+  window.addEventListener("resize", hideItemPopup);
 }
 
-function renderAmulets() {
-  const bar = document.getElementById("amuletBar");
+function renderItems() {
+  const bar = document.getElementById("itemBar");
   if (!bar) return;
-  const held = gameApi.amulets;
-  const used = new Set(gameApi.usedAmulets);
+  const held = gameApi.items;
+  const used = new Set(gameApi.usedItems);
   const key = held.join(",") + "|" + [...used].sort().join(",");
-  if (key === lastAmuletBarKey) return;
-  lastAmuletBarKey = key;
-  if (activeAmuletPopupId && !held.includes(activeAmuletPopupId)) hideAmuletPopup();
+  if (key === lastItemBarKey) return;
+  lastItemBarKey = key;
+  if (activeItemPopupId && !held.includes(activeItemPopupId)) hideItemPopup();
   if (!held.length) {
-    bar.innerHTML = `<span class="amulet-empty">お守りなし</span>`;
+    bar.innerHTML = `<span class="item-empty">アイテムなし</span>`;
     return;
   }
   bar.innerHTML = held.map((id) => {
-    const a = gameApi.AMULETS[id];
+    const a = gameApi.ITEMS[id];
     if (!a) return "";
-    const classes = ["amulet"];
-    if (used.has(id)) classes.push("amulet-used");
-    const badge = used.has(id) ? `<i class="amulet-badge">済</i>` : "";
-    const label = amuletLabel(id);
-    return `<button type="button" class="${classes.join(" ")}" data-amulet-id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${amuletIconHtml(id, "amulet-icon", 24)}${badge}</button>`;
+    const classes = ["item"];
+    if (used.has(id)) classes.push("item-used");
+    const badge = used.has(id) ? `<i class="item-badge">済</i>` : "";
+    const label = itemLabel(id);
+    return `<button type="button" class="${classes.join(" ")}" data-item-id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${itemIconHtml(id, "item-icon", 24)}${badge}</button>`;
   }).join("");
 }
 
-function renderAmuletOffer() {
-  const overlay = document.getElementById("amuletChoiceOverlay");
-  const grid = document.getElementById("amuletChoiceGrid");
+function renderItemOffer() {
+  const overlay = document.getElementById("itemChoiceOverlay");
+  const grid = document.getElementById("itemChoiceGrid");
+  const reroll = document.getElementById("rerollItemBtn");
   if (!overlay || !grid) return;
-  const offer = gameApi.amuletOffer;
+  const offer = gameApi.itemOffer;
   overlay.classList.toggle("hidden", !offer);
+  if (reroll) reroll.classList.toggle("hidden", !offer || !gameApi.canRerollItemOffer);
   if (!offer) {
-    lastAmuletOfferKey = "";
+    lastItemOfferKey = "";
     grid.innerHTML = "";
     return;
   }
   const key = `${offer.wave}:${offer.choices.join(",")}`;
-  if (key === lastAmuletOfferKey) return;
-  lastAmuletOfferKey = key;
+  if (key === lastItemOfferKey) return;
+  lastItemOfferKey = key;
   grid.innerHTML = offer.choices.map((id) => {
-    const a = gameApi.AMULETS[id];
+    const a = gameApi.ITEMS[id];
     if (!a) return "";
     return `
-      <button type="button" class="amulet-choice-card" data-amulet-choice="${escapeHtml(id)}">
-        ${amuletIconHtml(id, "amulet-choice-icon", 38)}
+      <button type="button" class="item-choice-card" data-item-choice="${escapeHtml(id)}">
+        ${itemIconHtml(id, "item-choice-icon", 38)}
         <span><b>${escapeHtml(a.name)}</b><em>${escapeHtml(a.profile)}</em></span>
       </button>`;
   }).join("");
@@ -1215,15 +1235,15 @@ function updateHud() {
   document.getElementById("waveNum").textContent = `${gameApi.wave}/${gameApi.MAX_WAVE}`;
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
   document.getElementById("scoreNum").textContent = gameApi.score;
-  renderAmulets();
-  renderAmuletOffer();
+  renderItems();
+  renderItemOffer();
   document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
   let waveLabel = "次の襲来まで";
   let waveTimer = `${Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000)} 秒`;
-  if (gameApi.gameState === "amuletChoice") {
-    waveLabel = "お守り選択";
+  if (gameApi.gameState === "itemChoice") {
+    waveLabel = "アイテム選択";
     waveTimer = "時間停止中";
   } else if (gameApi.waveSettleDelay > 0) {
     waveLabel = "撃退確認中";
@@ -1256,8 +1276,8 @@ function updateHud() {
 }
 
 function startGame() {
-  hideAmuletPopup();
-  lastAmuletBarKey = "";
+  hideItemPopup();
+  lastItemBarKey = "";
   gameApi = createConfiguredGame();
   gameApi.startGame();
   syncAudioState(true);
@@ -1266,8 +1286,8 @@ function startGame() {
 }
 
 function openStartFlow() {
-  hideAmuletPopup();
-  lastAmuletBarKey = "";
+  hideItemPopup();
+  lastItemBarKey = "";
   gameApi = createConfiguredGame();
   gameApi.gameState = "title";
   syncAudioState();
@@ -1301,18 +1321,22 @@ function boot() {
     gameApi.tauntEarly();
     updateHud();
   });
-  const amuletChoiceGrid = document.getElementById("amuletChoiceGrid");
-  if (amuletChoiceGrid) amuletChoiceGrid.addEventListener("click", (event) => {
+  const itemChoiceGrid = document.getElementById("itemChoiceGrid");
+  if (itemChoiceGrid) itemChoiceGrid.addEventListener("click", (event) => {
     const target = event.target && typeof event.target.closest === "function" ? event.target : null;
-    const button = target ? target.closest("[data-amulet-choice]") : null;
+    const button = target ? target.closest("[data-item-choice]") : null;
     if (!button) return;
-    if (gameApi.chooseAmuletOffer(button.dataset.amuletChoice)) updateHud();
+    if (gameApi.chooseItemOffer(button.dataset.itemChoice)) updateHud();
   });
-  const skipAmulet = document.getElementById("skipAmuletBtn");
-  if (skipAmulet) skipAmulet.addEventListener("click", () => {
-    if (gameApi.chooseAmuletOffer(null)) updateHud();
+  const skipItem = document.getElementById("skipItemBtn");
+  if (skipItem) skipItem.addEventListener("click", () => {
+    if (gameApi.chooseItemOffer(null)) updateHud();
   });
-  bindAmuletHud();
+  const rerollItem = document.getElementById("rerollItemBtn");
+  if (rerollItem) rerollItem.addEventListener("click", () => {
+    if (gameApi.rerollItemOffer()) updateHud();
+  });
+  bindItemHud();
   bindButtonSounds();
   bindAudioPanel();
   bindDevPanel();

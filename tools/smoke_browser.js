@@ -232,8 +232,8 @@ async function run() {
       });
       return { width: innerWidth, panelHidden: document.getElementById("codexPanel").classList.contains("hidden"), tabs };
     })()`);
-    const amuletTab = initialCodex.tabs.find((tab) => tab.tab === "amulet");
-    if (initialCodex.panelHidden || initialCodex.width !== 390 || initialCodex.tabs.length !== 3 || !amuletTab || amuletTab.text !== "お守り" || !amuletTab.visible) {
+    const itemTab = initialCodex.tabs.find((tab) => tab.tab === "item");
+    if (initialCodex.panelHidden || initialCodex.width !== 390 || initialCodex.tabs.length !== 3 || !itemTab || itemTab.text !== "アイテム" || !itemTab.visible) {
       throw new Error(`キャラクター紹介タブ表示が不正です: ${JSON.stringify(initialCodex)}`);
     }
     await evaluate(client, `document.getElementById("codexBackBtn").click()`);
@@ -293,7 +293,7 @@ async function run() {
       startNut.dispatchEvent(new Event("input", { bubbles: true }));
       return {
         hasValue: value.length > 100,
-        chance: parsed.constants.AMULET_WAVE_DROP_CHANCE,
+        reaperChance: parsed.constants.REAPER_SPAWN_CHANCE,
         hasKinds: !!parsed.kinds?.slime,
         status: document.getElementById("devStatus").textContent,
         defaultLabel: startNutDefault.textContent,
@@ -301,7 +301,7 @@ async function run() {
         defaultColor: getComputedStyle(startNutDefault).color,
       };
     })()`);
-    if (!devJson.hasValue || devJson.chance !== 0.35 || !devJson.hasKinds || devJson.status !== "JSONを出力しました" || !devJson.defaultLabel.includes("初期 25") || !devJson.defaultDiff || devJson.defaultColor !== "rgb(255, 107, 107)") {
+    if (!devJson.hasValue || devJson.reaperChance !== 0.002 || !devJson.hasKinds || devJson.status !== "JSONを出力しました" || !devJson.defaultLabel.includes("初期 25") || !devJson.defaultDiff || devJson.defaultColor !== "rgb(255, 107, 107)") {
       throw new Error(`開発JSON出力が不正です: ${JSON.stringify(devJson)}`);
     }
 
@@ -314,38 +314,38 @@ async function run() {
       game.spawnQueue.length = 0;
       game.settleWave();
     })()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "amuletChoice" && !document.getElementById("amuletChoiceOverlay").classList.contains("hidden") && document.querySelectorAll("[data-amulet-choice]").length === 3`, "お守り3択表示");
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "itemChoice" && !document.getElementById("itemChoiceOverlay").classList.contains("hidden") && document.querySelectorAll("[data-item-choice]").length === 3`, "アイテム3択表示");
     const offer = await evaluate(client, `({
       state: globalThis.MakaiDefense.current.gameState,
-      choices: globalThis.MakaiDefense.current.amuletOffer?.choices || [],
-      cards: document.querySelectorAll("[data-amulet-choice]").length,
+      choices: globalThis.MakaiDefense.current.itemOffer?.choices || [],
+      cards: document.querySelectorAll("[data-item-choice]").length,
       label: document.getElementById("waveLabel").textContent,
       timer: document.getElementById("waveTimer").textContent
     })`);
-    if (offer.state !== "amuletChoice" || offer.cards !== 3 || offer.choices.join(",") !== "family,dogtag,lastStick" || offer.label !== "お守り選択" || offer.timer !== "時間停止中") {
-      throw new Error(`お守り3択表示が不正です: ${JSON.stringify(offer)}`);
+    if (offer.state !== "itemChoice" || offer.cards !== 3 || offer.choices.join(",") !== "rustyPickaxe,blackSoilBag,undergroundLantern" || offer.label !== "アイテム選択" || offer.timer !== "時間停止中") {
+      throw new Error(`アイテム3択表示が不正です: ${JSON.stringify(offer)}`);
     }
-    await evaluate(client, `document.querySelector('[data-amulet-choice="dogtag"]').click()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("amuletChoiceOverlay").classList.contains("hidden")`, "お守り選択後の再開");
-    const amuletResult = await evaluate(client, `({
-      amulets: globalThis.MakaiDefense.current.amulets,
-      bar: document.getElementById("amuletBar").textContent,
-      icons: document.querySelectorAll(".amulet-icon").length,
-      buttonLabel: document.querySelector('[data-amulet-id="dogtag"]')?.getAttribute("aria-label") || "",
-      popupExists: !!document.getElementById("amuletPopup")
+    await evaluate(client, `document.querySelector('[data-item-choice="rustyPickaxe"]').click()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemChoiceOverlay").classList.contains("hidden")`, "アイテム選択後の再開");
+    const itemResult = await evaluate(client, `({
+      items: globalThis.MakaiDefense.current.items,
+      bar: document.getElementById("itemBar").textContent,
+      icons: document.querySelectorAll(".item-icon").length,
+      buttonLabel: document.querySelector('[data-item-id="rustyPickaxe"]')?.getAttribute("aria-label") || "",
+      popupExists: !!document.getElementById("itemPopup")
     })`);
-    if (!amuletResult.amulets.includes("dogtag") || amuletResult.bar.includes("ドッグタグ") || amuletResult.icons < 1 || !amuletResult.buttonLabel.includes("ドッグタグ") || !amuletResult.popupExists) {
-      throw new Error(`お守り選択後状態が不正です: ${JSON.stringify(amuletResult)}`);
+    if (!itemResult.items.includes("rustyPickaxe") || itemResult.bar.includes("錆びたつるはし") || itemResult.icons < 1 || !itemResult.buttonLabel.includes("錆びたつるはし") || !itemResult.popupExists) {
+      throw new Error(`アイテム選択後状態が不正です: ${JSON.stringify(itemResult)}`);
     }
     const popupResult = await evaluate(client, `new Promise((resolve) => {
-      const button = document.querySelector('[data-amulet-id="dogtag"]');
+      const button = document.querySelector('[data-item-id="rustyPickaxe"]');
       const rect = button.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
       button.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 7, clientX: x, clientY: y, pointerType: "touch" }));
       setTimeout(() => {
         button.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, pointerId: 7, clientX: x, clientY: y, pointerType: "touch" }));
-        const popup = document.getElementById("amuletPopup");
+        const popup = document.getElementById("itemPopup");
         resolve({
           hidden: popup.classList.contains("hidden"),
           text: popup.textContent,
@@ -353,36 +353,36 @@ async function run() {
         });
       }, 650);
     })`);
-    if (popupResult.hidden || !popupResult.text.includes("ドッグタグ") || !popupResult.text.includes("体力が全快") || popupResult.selection) {
-      throw new Error(`お守り長押しポップアップが不正です: ${JSON.stringify(popupResult)}`);
+    if (popupResult.hidden || !popupResult.text.includes("錆びたつるはし") || !popupResult.text.includes("採掘成功時") || popupResult.selection) {
+      throw new Error(`アイテム長押しポップアップが不正です: ${JSON.stringify(popupResult)}`);
     }
 
-    await waitFor(client, `JSON.parse(localStorage.getItem("makaiDefense.progress.v1") || "{}").discoveredAmulets?.includes("dogtag")`, "お守り発見の保存");
+    await waitFor(client, `JSON.parse(localStorage.getItem("makaiDefense.progress.v1") || "{}").discoveredItems?.includes("rustyPickaxe")`, "アイテム発見の保存");
     await evaluate(client, `document.getElementById("codexBtn").click()`);
     await waitFor(client, `!document.getElementById("codexPanel").classList.contains("hidden")`, "キャラクター紹介表示");
-    await evaluate(client, `document.querySelector('[data-codex-tab="amulet"]').click()`);
+    await evaluate(client, `document.querySelector('[data-codex-tab="item"]').click()`);
     const codex = await evaluate(client, `(() => {
       const cards = [...document.querySelectorAll("#codexGrid .codex-card")];
-      const dogtag = cards.find((card) => card.textContent.includes("ドッグタグ"));
+      const item = cards.find((card) => card.textContent.includes("錆びたつるはし"));
       const locked = cards.filter((card) => card.classList.contains("locked"));
       return {
-        active: document.querySelector('[data-codex-tab="amulet"]').classList.contains("active"),
+        active: document.querySelector('[data-codex-tab="item"]').classList.contains("active"),
         cards: cards.length,
-        dogtagText: dogtag?.textContent || "",
-        dogtagLocked: dogtag?.classList.contains("locked") ?? null,
+        itemText: item?.textContent || "",
+        itemLocked: item?.classList.contains("locked") ?? null,
         lockedCount: locked.length,
         lockedText: locked[0]?.textContent || "",
         progressText: document.getElementById("progressStatus").textContent,
       };
     })()`);
-    if (!codex.active || codex.cards !== 8 || !codex.dogtagText.includes("体力が全快") || codex.dogtagLocked || codex.lockedCount < 1 || !codex.lockedText.includes("???") || !codex.progressText.includes("お守り 1/8")) {
-      throw new Error(`お守り図鑑表示が不正です: ${JSON.stringify(codex)}`);
+    if (!codex.active || codex.cards !== 58 || !codex.itemText.includes("採掘成功時") || codex.itemLocked || codex.lockedCount < 1 || !codex.lockedText.includes("???") || !codex.progressText.includes("アイテム 1/58")) {
+      throw new Error(`アイテム図鑑表示が不正です: ${JSON.stringify(codex)}`);
     }
 
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、開始、音量設定、開発JSON出力、お守り3択、長押しポップアップ、お守り図鑑を検査しました");
+    console.log("OK: ブラウザ初回ロード、開始、音量設定、開発JSON出力、アイテム3択、長押しポップアップ、アイテム図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

@@ -786,9 +786,9 @@
       ]
     }
   },
-  "amulets": {
-    "family": {
-      "sheet": "amulets",
+  "items": {
+    "rustyPickaxe": {
+      "sheet": "items",
       "x": 0,
       "y": 0,
       "w": 48,
@@ -798,8 +798,8 @@
         24
       ]
     },
-    "dogtag": {
-      "sheet": "amulets",
+    "blackSoilBag": {
+      "sheet": "items",
       "x": 48,
       "y": 0,
       "w": 48,
@@ -809,8 +809,8 @@
         24
       ]
     },
-    "lastStick": {
-      "sheet": "amulets",
+    "undergroundLantern": {
+      "sheet": "items",
       "x": 96,
       "y": 0,
       "w": 48,
@@ -820,8 +820,8 @@
         24
       ]
     },
-    "whiskey": {
-      "sheet": "amulets",
+    "crackedMap": {
+      "sheet": "items",
       "x": 144,
       "y": 0,
       "w": 48,
@@ -831,8 +831,8 @@
         24
       ]
     },
-    "letter": {
-      "sheet": "amulets",
+    "masonGloves": {
+      "sheet": "items",
       "x": 192,
       "y": 0,
       "w": 48,
@@ -842,8 +842,8 @@
         24
       ]
     },
-    "cards": {
-      "sheet": "amulets",
+    "deepCompass": {
+      "sheet": "items",
       "x": 240,
       "y": 0,
       "w": 48,
@@ -853,8 +853,8 @@
         24
       ]
     },
-    "coinPurse": {
-      "sheet": "amulets",
+    "oldIncense": {
+      "sheet": "items",
       "x": 288,
       "y": 0,
       "w": 48,
@@ -864,9 +864,559 @@
         24
       ]
     },
-    "stitchedBear": {
-      "sheet": "amulets",
+    "herdFlute": {
+      "sheet": "items",
       "x": 336,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "warmNest": {
+      "sheet": "items",
+      "x": 384,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "eggGuardBell": {
+      "sheet": "items",
+      "x": 432,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "boneMeal": {
+      "sheet": "items",
+      "x": 480,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "redCollar": {
+      "sheet": "items",
+      "x": 528,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "warPaint": {
+      "sheet": "items",
+      "x": 576,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "sleepSand": {
+      "sheet": "items",
+      "x": 624,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "curseNail": {
+      "sheet": "items",
+      "x": 672,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "blackBell": {
+      "sheet": "items",
+      "x": 720,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "stickyMud": {
+      "sheet": "items",
+      "x": 768,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "coreShard": {
+      "sheet": "items",
+      "x": 816,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "coreBandage": {
+      "sheet": "items",
+      "x": 864,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "redSealingWax": {
+      "sheet": "items",
+      "x": 912,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "quakeStone": {
+      "sheet": "items",
+      "x": 960,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "leftoverMeat": {
+      "sheet": "items",
+      "x": 1008,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "silverMuzzle": {
+      "sheet": "items",
+      "x": 1056,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "bloodyPlate": {
+      "sheet": "items",
+      "x": 1104,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "trainingStick": {
+      "sheet": "items",
+      "x": 1152,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "victoryBoneFlute": {
+      "sheet": "items",
+      "x": 1200,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "crybabyBell": {
+      "sheet": "items",
+      "x": 1248,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "shadowThread": {
+      "sheet": "items",
+      "x": 1296,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "spareHeart": {
+      "sheet": "items",
+      "x": 1344,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "ledger": {
+      "sheet": "items",
+      "x": 1392,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "tornWallet": {
+      "sheet": "items",
+      "x": 1440,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "demonCoin": {
+      "sheet": "items",
+      "x": 1488,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "fakeGold": {
+      "sheet": "items",
+      "x": 1536,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "wildCard": {
+      "sheet": "items",
+      "x": 1584,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "thiefBag": {
+      "sheet": "items",
+      "x": 1632,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "dryBread": {
+      "sheet": "items",
+      "x": 1680,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "blackSeed": {
+      "sheet": "items",
+      "x": 1728,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "reversedHourglass": {
+      "sheet": "items",
+      "x": 1776,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "earlyDrum": {
+      "sheet": "items",
+      "x": 1824,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "breathingFlute": {
+      "sheet": "items",
+      "x": 1872,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "gapStake": {
+      "sheet": "items",
+      "x": 1920,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "moleClaw": {
+      "sheet": "items",
+      "x": 1968,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "obsidianLid": {
+      "sheet": "items",
+      "x": 2016,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "wanderingPowder": {
+      "sheet": "items",
+      "x": 2064,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "trailMark": {
+      "sheet": "items",
+      "x": 2112,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "charmRope": {
+      "sheet": "items",
+      "x": 2160,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "angerMask": {
+      "sheet": "items",
+      "x": 2208,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "nestFlag": {
+      "sheet": "items",
+      "x": 2256,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "oldEggshell": {
+      "sheet": "items",
+      "x": 2304,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "crackedEgg": {
+      "sheet": "items",
+      "x": 2352,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "royalEggshell": {
+      "sheet": "items",
+      "x": 2400,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "rottenCrown": {
+      "sheet": "items",
+      "x": 2448,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "rebelCharm": {
+      "sheet": "items",
+      "x": 2496,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "crowdMark": {
+      "sheet": "items",
+      "x": 2544,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "lowestCandle": {
+      "sheet": "items",
+      "x": 2592,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "blackRaindrop": {
+      "sheet": "items",
+      "x": 2640,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "redMoonShard": {
+      "sheet": "items",
+      "x": 2688,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "boneContract": {
+      "sheet": "items",
+      "x": 2736,
       "y": 0,
       "w": 48,
       "h": 48,

@@ -28,7 +28,15 @@ const TILES = [
   "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2",
 ];
 const EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
-const AMULET_ICONS = ["family", "dogtag", "lastStick", "whiskey", "letter", "cards", "coinPurse", "stitchedBear"];
+const ITEM_ICONS = [
+  "rustyPickaxe", "blackSoilBag", "undergroundLantern", "crackedMap", "masonGloves", "deepCompass", "oldIncense",
+  "herdFlute", "warmNest", "eggGuardBell", "boneMeal", "redCollar", "warPaint", "sleepSand", "curseNail", "blackBell", "stickyMud",
+  "coreShard", "coreBandage", "redSealingWax", "quakeStone", "leftoverMeat", "silverMuzzle", "bloodyPlate", "trainingStick",
+  "victoryBoneFlute", "crybabyBell", "shadowThread", "spareHeart", "ledger", "tornWallet", "demonCoin", "fakeGold", "wildCard",
+  "thiefBag", "dryBread", "blackSeed", "reversedHourglass", "earlyDrum", "breathingFlute", "gapStake", "moleClaw", "obsidianLid",
+  "wanderingPowder", "trailMark", "charmRope", "angerMask", "nestFlag", "oldEggshell", "crackedEgg", "royalEggshell", "rottenCrown",
+  "rebelCharm", "crowdMark", "lowestCandle", "blackRaindrop", "redMoonShard", "boneContract",
+];
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -138,6 +146,6 @@ function spritePath(group, name, frame = null, dir = null, action = null) {
 }
 
 module.exports = {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, AMULET_ICONS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 };

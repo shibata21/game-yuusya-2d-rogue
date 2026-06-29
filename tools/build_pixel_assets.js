@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, AMULET_ICONS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
@@ -1020,91 +1020,125 @@ function drawEffect(name, frame) {
   return img;
 }
 
-function drawAmuletIcon(name) {
+const ITEM_ICON_SHAPES = {
+  rustyPickaxe: "pickaxe", blackSoilBag: "bag", undergroundLantern: "lantern", crackedMap: "map", masonGloves: "glove", deepCompass: "compass", oldIncense: "incense",
+  herdFlute: "flute", warmNest: "nest", eggGuardBell: "bellEgg", boneMeal: "powder", redCollar: "collar", warPaint: "paint", sleepSand: "sand", curseNail: "nail", blackBell: "bell", stickyMud: "mud",
+  coreShard: "crystal", coreBandage: "bandage", redSealingWax: "wax", quakeStone: "crackedStone", leftoverMeat: "meat", silverMuzzle: "muzzle", bloodyPlate: "plate", trainingStick: "stick",
+  victoryBoneFlute: "boneFlute", crybabyBell: "tearBell", shadowThread: "thread", spareHeart: "heart", ledger: "book", tornWallet: "wallet", demonCoin: "coin", fakeGold: "fakeCoin", wildCard: "card",
+  thiefBag: "bagMask", dryBread: "bread", blackSeed: "seed", reversedHourglass: "hourglass", earlyDrum: "drum", breathingFlute: "fluteWind", gapStake: "stake", moleClaw: "claw", obsidianLid: "lid",
+  wanderingPowder: "swirlPowder", trailMark: "trail", charmRope: "rope", angerMask: "mask", nestFlag: "flag", oldEggshell: "oldEgg", crackedEgg: "crackedEgg", royalEggshell: "royalEgg", rottenCrown: "crown",
+  rebelCharm: "charm", crowdMark: "crowd", lowestCandle: "candle", blackRaindrop: "raindrop", redMoonShard: "moon", boneContract: "contract",
+};
+
+const ITEM_ICON_PALETTES = [
+  ["#3a2a20", "#b77943", "#ffe08a"], ["#17251d", "#4f8a5a", "#bff7bd"], ["#20283a", "#5ab0ff", "#fff0a6"], ["#4a3422", "#d6b074", "#fff4c8"],
+  ["#3a2d32", "#c9a08a", "#f2d2ba"], ["#172137", "#6f86c4", "#ffcf4d"], ["#33253a", "#8d6a9f", "#e7d4ff"], ["#20343c", "#6cb7b2", "#eaffd8"],
+  ["#342417", "#8a5a3c", "#e7c88a"], ["#3d2630", "#d95b72", "#ffe8f0"], ["#2d2d32", "#cfd8e3", "#ffffff"], ["#3d2020", "#e0556b", "#ffd0d0"],
+  ["#3a2238", "#a65cff", "#ffd76a"], ["#3d3322", "#d9b27a", "#fff1a6"], ["#251f26", "#6a6f86", "#d8dde4"], ["#15151b", "#3b4250", "#dfe7ef"],
+];
+
+function itemIconPalette(name) {
+  const idx = Math.max(0, ITEM_ICONS.indexOf(name));
+  const base = ITEM_ICON_PALETTES[idx % ITEM_ICON_PALETTES.length];
+  return { dark: base[0], mid: base[1], light: base[2], idx };
+}
+
+function itemDots(img, idx, pal) {
+  const pts = [[10, 11], [38, 11], [10, 38], [38, 38]];
+  for (let i = 0; i < pts.length; i++) if ((idx + i) % 3 === 0) diamond(img, pts[i][0], pts[i][1], 2, pal.light, 180);
+}
+
+function drawItemIcon(name) {
   const img = image();
-  oval(img, 24, 34, 17, 5, "#0c0812", 82);
-  if (name === "family") {
-    rect(img, 10, 11, 28, 24, "#4a2d1f", 250);
-    rect(img, 13, 14, 22, 18, "#d9c38a", 245);
-    rect(img, 15, 16, 18, 14, "#6b8fb8", 230);
-    oval(img, 21, 22, 4, 5, "#e8b18a", 245);
-    oval(img, 28, 22, 4, 5, "#d69a72", 245);
-    rect(img, 17, 27, 15, 3, "#493414", 220);
-    line(img, 10, 11, 38, 35, "#1b1010", 2, 180);
-    diamond(img, 34, 15, 2, "#fff0a6", 170);
-  } else if (name === "dogtag") {
-    rect(img, 12, 18, 25, 15, "#3b4250", 250);
-    rect(img, 15, 15, 19, 21, "#3b4250", 250);
-    rect(img, 13, 19, 23, 13, "#9aa6b5", 245);
-    rect(img, 16, 16, 17, 19, "#bfc8d2", 245);
-    rect(img, 14, 17, 21, 2, "#dfe7ef", 210);
-    rect(img, 14, 32, 21, 2, "#657080", 200);
-    oval(img, 18, 21, 3, 3, "#313744", 255);
-    oval(img, 18, 21, 1, 1, "#0f131a", 255);
-    line(img, 23, 22, 31, 22, "#596374", 1, 230);
-    line(img, 22, 26, 32, 26, "#596374", 1, 210);
-    line(img, 22, 30, 30, 30, "#596374", 1, 190);
-    diamond(img, 31, 18, 1, "#ffffff", 170);
-  } else if (name === "lastStick") {
-    line(img, 16, 35, 31, 17, "#6a4428", 5, 245);
-    line(img, 17, 35, 32, 18, "#d7a15d", 2, 245);
-    oval(img, 34, 14, 7, 10, "#7a1e08", 225);
-    tri(img, 28, 20, 35, 5, 41, 20, "#ff6b2a", 235);
-    tri(img, 31, 20, 36, 10, 39, 20, "#ffe06a", 245);
-    diamond(img, 18, 34, 3, "#2a1608", 225);
-    diamond(img, 25, 26, 2, "#fff0a6", 150);
-  } else if (name === "whiskey") {
-    rect(img, 20, 9, 9, 9, "#31415a", 245);
-    rect(img, 18, 17, 13, 20, "#4a2b16", 250);
-    rect(img, 20, 19, 9, 15, "#b66b28", 230);
-    rect(img, 21, 22, 7, 7, "#e0b35b", 245);
-    line(img, 29, 18, 32, 35, "#ffe0a0", 2, 120);
-    rect(img, 21, 8, 7, 3, "#d8dde4", 230);
-    diamond(img, 25, 25, 2, "#fff6c8", 185);
-  } else if (name === "letter") {
-    rect(img, 10, 16, 28, 20, "#d8c9a0", 250);
-    tri(img, 11, 17, 24, 29, 37, 17, "#f0e0b8", 245);
-    tri(img, 11, 35, 24, 24, 37, 35, "#b99868", 220);
-    line(img, 11, 17, 24, 29, "#7a5132", 1, 170);
-    line(img, 37, 17, 24, 29, "#7a5132", 1, 170);
-    diamond(img, 24, 27, 4, "#7d1f2a", 235);
-    diamond(img, 24, 27, 2, "#d6543f", 235);
-  } else if (name === "cards") {
-    rect(img, 13, 12, 15, 22, "#e8edf2", 250);
-    rect(img, 15, 14, 11, 18, "#f7fbff", 245);
-    rect(img, 23, 15, 15, 22, "#dfe7f2", 250);
-    rect(img, 25, 17, 11, 18, "#ffffff", 245);
-    diamond(img, 21, 23, 4, "#d6543f", 245);
-    tri(img, 29, 27, 34, 18, 39, 27, "#171b24", 235);
-    oval(img, 34, 28, 5, 4, "#171b24", 235);
-    line(img, 34, 29, 34, 34, "#171b24", 2, 235);
-  } else if (name === "coinPurse") {
-    oval(img, 24, 27, 14, 12, "#6b3342", 250);
-    rect(img, 15, 18, 18, 7, "#3d2430", 245);
-    line(img, 16, 21, 32, 21, "#d9a53d", 2, 230);
-    diamond(img, 20, 18, 2, "#ffcf4d", 240);
-    diamond(img, 29, 18, 2, "#ffcf4d", 240);
-    oval(img, 34, 34, 5, 3, "#d9a53d", 240);
-    oval(img, 38, 31, 4, 3, "#ffcf4d", 235);
-    line(img, 17, 29, 31, 29, "#9b5262", 2, 180);
-  } else if (name === "stitchedBear") {
-    oval(img, 17, 16, 5, 5, "#5a3828", 245);
-    oval(img, 31, 16, 5, 5, "#5a3828", 245);
-    oval(img, 24, 24, 13, 13, "#8a5a3c", 250);
-    oval(img, 24, 31, 10, 8, "#6d4330", 245);
-    rect(img, 19, 22, 3, 3, "#15101c", 245);
-    rect(img, 28, 22, 3, 3, "#15101c", 245);
-    diamond(img, 24, 27, 2, "#2a1608", 245);
-    line(img, 18, 31, 30, 18, "#d9c38a", 1, 230);
-    line(img, 17, 23, 21, 27, "#d9c38a", 1, 210);
-    line(img, 27, 31, 31, 35, "#d9c38a", 1, 210);
+  const pal = itemIconPalette(name);
+  const shape = ITEM_ICON_SHAPES[name] || "crystal";
+  oval(img, 24, 36, 17, 5, "#0c0812", 82);
+  diamond(img, 24, 24, 19, pal.dark, 42);
+
+  if (shape === "pickaxe") {
+    line(img, 14, 36, 32, 14, "#6a4428", 5, 245); line(img, 15, 36, 33, 14, "#d7a15d", 2, 245); line(img, 17, 15, 38, 19, pal.mid, 5, 250); line(img, 16, 15, 22, 11, pal.light, 3, 235);
+  } else if (shape === "bag" || shape === "bagMask") {
+    oval(img, 24, 27, 14, 12, pal.mid, 250); rect(img, 15, 17, 18, 8, pal.dark, 245); line(img, 16, 21, 32, 21, pal.light, 2, 230); if (shape === "bagMask") { rect(img, 19, 25, 10, 5, "#11131a", 230); rect(img, 20, 26, 2, 2, pal.light, 230); rect(img, 27, 26, 2, 2, pal.light, 230); }
+  } else if (shape === "lantern") {
+    line(img, 18, 15, 24, 9, pal.light, 2, 210); line(img, 24, 9, 30, 15, pal.light, 2, 210); rect(img, 16, 16, 16, 20, pal.dark, 250); rect(img, 19, 19, 10, 13, "#ffe08a", 235); oval(img, 24, 26, 12, 12, "#fff1a6", 70);
+  } else if (shape === "map") {
+    rect(img, 11, 14, 27, 20, "#d8c9a0", 250); line(img, 19, 15, 17, 34, pal.dark, 1, 180); line(img, 29, 14, 31, 34, pal.dark, 1, 180); line(img, 14, 24, 34, 19, pal.mid, 2, 210); diamond(img, 33, 29, 3, pal.light, 230);
+  } else if (shape === "glove") {
+    oval(img, 24, 29, 10, 9, pal.mid, 250); for (let i = 0; i < 4; i++) rect(img, 15 + i * 5, 13 + (i % 2), 4, 13, pal.light, 245); rect(img, 17, 34, 14, 5, pal.dark, 240);
+  } else if (shape === "compass") {
+    oval(img, 24, 24, 15, 15, pal.mid, 250); oval(img, 24, 24, 11, 11, "#182033", 250); tri(img, 24, 12, 28, 26, 21, 24, pal.light, 245); tri(img, 24, 36, 20, 23, 27, 25, "#e0556b", 235); diamond(img, 24, 24, 2, "#ffffff", 230);
+  } else if (shape === "incense") {
+    oval(img, 24, 32, 14, 5, pal.mid, 245); rect(img, 15, 29, 18, 5, pal.dark, 245); for (let i = 0; i < 3; i++) line(img, 18 + i * 5, 25, 16 + i * 6, 13, pal.light, 1, 135);
+  } else if (shape === "flute" || shape === "fluteWind" || shape === "boneFlute") {
+    const body = shape === "boneFlute" ? "#d9d0ba" : pal.mid; line(img, 12, 29, 36, 17, body, 6, 245); for (let i = 0; i < 4; i++) oval(img, 19 + i * 5, 25 - i * 2, 1, 1, pal.dark, 250); if (shape === "fluteWind") { line(img, 33, 16, 39, 13, pal.light, 1, 160); line(img, 34, 20, 41, 20, pal.light, 1, 150); }
+  } else if (shape === "nest" || shape === "oldEgg" || shape === "crackedEgg" || shape === "royalEgg") {
+    for (let i = 0; i < 5; i++) line(img, 12 + i * 5, 33, 19 + i * 4, 24, "#8a5a3c", 2, 210); oval(img, 24, 27, 9, 12, pal.light, 245); if (shape === "crackedEgg") line(img, 20, 21, 24, 26, pal.dark, 2, 245); if (shape === "royalEgg") { diamond(img, 24, 14, 5, "#ffcf4d", 235); rect(img, 18, 18, 12, 3, "#ffcf4d", 235); } if (shape === "oldEgg") oval(img, 21, 25, 2, 2, "#7a6f58", 200);
+  } else if (shape === "bell" || shape === "bellEgg" || shape === "tearBell") {
+    tri(img, 15, 32, 24, 13, 33, 32, pal.mid, 250); rect(img, 15, 31, 18, 4, pal.dark, 245); oval(img, 24, 36, 4, 3, pal.light, 240); if (shape === "bellEgg") oval(img, 24, 24, 5, 7, "#fff1c0", 235); if (shape === "tearBell") diamond(img, 34, 26, 3, "#75c7ff", 220);
+  } else if (shape === "powder" || shape === "sand" || shape === "swirlPowder") {
+    rect(img, 16, 14, 16, 19, pal.mid, 225); rect(img, 18, 11, 12, 5, pal.light, 235); for (let i = 0; i < 8; i++) diamond(img, 13 + (i * 7) % 24, 31 + (i % 3), 1 + (i % 2), pal.light, 210); if (shape === "swirlPowder") line(img, 13, 18, 35, 30, "#dfe7ff", 2, 170);
+  } else if (shape === "collar" || shape === "muzzle" || shape === "rope") {
+    oval(img, 24, 25, 14, 10, pal.mid, 245); oval(img, 24, 25, 9, 6, "#000000", 0); line(img, 14, 25, 34, 25, pal.light, 3, 235); if (shape === "muzzle") { rect(img, 16, 23, 16, 6, "#cfd8e3", 230); line(img, 17, 20, 31, 31, pal.dark, 2, 220); } if (shape === "rope") line(img, 13, 33, 36, 16, "#d9b27a", 3, 235);
+  } else if (shape === "paint" || shape === "plate") {
+    oval(img, 23, 29, 14, 7, pal.mid, 245); oval(img, 23, 29, 9, 4, shape === "plate" ? "#b51f33" : "#e0556b", 235); line(img, 30, 18, 38, 33, "#8a5a3c", 3, 240); diamond(img, 29, 18, 3, pal.light, 230);
+  } else if (shape === "nail" || shape === "stake") {
+    line(img, 16, 14, 32, 35, pal.mid, shape === "stake" ? 7 : 4, 245); tri(img, 13, 11, 22, 13, 16, 20, pal.light, 245); rect(img, 29, 34, 7, 4, pal.dark, 240);
+  } else if (shape === "mud" || shape === "raindrop") {
+    if (shape === "raindrop") {
+      tri(img, 24, 9, 14, 30, 34, 30, pal.mid, 245);
+      oval(img, 24, 30, 10, 8, pal.mid, 245);
+    } else {
+      oval(img, 22, 28, 13, 8, pal.mid, 245);
+      oval(img, 33, 32, 5, 4, pal.dark, 220);
+      oval(img, 14, 33, 4, 3, pal.light, 210);
+    }
+  } else if (shape === "crystal" || shape === "crackedStone" || shape === "moon") {
+    diamond(img, 24, 24, 14, pal.mid, 245); tri(img, 24, 10, 36, 24, 24, 38, pal.light, 215); if (shape === "crackedStone") { line(img, 18, 15, 26, 25, "#11131a", 2, 230); line(img, 26, 25, 22, 35, "#11131a", 2, 230); } if (shape === "moon") oval(img, 27, 21, 12, 14, "#e0556b", 235);
+  } else if (shape === "bandage" || shape === "wax" || shape === "charm" || shape === "contract") {
+    rect(img, 12, 16, 24, 18, shape === "contract" ? "#d8c9a0" : pal.light, 245); line(img, 13, 18, 35, 32, pal.mid, 2, 190); line(img, 13, 32, 35, 18, pal.mid, 2, 190); if (shape === "wax") diamond(img, 24, 25, 6, "#d6543f", 245); if (shape === "charm") { rect(img, 18, 12, 12, 23, "#d9d0ba", 245); diamond(img, 24, 21, 3, "#e0556b", 230); } if (shape === "contract") { diamond(img, 30, 30, 4, "#7d1f2a", 235); line(img, 16, 21, 29, 21, pal.dark, 1, 180); }
+  } else if (shape === "meat" || shape === "bread" || shape === "seed") {
+    if (shape === "seed") { diamond(img, 24, 25, 12, "#101714", 245); tri(img, 24, 14, 34, 27, 22, 36, pal.mid, 220); diamond(img, 26, 24, 4, pal.light, 180); }
+    else { oval(img, 24, 27, 13, 9, shape === "bread" ? "#d9a35f" : "#b7443f", 245); oval(img, 16, 25, 4, 4, shape === "bread" ? "#f0c27c" : "#ffe0c0", 235); line(img, 30, 22, 38, 16, "#e8d8c0", 4, 235); }
+  } else if (shape === "stick" || shape === "claw") {
+    if (shape === "claw") { for (let i = 0; i < 3; i++) tri(img, 16 + i * 7, 35, 20 + i * 6, 12, 25 + i * 6, 35, pal.light, 235); }
+    else { line(img, 15, 34, 34, 15, "#8a5a3c", 5, 245); line(img, 17, 33, 36, 14, pal.light, 2, 220); }
+  } else if (shape === "thread") {
+    rect(img, 17, 15, 14, 20, pal.dark, 230); line(img, 15, 18, 33, 31, pal.mid, 2, 245); line(img, 16, 29, 34, 17, pal.light, 2, 235); line(img, 31, 31, 39, 36, pal.light, 1, 220);
+  } else if (shape === "heart") {
+    oval(img, 19, 21, 7, 7, "#e0556b", 245); oval(img, 29, 21, 7, 7, "#e0556b", 245); tri(img, 13, 24, 35, 24, 24, 38, "#b51f33", 245); diamond(img, 26, 20, 2, "#ffd0d0", 210);
+  } else if (shape === "book" || shape === "wallet") {
+    rect(img, 13, 13, 23, 25, shape === "book" ? pal.mid : "#6b3342", 245); rect(img, 17, 16, 15, 19, shape === "book" ? "#d8c9a0" : pal.dark, 235); line(img, 24, 14, 24, 37, pal.dark, 2, 210); if (shape === "wallet") diamond(img, 31, 25, 3, "#ffcf4d", 230);
+  } else if (shape === "coin" || shape === "fakeCoin") {
+    oval(img, 24, 24, 13, 13, "#ffcf4d", 245); oval(img, 24, 24, 8, 8, shape === "fakeCoin" ? "#8a8a7a" : "#d9a53d", 245); diamond(img, 24, 24, 4, pal.light, 210); if (shape === "fakeCoin") line(img, 16, 32, 33, 15, "#5c4d2b", 2, 220);
+  } else if (shape === "card") {
+    rect(img, 14, 12, 20, 26, "#ffffff", 245); diamond(img, 24, 25, 6, "#d6543f", 235); rect(img, 18, 16, 3, 3, pal.dark, 210); rect(img, 28, 32, 3, 3, pal.dark, 210);
+  } else if (shape === "hourglass") {
+    line(img, 16, 12, 32, 12, pal.light, 2, 235); line(img, 16, 36, 32, 36, pal.light, 2, 235); tri(img, 18, 14, 30, 14, 24, 24, pal.mid, 180); tri(img, 18, 34, 30, 34, 24, 24, pal.mid, 230); line(img, 17, 13, 31, 35, pal.dark, 1, 190); line(img, 31, 13, 17, 35, pal.dark, 1, 190);
+  } else if (shape === "drum") {
+    oval(img, 24, 17, 13, 5, pal.light, 245); rect(img, 12, 17, 24, 18, pal.mid, 245); oval(img, 24, 35, 13, 5, pal.dark, 220); line(img, 14, 20, 34, 32, "#d9c38a", 2, 210); line(img, 34, 20, 14, 32, "#d9c38a", 2, 210);
+  } else if (shape === "lid") {
+    diamond(img, 24, 25, 15, "#101820", 245); diamond(img, 24, 23, 10, pal.mid, 230); line(img, 14, 32, 34, 18, pal.light, 2, 190);
+  } else if (shape === "trail") {
+    for (let i = 0; i < 4; i++) oval(img, 15 + i * 6, 32 - i * 5, 4, 3, pal.mid, 235); line(img, 10, 36, 36, 13, pal.light, 1, 140);
+  } else if (shape === "mask") {
+    oval(img, 24, 25, 14, 11, pal.mid, 245); rect(img, 17, 23, 5, 3, "#11131a", 245); rect(img, 27, 23, 5, 3, "#11131a", 245); tri(img, 19, 31, 29, 31, 24, 36, "#e0556b", 230);
+  } else if (shape === "flag") {
+    line(img, 18, 12, 18, 38, pal.light, 3, 240); rect(img, 19, 13, 17, 12, pal.mid, 245); tri(img, 19, 25, 35, 25, 19, 32, pal.dark, 220);
+  } else if (shape === "crown") {
+    tri(img, 13, 32, 18, 14, 23, 32, "#ffcf4d", 235); tri(img, 20, 32, 24, 10, 29, 32, "#d9a53d", 245); tri(img, 26, 32, 32, 15, 36, 32, "#ffcf4d", 225); rect(img, 14, 31, 21, 5, pal.dark, 235);
+  } else if (shape === "crowd") {
+    for (let i = 0; i < 5; i++) { oval(img, 12 + i * 6, 20 + (i % 2) * 3, 4, 4, pal.light, 240); rect(img, 9 + i * 6, 25 + (i % 2) * 3, 6, 9, pal.mid, 230); }
+  } else if (shape === "candle") {
+    rect(img, 20, 18, 9, 19, "#e8dcc0", 245); tri(img, 18, 18, 25, 7, 31, 18, "#ff8a3a", 235); tri(img, 21, 18, 25, 11, 28, 18, "#fff1a6", 245); rect(img, 18, 36, 13, 3, pal.dark, 230);
   }
+
+  itemDots(img, pal.idx, pal);
   clearCellEdge(img);
   return img;
 }
 
 function writeSourceFrames() {
-  for (const dir of ["actors", "tiles", "effects", "amulets"]) ensureDir(path.join(SOURCE_DIR, dir));
+  for (const dir of ["actors", "tiles", "effects", "items"]) ensureDir(path.join(SOURCE_DIR, dir));
   for (const name of TILES) writePng(spritePath("tiles", name), drawTile(name));
   for (const name of ACTORS) {
     for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) {
@@ -1112,7 +1146,7 @@ function writeSourceFrames() {
     }
   }
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) writePng(spritePath("effects", name, f), drawEffect(name, f));
-  for (const name of AMULET_ICONS) writePng(spritePath("amulets", name), drawAmuletIcon(name));
+  for (const name of ITEM_ICONS) writePng(spritePath("items", name), drawItemIcon(name));
 }
 
 function actorFrameX(actionIndex, dirIndex, frame) {
@@ -1137,19 +1171,19 @@ function writeAtlas() {
   });
   writePng(path.join(OUT_DIR, "effects.png"), effects);
 
-  const amulets = image(CELL * AMULET_ICONS.length, CELL);
-  AMULET_ICONS.forEach((name, col) => copyInto(amulets, readPng(spritePath("amulets", name)), col * CELL, 0));
-  writePng(path.join(OUT_DIR, "amulets.png"), amulets);
+  const items = image(CELL * ITEM_ICONS.length, CELL);
+  ITEM_ICONS.forEach((name, col) => copyInto(items, readPng(spritePath("items", name)), col * CELL, 0));
+  writePng(path.join(OUT_DIR, "items.png"), items);
 }
 
 function writeMeta() {
-  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, amulets: {} };
+  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, items: {} };
   ACTORS.forEach((name, row) => {
     meta.actors[name] = { sheet: "actors", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, directions: DIRECTIONS.length, actions: ACTIONS.length, anchor: [CELL / 2, Math.round(CELL * 0.75)] };
   });
   TILES.forEach((name, col) => { meta.tiles[name] = { sheet: "tiles", x: col * CELL, y: 0, w: CELL, h: CELL }; });
   EFFECTS.forEach((name, row) => { meta.effects[name] = { sheet: "effects", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, anchor: [CELL / 2, CELL / 2] }; });
-  AMULET_ICONS.forEach((name, col) => { meta.amulets[name] = { sheet: "amulets", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
+  ITEM_ICONS.forEach((name, col) => { meta.items[name] = { sheet: "items", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
   fs.writeFileSync(path.join(OUT_DIR, "sprites.json"), JSON.stringify(meta, null, 2) + "\n");
 }
 

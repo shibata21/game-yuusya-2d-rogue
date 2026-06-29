@@ -13,10 +13,10 @@ import {
   PIXEL_EFFECTS,
   PIXEL_FRAMES,
   PIXEL_TILES,
-  PIXEL_AMULETS,
+  PIXEL_ITEMS,
   PIXEL_ASSET_VERSION,
   pixelAssetUrl,
-  pixelAmuletFrameIndex,
+  pixelItemFrameIndex,
 } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -67,9 +67,9 @@ function tileCrop(name) {
   return crop(img, col * meta.cell, 0, meta.cell, meta.cell);
 }
 
-function amuletCrop(name) {
-  const img = png("assets/pixel/amulets.png");
-  const col = Object.keys(meta.amulets).indexOf(name);
+function itemCrop(name) {
+  const img = png("assets/pixel/items.png");
+  const col = Object.keys(meta.items).indexOf(name);
   return crop(img, col * meta.cell, 0, meta.cell, meta.cell);
 }
 
@@ -179,29 +179,29 @@ describe("ピクセル素材", () => {
     expect(Object.keys(meta.actors)).toEqual(PIXEL_ACTORS);
     expect(Object.keys(meta.tiles)).toEqual(PIXEL_TILES);
     expect(Object.keys(meta.effects)).toEqual(PIXEL_EFFECTS);
-    expect(Object.keys(meta.amulets)).toEqual(PIXEL_AMULETS);
+    expect(Object.keys(meta.items)).toEqual(PIXEL_ITEMS);
   });
 
   it("アトラスPNGの寸法が正しい", () => {
     const actors = png("assets/pixel/actors.png");
     const tiles = png("assets/pixel/tiles.png");
     const effects = png("assets/pixel/effects.png");
-    const amulets = png("assets/pixel/amulets.png");
+    const items = png("assets/pixel/items.png");
     expect(actors.width).toBe(PIXEL_CELL * PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length);
     expect(actors.height).toBe(PIXEL_CELL * PIXEL_ACTORS.length);
     expect(tiles.width).toBe(PIXEL_CELL * PIXEL_TILES.length);
     expect(tiles.height).toBe(PIXEL_CELL);
     expect(effects.width).toBe(PIXEL_CELL * PIXEL_FRAMES);
     expect(effects.height).toBe(PIXEL_CELL * PIXEL_EFFECTS.length);
-    expect(amulets.width).toBe(PIXEL_CELL * PIXEL_AMULETS.length);
-    expect(amulets.height).toBe(PIXEL_CELL);
+    expect(items.width).toBe(PIXEL_CELL * PIXEL_ITEMS.length);
+    expect(items.height).toBe(PIXEL_CELL);
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
     expect(PIXEL_ASSET_VERSION).toBe("v22-hori-shon");
     expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v22-hori-shon");
-    expect(pixelAssetUrl("amulets.png")).toBe("assets/pixel/amulets.png?v=v22-hori-shon");
-    expect(pixelAmuletFrameIndex("coinPurse")).toBe(PIXEL_AMULETS.indexOf("coinPurse"));
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v22-hori-shon");
+    expect(pixelItemFrameIndex("rustyPickaxe")).toBe(PIXEL_ITEMS.indexOf("rustyPickaxe"));
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -337,9 +337,9 @@ describe("ピクセル素材", () => {
     }
   });
 
-  it("お守りは個別に読めるピクセルアイコンを持つ", () => {
-    for (const name of PIXEL_AMULETS) {
-      const img = amuletCrop(name);
+  it("アイテムは個別に読めるピクセルアイコンを持つ", () => {
+    for (const name of PIXEL_ITEMS) {
+      const img = itemCrop(name);
       const b = alphaBounds(img);
       const w = b.maxX - b.minX + 1;
       const h = b.maxY - b.minY + 1;
@@ -347,9 +347,9 @@ describe("ピクセル素材", () => {
       expect(w, name).toBeGreaterThanOrEqual(20);
       expect(h, name).toBeGreaterThanOrEqual(20);
     }
-    for (let i = 0; i < PIXEL_AMULETS.length; i++) {
-      for (let j = i + 1; j < PIXEL_AMULETS.length; j++) {
-        expect(diffRatio(amuletCrop(PIXEL_AMULETS[i]), amuletCrop(PIXEL_AMULETS[j])), `${PIXEL_AMULETS[i]}/${PIXEL_AMULETS[j]}`).toBeGreaterThan(0.08);
+    for (let i = 0; i < PIXEL_ITEMS.length; i++) {
+      for (let j = i + 1; j < PIXEL_ITEMS.length; j++) {
+        expect(diffRatio(itemCrop(PIXEL_ITEMS[i]), itemCrop(PIXEL_ITEMS[j])), `${PIXEL_ITEMS[i]}/${PIXEL_ITEMS[j]}`).toBeGreaterThan(0.08);
       }
     }
   });

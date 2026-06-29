@@ -93,7 +93,7 @@ textarea {
   box-shadow: inset 0 0 0 1px #000, 0 4px 0 #0c0814;
 }
 
-.amulets {
+.items {
   grid-column: 1 / -1;
   display: flex;
   gap: 5px;
@@ -104,12 +104,12 @@ textarea {
   touch-action: pan-x;
 }
 
-.amulets::-webkit-scrollbar {
+.items::-webkit-scrollbar {
   display: none;
 }
 
-.amulet,
-.amulet-empty {
+.item,
+.item-empty {
   position: relative;
   overflow: hidden;
   display: inline-flex;
@@ -131,8 +131,8 @@ textarea {
   -webkit-touch-callout: none;
 }
 
-.amulet-icon,
-.amulet-choice-icon {
+.item-icon,
+.item-choice-icon {
   display: inline-block;
   flex: none;
   background-repeat: no-repeat;
@@ -140,18 +140,18 @@ textarea {
   image-rendering: crisp-edges;
 }
 
-.amulet-icon {
+.item-icon {
   border: 1px solid #3a2c52;
   border-radius: 4px;
   background-color: #0c0814;
 }
 
-.amulet-used {
+.item-used {
   opacity: 0.72;
   border-color: #5a4b32;
 }
 
-.amulet-badge {
+.item-badge {
   position: relative;
   z-index: 1;
   margin-left: 1px;
@@ -160,7 +160,7 @@ textarea {
   font-size: 9px;
 }
 
-.amulet-popup {
+.item-popup {
   position: fixed;
   z-index: 30;
   max-width: min(280px, calc(100vw - 16px));
@@ -178,28 +178,28 @@ textarea {
   line-height: 1.35;
 }
 
-.amulet-popup.hidden {
+.item-popup.hidden {
   display: none;
 }
 
-.amulet-popup b,
-.amulet-popup em {
+.item-popup b,
+.item-popup em {
   display: block;
 }
 
-.amulet-popup b {
+.item-popup b {
   color: var(--gold);
   font-size: 12px;
 }
 
-.amulet-popup em {
+.item-popup em {
   margin-top: 2px;
   color: var(--ink-dim);
   font-style: normal;
   font-size: 10px;
 }
 
-.amulet-popup-icon {
+.item-popup-icon {
   display: inline-block;
   width: 30px;
   height: 30px;
@@ -711,21 +711,21 @@ button {
   color: #9fe8d8;
 }
 
-.overlay.amulet-choice {
+.overlay.item-choice {
   z-index: 8;
   justify-content: center;
   background: linear-gradient(180deg, rgba(9, 7, 13, 0.90), rgba(9, 7, 13, 0.97));
   line-height: 1.2;
 }
 
-.amulet-choice-grid {
+.item-choice-grid {
   width: min(100%, 356px);
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
 }
 
-.amulet-choice-card {
+.item-choice-card {
   width: 100%;
   min-height: 82px;
   display: grid;
@@ -741,27 +741,27 @@ button {
   padding: 8px 10px;
 }
 
-.amulet-choice-card:active {
+.item-choice-card:active {
   transform: translateY(2px);
   box-shadow: inset 0 0 0 1px #000, 0 1px 0 #0c0814;
 }
 
-.amulet-choice-card span {
+.item-choice-card span {
   min-width: 0;
 }
 
-.amulet-choice-card b,
-.amulet-choice-card em {
+.item-choice-card b,
+.item-choice-card em {
   display: block;
 }
 
-.amulet-choice-card b {
+.item-choice-card b {
   color: var(--gold);
   font-size: 14px;
   line-height: 1.25;
 }
 
-.amulet-choice-card em {
+.item-choice-card em {
   margin-top: 3px;
   color: var(--ink-dim);
   font-style: normal;
@@ -769,19 +769,24 @@ button {
   line-height: 1.45;
 }
 
-.amulet-choice-icon {
+.item-choice-icon {
   border: 1px solid #4a385f;
   border-radius: 6px;
   background-color: #0c0814;
   box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.28);
 }
 
-.btn-skip-amulet {
+.btn-skip-item,
+.btn-reroll-item {
   min-width: 112px;
   background: linear-gradient(180deg, #4a3c61, #2c213d);
   border: 2px solid #171020;
   box-shadow: 0 4px 0 #0c0814, inset 0 1px 0 #ffffff22;
   color: var(--ink);
+}
+
+.btn-reroll-item {
+  background: linear-gradient(180deg, #76552d, #4a321f);
 }
 
 .scroll {
@@ -932,14 +937,14 @@ button {
   opacity: 0.72;
 }
 
-.codex-amulet-icon {
+.codex-item-icon {
   display: inline-block;
   background-repeat: no-repeat;
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
 
-.codex-amulet-icon.silhouette {
+.codex-item-icon.silhouette {
   filter: brightness(0) contrast(1.4);
   opacity: 0.72;
 }

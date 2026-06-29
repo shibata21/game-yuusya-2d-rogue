@@ -1,7 +1,7 @@
 "use strict";
 
 import { describe, expect, it, beforeEach } from "vitest";
-import { createGame, createRuleConfig, KINDS, HERO_CLASSES, VEIN } from "../src/gameCore.js";
+import { createGame, createRuleConfig, KINDS, HERO_CLASSES, VEIN, PIXEL_ITEMS } from "../src/gameCore.js";
 
 let G;
 
@@ -1075,10 +1075,12 @@ describe("ゲームルール", () => {
     expect(G.waveCountdown).toBe(1000);
 
     G.heroes.length = 0;
-    G.update(999);
+    G.update(G.WAVE_SETTLE_DELAY);
     expect(G.wave).toBe(1);
-    expect(G.waveCountdown).toBe(1);
-    G.update(1);
+    expect(G.gameState).toBe("itemChoice");
+    expect(G.chooseItemOffer(null)).toBe(true);
+    expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
+    G.update(G.WAVE_INTERVAL);
     expect(G.wave).toBe(2);
     expect(G.spawnQueue.length + G.heroes.length).toBeGreaterThan(0);
   });
@@ -1147,6 +1149,57 @@ describe("ゲームルール", () => {
     expect(G.heroEntryHold).toBe(0);
     G.update(100);
     expect(h.hp < 60 || m.hp < m.maxHp).toBe(true);
+  });
+
+  it("魔法使いは入場地帯から攻撃せずコア方面へ離脱する", () => {
+    carveAll();
+    const h = hero("mage", 5, 2, { actCd: 0, atkCd: 0 });
+    G.heroes.push(h);
+    G.spawnMonster("slime", 5, 4);
+    const m = G.monsters[0];
+    m.atkCd = 999999;
+    m.moveCd = 999999;
+    m.eatCd = 999999;
+
+    G.update(100);
+
+    expect(m.hp).toBe(m.maxHp);
+    expect(h.actionType).not.toBe("cast");
+    expect(h.moveIntent).toEqual({ kind: "core" });
+  });
+
+  it("出口を魔物に塞がれた入場地帯の魔法使いは戦闘で詰まりを解消する", () => {
+    carveAll();
+    const h = hero("mage", 5, 2, { actCd: 0, atkCd: 0 });
+    G.heroes.push(h);
+    G.spawnMonster("slime", 5, 3);
+    const m = G.monsters[0];
+    m.atkCd = 999999;
+    m.moveCd = 999999;
+    m.eatCd = 999999;
+
+    G.update(100);
+
+    expect(m.hp).toBeLessThan(m.maxHp);
+    expect(h.actionType).toBe("cast");
+    expect(h.moveIntent).toBeNull();
+  });
+
+  it("遠距離職は入場地帯から攻撃せず離脱を優先する", () => {
+    carveAll();
+    const h = hero("shon", 5, 2, { actCd: 0, atkCd: 0 });
+    G.heroes.push(h);
+    G.spawnMonster("golem", 5, 5);
+    const m = G.monsters[0];
+    m.atkCd = 999999;
+    m.moveCd = 999999;
+    m.eatCd = 999999;
+
+    G.update(100);
+
+    expect(m.hp).toBe(m.maxHp);
+    expect(h.actionType).not.toBe("attack");
+    expect(h.moveIntent).toEqual({ kind: "core" });
   });
 
   it("入口が混雑して卵があっても冒険者は入口付近からコア方面へ離脱する", () => {
@@ -1346,32 +1399,31 @@ describe("ゲームルール", () => {
     expect(sage.actionType).toBe("cast");
   });
 
-  it("冒険者死亡時にはお守りを直接拾わない", () => {
+  it("冒険者死亡時にはアイテムを直接拾わない", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 5;
     const h = hero("warrior", 5, 5, { hp: 1, maxHp: 1, wave: 5 });
     G.heroes.push(h);
     G.killHero(h);
-    expect(G.pendingAmulets).toHaveLength(0);
-    expect(G.amuletOffer).toBe(null);
-    expect(G.amulets).toHaveLength(0);
+    expect(G.itemOffer).toBe(null);
+    expect(G.items).toHaveLength(0);
   });
 
-  it("ウェーブ終了時にお守り3択を表示し、選ぶとゲームへ戻る", () => {
+  it("ウェーブ終了時にアイテム3択を表示し、選ぶとゲームへ戻る", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 5;
     G.gameState = "playing";
     G.settleWave();
-    expect(G.gameState).toBe("amuletChoice");
-    expect(G.amuletOffer).toEqual({ wave: 5, choices: ["family", "dogtag", "lastStick"] });
+    expect(G.gameState).toBe("itemChoice");
+    expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
 
-    expect(G.chooseAmuletOffer("dogtag")).toBe(true);
+    expect(G.chooseItemOffer("blackSoilBag")).toBe(true);
     expect(G.gameState).toBe("playing");
-    expect(G.amuletOffer).toBe(null);
-    expect(G.amulets).toEqual(["dogtag"]);
-    expect(G.amuletEvents.some((e) => e.id === "dogtag")).toBe(true);
+    expect(G.itemOffer).toBe(null);
+    expect(G.items).toEqual(["blackSoilBag"]);
+    expect(G.itemEvents.some((e) => e.id === "blackSoilBag")).toBe(true);
   });
 
   it("update経由のウェーブ終了は最後の冒険者死亡後に余韻を挟む", () => {
@@ -1385,30 +1437,30 @@ describe("ゲームルール", () => {
     expect(G.gameState).toBe("playing");
     expect(G.waveSettled).toBe(0);
     expect(G.waveSettleDelay).toBe(1);
-    expect(G.amuletOffer).toBe(null);
+    expect(G.itemOffer).toBe(null);
 
     G.update(1);
-    expect(G.gameState).toBe("amuletChoice");
+    expect(G.gameState).toBe("itemChoice");
     expect(G.waveSettled).toBe(5);
-    expect(G.amuletOffer).toEqual({ wave: 5, choices: ["family", "dogtag", "lastStick"] });
+    expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
   });
 
-  it("お守り3択は取らない選択もできる", () => {
+  it("アイテム3択は取らない選択もできる", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 4;
     G.gameState = "playing";
     G.settleWave();
-    expect(G.gameState).toBe("amuletChoice");
+    expect(G.gameState).toBe("itemChoice");
     G.drainEvents();
-    expect(G.chooseAmuletOffer(null)).toBe(true);
+    expect(G.chooseItemOffer(null)).toBe(true);
     expect(G.gameState).toBe("playing");
-    expect(G.amulets).toHaveLength(0);
-    expect(G.amuletOffer).toBe(null);
-    expect(G.drainEvents().some((e) => e.type === "discoverAmulet")).toBe(false);
+    expect(G.items).toHaveLength(0);
+    expect(G.itemOffer).toBe(null);
+    expect(G.drainEvents().some((e) => e.type === "discoverItem")).toBe(false);
   });
 
-  it("お守り選択中はupdateでゲーム時間が進まない", () => {
+  it("アイテム選択中はupdateでゲーム時間が進まない", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 4;
@@ -1421,71 +1473,75 @@ describe("ゲームルール", () => {
 
     G.update(1000);
 
-    expect(G.gameState).toBe("amuletChoice");
-    expect(G.waveCountdown).toBe(5000);
+    expect(G.gameState).toBe("itemChoice");
+    expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
     expect(G.nutrients).toBe(30);
     expect(effect.life).toBe(1000);
   });
 
-  it("最終ウェーブ終了時はお守りよりクリアを優先する", () => {
+  it("最終ウェーブ終了時はアイテムよりクリアを優先する", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = G.MAX_WAVE;
     G.gameState = "playing";
     G.settleWave();
     expect(G.gameState).toBe("clear");
-    expect(G.amuletOffer).toBe(null);
-    expect(G.amulets).toHaveLength(0);
+    expect(G.itemOffer).toBe(null);
+    expect(G.items).toHaveLength(0);
   });
 
-  it("お守り効果は攻撃、栄養、回復、取得時強化に反映される", () => {
+  it("58種のアイテムはすべて取得でき、発見イベントを出す", () => {
     carveAll();
-    G.spawnMonster("flame", 5, 5);
-    G.spawnMonster("flame", 6, 5);
+    for (const id of PIXEL_ITEMS) {
+      expect(G.applyItem(id), id).toBe(true);
+    }
+    expect(G.items).toEqual(PIXEL_ITEMS);
+    const events = G.drainEvents().filter((e) => e.type === "discoverItem").map((e) => e.id);
+    expect(events).toEqual(PIXEL_ITEMS);
+  });
+
+  it("代表的なアイテム効果は攻撃、栄養、コア、死亡時処理へ反映される", () => {
+    carveAll();
+    G.spawnMonster("flame", G.CORE_COL, G.CORE_ROW - 1);
+    G.spawnMonster("slime", 6, 5);
     const a = G.monsters[0];
     const b = G.monsters[1];
-    expect(G.applyAmulet("family")).toBe(true);
+    expect(G.applyItem("deepCompass")).toBe(true);
     expect(G.monsterAttackPower(a)).toBeGreaterThan(a.atk);
-    expect(G.amuletEvents.some((e) => e.id === "family")).toBe(true);
+    expect(G.itemEvents.some((e) => e.id === "deepCompass")).toBe(true);
 
-    const beforeAtk = a.atk;
-    expect(G.applyAmulet("lastStick")).toBe(true);
-    expect(a.atk).toBe(Math.round(beforeAtk * 1.5));
-    expect(G.amuletEvents.some((e) => e.id === "lastStick")).toBe(true);
+    const beforeMax = G.CORE_MAX;
+    const beforeCore = G.coreHP;
+    expect(G.applyItem("coreShard")).toBe(true);
+    expect(G.CORE_MAX).toBe(beforeMax + 25);
+    expect(G.coreHP).toBe(beforeCore + 25);
 
-    const beforeHp = b.maxHp;
-    expect(G.applyAmulet("whiskey")).toBe(true);
-    expect(b.maxHp).toBe(beforeHp * 2);
-    expect(G.amuletEvents.some((e) => e.id === "whiskey")).toBe(true);
+    expect(G.applyItem("dryBread")).toBe(true);
+    expect(G.nutrients).toBe(G.START_NUT + 12);
 
-    expect(G.applyAmulet("coinPurse")).toBe(true);
+    expect(G.applyItem("tornWallet")).toBe(true);
+    G.nutrients = 4;
     const beforeNut = G.nutrients;
     const h = hero("warrior", 7, 5, { hp: 1, maxHp: 1, wave: 4 });
     G.heroes.push(h);
     G.killHero(h);
     expect(G.nutrients - beforeNut).toBe(Math.round((4 + 4) * 1.5));
-    expect(G.amuletEvents.some((e) => e.id === "coinPurse")).toBe(true);
 
-    expect(G.applyAmulet("dogtag")).toBe(true);
-    a.hp = 1;
+    expect(G.applyItem("spareHeart")).toBe(true);
+    b.hp = 1;
     G.killMonster(b);
-    G.update(100);
-    expect(a.hp).toBe(a.maxHp);
-    expect(G.amuletEvents.some((e) => e.id === "dogtag")).toBe(true);
+    expect(G.monsters).toContain(b);
+    expect(G.usedItems).toContain("spareHeart");
 
-    expect(G.applyAmulet("cards")).toBe(true);
-    a.hp = 1;
-    a.nonCombatMs = 12000;
-    a.cardsHealCd = 0;
-    G.update(100);
-    expect(a.hp).toBeGreaterThan(1);
-    expect(G.amuletEvents.some((e) => e.id === "cards")).toBe(true);
+    expect(G.applyItem("shadowThread")).toBe(true);
+    G.killMonster(b);
+    expect(G.slowFields).toHaveLength(1);
   });
 
-  it("遺書は冒険者の攻撃力を下げ、死神は死亡冒険者からまれに出る", () => {
+  it("呪い釘はコア付近の冒険者攻撃力を下げ、死神は死亡冒険者からまれに出る", () => {
     carveAll();
-    expect(G.applyAmulet("letter")).toBe(true);
-    const h = hero("warrior", 5, 5, { atk: 10 });
+    expect(G.applyItem("curseNail")).toBe(true);
+    const h = hero("warrior", G.CORE_COL, G.CORE_ROW - 1, { atk: 10 });
     expect(G.heroAttackPower(h)).toBe(9);
 
     G.setRandom(() => 0);
@@ -1495,52 +1551,19 @@ describe("ゲームルール", () => {
     expect(G.monsters.some((m) => m.kind === "reaper")).toBe(true);
   });
 
-  it("手縫いのくまちゃんは最後の魔物が倒れた時に一度だけキメラを呼ぶ", () => {
+  it("見切り札はアイテム選択肢を一度だけ引き直せる", () => {
     carveAll();
-    expect(G.applyAmulet("stitchedBear")).toBe(true);
-    G.heroes.push(hero("captain", 7, 5, { hp: 300, maxHp: 300, wave: 15 }));
-    G.spawnMonster("slime", 5, 5);
-    G.spawnMonster("carniv", 6, 5);
-    const hp = G.monsters.reduce((sum, m) => sum + m.maxHp, 0);
-    const atk = G.monsters.reduce((sum, m) => sum + G.monsterAttackPower(m), 0);
-    const first = G.monsters[0];
-    const second = G.monsters[1];
-
-    G.killMonster(first);
-    expect(G.monsters).toHaveLength(1);
-    expect(G.monsters[0].kind).toBe("carniv");
-
-    G.killMonster(second);
-    expect(G.monsters).toHaveLength(1);
-    const chimera = G.monsters[0];
-    expect(chimera).toMatchObject({
-      kind: "chimera",
-      hp: Math.round(hp * 0.55),
-      maxHp: Math.round(hp * 0.55),
-      atk: Math.round(atk * 0.35),
-      ttl: 22000,
-      stitchedBearBorn: true,
-    });
-    expect(G.usedAmulets).toContain("stitchedBear");
-    expect(G.amuletEvents.some((e) => e.id === "stitchedBear")).toBe(true);
-
-    G.update(22000);
-    expect(G.monsters.some((m) => m.kind === "chimera")).toBe(false);
-
-    G.spawnMonster("slime", 5, 5);
-    G.spawnMonster("carniv", 6, 5);
-    for (const m of [...G.monsters]) G.killMonster(m);
-    expect(G.monsters.some((m) => m.kind === "chimera")).toBe(false);
-  });
-
-  it("手縫いのくまちゃんは魔物死亡数が足りない時は発動しない", () => {
-    carveAll();
-    expect(G.applyAmulet("stitchedBear")).toBe(true);
-    G.heroes.push(hero("warrior", 7, 5));
-    G.spawnMonster("slime", 5, 5);
-    G.killMonster(G.monsters[0]);
-    expect(G.monsters).toHaveLength(0);
-    expect(G.usedAmulets).not.toContain("stitchedBear");
+    expect(G.applyItem("wildCard")).toBe(true);
+    G.wave = 4;
+    G.gameState = "playing";
+    G.setRandom(() => 0);
+    G.settleWave();
+    const before = G.itemOffer.choices;
+    expect(G.canRerollItemOffer).toBe(true);
+    expect(G.rerollItemOffer()).toBe(true);
+    expect(G.itemOffer.choices).not.toEqual(before);
+    expect(G.usedItems).toContain("wildCard");
+    expect(G.rerollItemOffer()).toBe(false);
   });
 
   it("撃破報酬と長時間上限を守る", () => {
@@ -1553,10 +1576,12 @@ describe("ゲームルール", () => {
     expect(G.drainEvents()).toContainEqual({ type: "heroKilled", cls: "warrior", wave: 5, x: G.cx(5), y: G.cy(5) });
 
     G.resetGame(1);
-    G.gameState = "playing";
-    for (let i = 0; i < 360; i++) G.update(1000);
-    expect(G.monsters.length + G.eggs.length).toBeLessThanOrEqual(G.MONSTER_CAP);
-    expect(G.heroes.length).toBeLessThanOrEqual(G.MAX_HEROES);
+    for (const seed of [1, 2, 3]) {
+      G.resetGame(seed);
+      for (let i = 0; i < 360; i++) G.update(1000);
+      expect(G.monsters.length + G.eggs.length).toBeLessThanOrEqual(G.MONSTER_CAP);
+      expect(G.heroes.length).toBeLessThanOrEqual(G.MAX_HEROES);
+    }
   });
 
   it("ruleConfigでゲーム単位のバランス値を上書きできる", () => {
@@ -1614,12 +1639,12 @@ describe("ゲームルール", () => {
     G.drainEvents();
     G.spawnMonster("slime", 5, 5);
     G.spawnHero("warrior", 4, 1);
-    G.applyAmulet("dogtag");
+    G.applyItem("rustyPickaxe");
     G.startWave();
     const events = G.drainEvents();
     expect(events).toContainEqual({ type: "discoverMonster", kind: "slime" });
     expect(events).toContainEqual({ type: "discoverHero", cls: "warrior" });
-    expect(events).toContainEqual({ type: "discoverAmulet", id: "dogtag" });
+    expect(events).toContainEqual({ type: "discoverItem", id: "rustyPickaxe" });
     expect(events).toContainEqual({ type: "waveReached", wave: 1 });
     expect(G.drainEvents()).toEqual([]);
   });

@@ -25,9 +25,9 @@
             <div class="stat"><b id="monNum">0</b><span class="k">魔物</span></div>
           </div>
           <div class="stat"><b id="scoreNum">0</b><span class="k">スコア</span></div>
-          <div class="amulets" id="amuletBar"><span class="amulet-empty">お守りなし</span></div>
+          <div class="items" id="itemBar"><span class="item-empty">アイテムなし</span></div>
         </div>
-        <div class="amulet-popup hidden" id="amuletPopup" role="tooltip" aria-live="polite"></div>
+        <div class="item-popup hidden" id="itemPopup" role="tooltip" aria-live="polite"></div>
 
         <div class="stage">
           <div id="game-root"></div>
@@ -37,7 +37,7 @@
               <div class="scroll">
                 <span class="key gold">▸</span> 土を掘って鉱脈を開き、魔物を呼び出す。<br>
                 <span class="key">▸</span> 迫る冒険者から最下層の迷宮コアを守る。<br>
-                <span class="key pur">▸</span> ウェーブ撃退後に見つかるお守りは、迷宮の戦況を大きく変える。
+                <span class="key pur">▸</span> ウェーブ撃退後に見つかるアイテムは、迷宮の戦況を大きく変える。
               </div>
               <button class="btn-start" id="startBtn">防衛を開始する</button>
             </div>
@@ -55,10 +55,11 @@
             <button class="btn-start" id="clearRestartBtn">もう一度守る</button>
           </div>
 
-          <div class="overlay amulet-choice hidden" id="amuletChoiceOverlay">
-            <h2>お守りを見つけた</h2>
-            <div class="amulet-choice-grid" id="amuletChoiceGrid"></div>
-            <button class="btn-skip-amulet" id="skipAmuletBtn" type="button">取らない</button>
+          <div class="overlay item-choice hidden" id="itemChoiceOverlay">
+            <h2>アイテムを見つけた</h2>
+            <div class="item-choice-grid" id="itemChoiceGrid"></div>
+            <button class="btn-reroll-item hidden" id="rerollItemBtn" type="button">引き直す</button>
+            <button class="btn-skip-item" id="skipItemBtn" type="button">取らない</button>
           </div>
         </div>
 
@@ -93,7 +94,7 @@
             <button type="button" id="resetDevBtn">設定初期化</button>
             <button type="button" id="resetProgressBtn">図鑑初期化</button>
           </div>
-          <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0 / お守り 0</div>
+          <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0 / アイテム 0</div>
           <textarea id="devJsonOutput" class="dev-json-output" readonly spellcheck="false" aria-label="開発設定JSON"></textarea>
           <div class="dev-fields" id="devFields"></div>
         </details>
@@ -110,7 +111,7 @@
         <div class="codex-tabs" role="tablist" aria-label="紹介切替">
           <button class="codex-tab active" data-codex-tab="monster" role="tab" aria-selected="true">モンスター</button>
           <button class="codex-tab" data-codex-tab="hero" role="tab" aria-selected="false">冒険者</button>
-          <button class="codex-tab" data-codex-tab="amulet" role="tab" aria-selected="false">お守り</button>
+          <button class="codex-tab" data-codex-tab="item" role="tab" aria-selected="false">アイテム</button>
         </div>
         <div class="codex-grid" id="codexGrid"></div>
       </section>
