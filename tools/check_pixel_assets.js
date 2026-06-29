@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { PNG } = require("pngjs");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS,
   readPng, spritePath,
 } = require("./pixel_asset_common");
 
@@ -109,6 +109,7 @@ function validateSource() {
   for (const name of ACTORS) for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("actors", name, f, dir, action), CELL, CELL, false);
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("effects", name, f), CELL, CELL, true);
   for (const name of ITEM_ICONS) validatePng(spritePath("items", name), CELL, CELL, false);
+  for (const name of DEBUFF_ICONS) validatePng(spritePath("debuffs", name), CELL, CELL, false);
   ok("個別PNGフレームを検査しました");
 }
 
@@ -123,6 +124,7 @@ function validateMeta() {
   if (JSON.stringify(Object.keys(meta.tiles)) !== JSON.stringify(TILES)) fail("tiles の順序が不正です");
   if (JSON.stringify(Object.keys(meta.effects)) !== JSON.stringify(EFFECTS)) fail("effects の順序が不正です");
   if (JSON.stringify(Object.keys(meta.items)) !== JSON.stringify(ITEM_ICONS)) fail("items の順序が不正です");
+  if (JSON.stringify(Object.keys(meta.debuffs || {})) !== JSON.stringify(DEBUFF_ICONS)) fail("debuffs の順序が不正です");
   ok("sprites.json を検査しました");
 }
 
@@ -131,6 +133,7 @@ function validateAtlas() {
   const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL, false);
   const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length, true);
   const items = validatePng(path.join(OUT_DIR, "items.png"), CELL * ITEM_ICONS.length, CELL, false);
+  const debuffs = validatePng(path.join(OUT_DIR, "debuffs.png"), CELL * DEBUFF_ICONS.length, CELL, false);
   for (let row = 0; row < ACTORS.length; row++) {
     for (let ai = 0; ai < ACTIONS.length; ai++) for (let di = 0; di < DIRECTIONS.length; di++) {
       for (let f = 0; f < FRAMES; f++) {
@@ -161,12 +164,19 @@ function validateAtlas() {
     const edge = whiteEdgeCount(icon);
     if (edge > 0) fail("items.png:" + ITEM_ICONS[col] + " のセル外周に白系ピクセルがあります: " + edge);
   }
+  for (let col = 0; col < DEBUFF_ICONS.length; col++) {
+    const icon = new PNG({ width: CELL, height: CELL });
+    PNG.bitblt(debuffs, icon, col * CELL, 0, CELL, CELL, 0, 0);
+    nonEmpty(icon, "debuffs.png:" + DEBUFF_ICONS[col]);
+    const edge = whiteEdgeCount(icon);
+    if (edge > 0) fail("debuffs.png:" + DEBUFF_ICONS[col] + " のセル外周に白系ピクセルがあります: " + edge);
+  }
   ok("アトラスPNGを検査しました");
 }
 
 async function validateGeneratedDiff() {
   const pixelmatch = (await import("pixelmatch")).default;
-  const files = ["actors.png", "tiles.png", "effects.png", "items.png"];
+  const files = ["actors.png", "tiles.png", "effects.png", "items.png", "debuffs.png"];
   for (const file of files) {
     const img = readPng(path.join(OUT_DIR, file));
     const source = new PNG({ width: img.width, height: img.height });
@@ -184,8 +194,10 @@ async function validateGeneratedDiff() {
       EFFECTS.forEach((name, row) => {
         for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("effects", name, f)), source, 0, 0, CELL, CELL, f * CELL, row * CELL);
       });
-    } else {
+    } else if (file === "items.png") {
       ITEM_ICONS.forEach((name, col) => PNG.bitblt(readPng(spritePath("items", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
+    } else {
+      DEBUFF_ICONS.forEach((name, col) => PNG.bitblt(readPng(spritePath("debuffs", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
     }
     const diff = new PNG({ width: img.width, height: img.height });
     const mismatches = pixelmatch(img.data, source.data, diff.data, img.width, img.height, { threshold: 0 });

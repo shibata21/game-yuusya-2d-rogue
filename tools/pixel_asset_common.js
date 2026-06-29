@@ -17,7 +17,7 @@ const ACTORS = [
   "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame",
   "reaper", "chimera",
   "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain",
-  "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage",
+  "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage",
   "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal",
   "egg_goldweaver", "egg_goldcore", "egg_whiteflame",
 ];
@@ -37,6 +37,7 @@ const ITEM_ICONS = [
   "wanderingPowder", "trailMark", "charmRope", "angerMask", "nestFlag", "oldEggshell", "crackedEgg", "royalEggshell", "rottenCrown",
   "rebelCharm", "crowdMark", "lowestCandle", "blackRaindrop", "redMoonShard", "boneContract",
 ];
+const DEBUFF_ICONS = ["rottenRations", "crackedCore", "informantMap", "sharpenedBlade", "dullFeed"];
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -146,6 +147,6 @@ function spritePath(group, name, frame = null, dir = null, action = null) {
 }
 
 module.exports = {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 };

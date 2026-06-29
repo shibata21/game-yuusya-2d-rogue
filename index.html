@@ -22,10 +22,12 @@
           <div class="stats">
             <div class="stat gold"><b id="nutNum">25</b><span class="k">栄養</span></div>
             <div class="stat"><b id="waveNum">0</b><span class="k">ウェーブ</span></div>
+            <div class="stat"><b id="loopNum">1</b><span class="k">周回</span></div>
             <div class="stat"><b id="monNum">0</b><span class="k">魔物</span></div>
           </div>
           <div class="stat"><b id="scoreNum">0</b><span class="k">スコア</span></div>
           <div class="items" id="itemBar"><span class="item-empty">アイテムなし</span></div>
+          <div class="debuffs" id="debuffBar"><span class="debuff-empty">デバフなし</span></div>
         </div>
         <div class="item-popup hidden" id="itemPopup" role="tooltip" aria-live="polite"></div>
 
@@ -39,6 +41,11 @@
                 <span class="key">▸</span> 迫る冒険者から最下層の迷宮コアを守る。<br>
                 <span class="key pur">▸</span> ウェーブ撃退後に見つかるアイテムは、迷宮の戦況を大きく変える。
               </div>
+              <label class="loop-select">
+                <span>挑戦する周回</span>
+                <select id="loopSelect" aria-label="挑戦する周回"></select>
+                <em id="loopInfo">1周目から開始</em>
+              </label>
               <button class="btn-start" id="startBtn">防衛を開始する</button>
             </div>
           </div>
@@ -66,6 +73,17 @@
             <h2>アイテム商店</h2>
             <div class="item-shop-grid" id="itemShopGrid"></div>
             <button class="btn-close-shop" id="closeShopBtn" type="button">店を閉じる</button>
+          </div>
+
+          <div class="overlay debuff-notice hidden" id="debuffNoticeOverlay">
+            <h2>背負わされた罠</h2>
+            <div class="debuff-notice-body" id="debuffNoticeBody"></div>
+            <button class="btn-ack-debuff" id="ackDebuffBtn" type="button">防衛を続ける</button>
+          </div>
+
+          <div class="overlay trap-choice hidden" id="trapChoiceOverlay">
+            <h2>ギルド参謀の罠</h2>
+            <div class="trap-choice-grid" id="trapChoiceGrid"></div>
           </div>
         </div>
 

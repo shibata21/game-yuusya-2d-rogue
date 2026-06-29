@@ -5,6 +5,9 @@ const PROGRESS_KEY = "makaiDefense.progress.v1";
 
 export const EMPTY_PROGRESS = {
   highestWave: 0,
+  highestClearedLoop: 0,
+  resetPenaltyActive: false,
+  activeRun: null,
   discoveredMonsters: [],
   discoveredHeroes: [],
   discoveredItems: [],
@@ -57,6 +60,25 @@ function uniqueStrings(value) {
   return [...new Set(value.filter((item) => typeof item === "string" && item.length > 0))];
 }
 
+function cleanActiveRun(value) {
+  if (!value || typeof value !== "object") return null;
+  const loop = Math.max(1, Math.floor(Number(value.loop) || 1));
+  const startedAt = Math.max(0, Math.floor(Number(value.startedAt) || 0));
+  return { loop, startedAt };
+}
+
+function cleanProgress(progress) {
+  return {
+    highestWave: Math.max(0, Math.floor(Number(progress && progress.highestWave) || 0)),
+    highestClearedLoop: Math.max(0, Math.floor(Number(progress && progress.highestClearedLoop) || 0)),
+    resetPenaltyActive: !!(progress && progress.resetPenaltyActive),
+    activeRun: cleanActiveRun(progress && progress.activeRun),
+    discoveredMonsters: uniqueStrings(progress && progress.discoveredMonsters),
+    discoveredHeroes: uniqueStrings(progress && progress.discoveredHeroes),
+    discoveredItems: uniqueStrings(progress && progress.discoveredItems),
+  };
+}
+
 export function loadStoredRuleConfig() {
   return parseJson(browserStorageAdapter().read(DEV_RULE_KEY), null);
 }
@@ -71,22 +93,11 @@ export function clearStoredRuleConfig() {
 
 export function loadProgress() {
   const raw = parseJson(browserStorageAdapter().read(PROGRESS_KEY), EMPTY_PROGRESS);
-  return {
-    highestWave: Math.max(0, Math.floor(Number(raw.highestWave) || 0)),
-    discoveredMonsters: uniqueStrings(raw.discoveredMonsters),
-    discoveredHeroes: uniqueStrings(raw.discoveredHeroes),
-    discoveredItems: uniqueStrings(raw.discoveredItems),
-  };
+  return cleanProgress(raw);
 }
 
 export function saveProgress(progress) {
-  const clean = {
-    highestWave: Math.max(0, Math.floor(Number(progress && progress.highestWave) || 0)),
-    discoveredMonsters: uniqueStrings(progress && progress.discoveredMonsters),
-    discoveredHeroes: uniqueStrings(progress && progress.discoveredHeroes),
-    discoveredItems: uniqueStrings(progress && progress.discoveredItems),
-  };
-  return browserStorageAdapter().write(PROGRESS_KEY, JSON.stringify(clean));
+  return browserStorageAdapter().write(PROGRESS_KEY, JSON.stringify(cleanProgress(progress)));
 }
 
 export function clearProgress() {
@@ -94,12 +105,7 @@ export function clearProgress() {
 }
 
 export function applyProgressEvents(progress, events) {
-  const next = {
-    highestWave: Math.max(0, Math.floor(Number(progress && progress.highestWave) || 0)),
-    discoveredMonsters: uniqueStrings(progress && progress.discoveredMonsters),
-    discoveredHeroes: uniqueStrings(progress && progress.discoveredHeroes),
-    discoveredItems: uniqueStrings(progress && progress.discoveredItems),
-  };
+  const next = cleanProgress(progress);
   let changed = false;
   const monsters = new Set(next.discoveredMonsters);
   const heroes = new Set(next.discoveredHeroes);
@@ -109,6 +115,18 @@ export function applyProgressEvents(progress, events) {
       const wave = Math.max(0, Math.floor(Number(event.wave) || 0));
       if (wave > next.highestWave) {
         next.highestWave = wave;
+        changed = true;
+      }
+    }
+    if (event.type === "loopCleared") {
+      const loop = Math.max(1, Math.floor(Number(event.loop) || 1));
+      if (loop > next.highestClearedLoop) {
+        next.highestClearedLoop = loop;
+        changed = true;
+      }
+      if (next.resetPenaltyActive || next.activeRun) {
+        next.resetPenaltyActive = false;
+        next.activeRun = null;
         changed = true;
       }
     }

@@ -52,8 +52,23 @@ export const VEIN_FADE_START = 120000;
 export const VEIN_DECAY_TIME = 240000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 export const ITEM_OFFER_CHOICES = 3;
-export const SHOP_STOCK_COUNT = 4;
+export const SHOP_STOCK_COUNT = 5;
+export const MAX_LOOP = 20;
+export const LOOP_HP_STEP = 0.08;
+export const LOOP_ATK_STEP = 0.05;
+export const LOOP_SCORE_STEP = 0.15;
+export const LOOP_ATK_SURGE = 1.35;
+export const LOOP_ATK_SURGE_START = 5;
+export const TRAP_EVENT_START_LOOP = 5;
+export const DEBUFF_START_LOOP = 10;
+export const TERMINATOR_LOOP = 20;
 export const REAPER_SPAWN_CHANCE = 0.002;
+
+export const POST_WAVE_EVENT_WEIGHTS = {
+  item: 60,
+  shop: 35,
+  trap: 5,
+};
 
 export const RULE_CONSTANT_KEYS = [
   "DIG_COST",
@@ -108,6 +123,14 @@ export const ITEM_RARITIES = {
   normal: { name: "ノーマル", priceBase: 12, priceWave: 1, shopWeight: 6 },
   rare: { name: "レア", priceBase: 24, priceWave: 2, shopWeight: 3 },
   gold: { name: "ゴールド", priceBase: 42, priceWave: 3, shopWeight: 1 },
+};
+
+export const DEBUFF_ITEMS = {
+  rottenRations: { name: "腐った配給", profile: "開始栄養が減り、時間経過で得る栄養も減る。" },
+  crackedCore: { name: "ひび割れコア", profile: "迷宮コアの最大HPと現在HPが減る。" },
+  informantMap: { name: "密告地図", profile: "冒険者の移動と採掘が速くなる。" },
+  sharpenedBlade: { name: "研がれた刃", profile: "冒険者の攻撃力が上がる。" },
+  dullFeed: { name: "くすんだ飼料", profile: "新しく出る魔物の最大HPが下がる。" },
 };
 
 export const ITEMS = {
@@ -277,6 +300,7 @@ export const HERO_CLASSES = {
   max: { name: "マックス", role: "fighter", rank: 6, hpMul: 2.05, atkMul: 2.05, defense: 30, range: 1, moveMul: 0.85, atkCd: 520, weight: 0.36, unlock: 13, weapon: "fist", dodgeChance: 0.20, critChance: 0.20, critMul: 5, maxPerWave: 1, msg: "マックスが現れた ─ 黒いロングコートの格闘冒険者", profile: "黒いロングコートとサングラスで迷宮に入る。拳が当たると冗談では済まない。" },
   shon: { name: "ション", role: "caster", rank: 7, hpMul: 1.95, atkMul: 2.20, defense: 18, range: 4, moveMul: 0.9, atkCd: 620, weight: 0.32, unlock: 14, weapon: "handgun", dodgeChance: 0.38, maxPerWave: 1, msg: "ションが現れた ─ ハンドガンを構える冒険者", profile: "ジャケット姿で銃口だけが迷いなく動く。回避の一歩がやけに小さい。" },
   hori: { name: "ホリ", role: "fighter", rank: 8, hpMul: 2.75, atkMul: 2.35, defense: 34, range: 3, moveMul: 1.25, atkCd: 780, weight: 0.28, unlock: 15, weapon: "vegetable", dodgeChance: 0.08, maxPerWave: 1, msg: "ホリが現れた ─ 拳と野菜で押し込む", profile: "ベッカムヘアの太った男。手元の野菜を投げるか食べるか、本人も直前まで迷っている。" },
+  xTerminator: { name: "Xターミネーター", role: "caster", rank: 20, hpMul: 3.0, atkMul: 2.6, defense: 45, range: 3, moveMul: 0.9, atkCd: 560, weight: 1.0, unlock: 20, weapon: "handgun", dodgeChance: 0.25, critChance: 0.18, critMul: 3, msg: "Xターミネーターが現れた ─ 最終周回の量産殲滅機", profile: "黒い装甲と赤いXバイザーを持つ量産冒険者。迷宮の出口ではなく、終端だけを見ている。" },
 };
 
 const RULE_CONSTANT_DEFAULTS = {
@@ -428,15 +452,16 @@ function createRuntimeTables(ruleConfig) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v22-hori-shon";
+export const PIXEL_ASSET_VERSION = "v23-loop";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
 export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat", "dodge"];
-export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame", "reaper", "chimera", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage", "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
+export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame", "reaper", "chimera", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage", "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 export const PIXEL_ITEMS = Object.keys(ITEMS);
+export const PIXEL_DEBUFFS = Object.keys(DEBUFF_ITEMS);
 const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 
 export function pixelAssetUrl(name) {
@@ -455,12 +480,31 @@ export function heroDigDmg(atk) {
   return Math.min(95, 30 + atk * 1.2);
 }
 
-export function resolveHeroStats(cls, wave) {
+export function clampLoop(value) {
+  return Math.max(1, Math.min(MAX_LOOP, Math.floor(Number(value) || 1)));
+}
+
+export function loopHpMultiplier(loop = 1) {
+  return 1 + (clampLoop(loop) - 1) * LOOP_HP_STEP;
+}
+
+export function loopAtkMultiplier(loop = 1) {
+  const l = clampLoop(loop);
+  return (1 + (l - 1) * LOOP_ATK_STEP) * (l >= LOOP_ATK_SURGE_START ? LOOP_ATK_SURGE : 1);
+}
+
+export function loopScoreMultiplier(loop = 1) {
+  return 1 + (clampLoop(loop) - 1) * LOOP_SCORE_STEP;
+}
+
+export function resolveHeroStats(cls, wave, loop = 1) {
   const c = HERO_CLASSES[cls] || HERO_CLASSES.warrior;
   const w = Math.max(0, wave || 0);
-  const hp = Math.max(12, Math.round((26 + w * 8) * c.hpMul));
-  const atk = Math.max(1, Math.round((4 + w * 1.2) * c.atkMul));
-  const heal = c.heal ? Math.max(1, Math.round((6 + w * 1.5) * (c.healMul || 1))) : 0;
+  const hpMul = loopHpMultiplier(loop);
+  const atkMul = loopAtkMultiplier(loop);
+  const hp = Math.max(12, Math.round((26 + w * 8) * c.hpMul * hpMul));
+  const atk = Math.max(1, Math.round((4 + w * 1.2) * c.atkMul * atkMul));
+  const heal = c.heal ? Math.max(1, Math.round((6 + w * 1.5) * (c.healMul || 1) * hpMul)) : 0;
   return { hp, atk, defense: c.defense || 0, range: c.range, heal };
 }
 
@@ -481,6 +525,11 @@ export function pixelActorFrameIndex(name, action, dir, frame) {
 
 export function pixelItemFrameIndex(id) {
   const col = PIXEL_ITEMS.indexOf(id);
+  return col < 0 ? 0 : col;
+}
+
+export function pixelDebuffFrameIndex(id) {
+  const col = PIXEL_DEBUFFS.indexOf(id);
   return col < 0 ? 0 : col;
 }
 
@@ -553,8 +602,11 @@ export function createGame(options = {}) {
   let spawnQueue = [];
   let pickups = [];
   let items = [];
+  let debuffItems = [];
   let itemOffer = null;
   let shopOffer = null;
+  let trapOffer = null;
+  let debuffNotice = null;
   let itemEvents = [];
   let usedItems = new Set();
   let slowFields = [];
@@ -576,6 +628,8 @@ export function createGame(options = {}) {
   let events = [];
   let idc = 0;
   let gameState = "title";
+  let loop = clampLoop(options.loop ?? 1);
+  let resetPenaltyActive = !!options.resetPenaltyActive;
 
   const rnd = (a, b) => a + random() * (b - a);
   const ri = (a, b) => Math.floor(rnd(a, b + 1));
@@ -593,12 +647,14 @@ export function createGame(options = {}) {
     .filter((p) => inBounds(p.col, p.row) && grid[p.row][p.col].t !== "bedrock" && canCoreAttackFrom(p.col, p.row, false));
   const isCoreAttackCell = (col, row) => cheb({ col, row }, { col: CORE_COL, row: CORE_ROW }) === 1;
 
-  function resolveHeroStats(cls, wave) {
+  function resolveHeroStats(cls, wave, loopOverride = loop) {
     const c = HERO_CLASSES[cls] || HERO_CLASSES.warrior;
     const w = Math.max(0, wave || 0);
-    const hp = Math.max(12, Math.round((26 + w * 8) * c.hpMul));
-    const atk = Math.max(1, Math.round((4 + w * 1.2) * c.atkMul));
-    const heal = c.heal ? Math.max(1, Math.round((6 + w * 1.5) * (c.healMul || 1))) : 0;
+    const hpMul = loopHpMultiplier(loopOverride);
+    const atkMul = loopAtkMultiplier(loopOverride);
+    const hp = Math.max(12, Math.round((26 + w * 8) * c.hpMul * hpMul));
+    const atk = Math.max(1, Math.round((4 + w * 1.2) * c.atkMul * atkMul));
+    const heal = c.heal ? Math.max(1, Math.round((6 + w * 1.5) * (c.healMul || 1) * hpMul)) : 0;
     return { hp, atk, defense: c.defense || 0, range: c.range, heal };
   }
 
@@ -627,11 +683,19 @@ export function createGame(options = {}) {
   }
 
   function monsterIncomeRate() {
-    return 0.045 * (hasItem("ledger") ? 1.25 : 1);
+    return 0.045 * (hasItem("ledger") ? 1.25 : 1) * (hasDebuff("rottenRations") ? 0.85 : 1);
   }
 
   function hasItem(id) {
     return items.includes(id);
+  }
+
+  function hasDebuff(id) {
+    return debuffItems.includes(id);
+  }
+
+  function scoreMultiplier() {
+    return loopScoreMultiplier(loop);
   }
 
   function distToCore(e) {
@@ -662,6 +726,7 @@ export function createGame(options = {}) {
   function heroAttackPower(h) {
     let power = h.atk || 1;
     if (hasItem("curseNail") && distToCore(h) <= 3) power *= 0.85;
+    if (hasDebuff("sharpenedBlade")) power *= 1.12;
     return Math.max(1, Math.round(power));
   }
 
@@ -1004,6 +1069,16 @@ export function createGame(options = {}) {
     return choices;
   }
 
+  function chooseDebuffChoices(count = ITEM_OFFER_CHOICES) {
+    const pool = Object.keys(DEBUFF_ITEMS).filter((id) => !hasDebuff(id));
+    const choices = [];
+    while (pool.length && choices.length < count) {
+      const idx = ri(0, pool.length - 1);
+      choices.push(pool.splice(idx, 1)[0]);
+    }
+    return choices;
+  }
+
   function itemRarity(id) {
     return (ITEMS[id] && ITEM_RARITIES[ITEMS[id].rarity]) ? ITEMS[id].rarity : "normal";
   }
@@ -1033,6 +1108,22 @@ export function createGame(options = {}) {
       goods.push({ id, price: itemShopPrice(id, wave), sold: false });
     }
     return goods;
+  }
+
+  function choosePostWaveEventKind() {
+    const candidates = [];
+    if (Object.keys(ITEMS).some((id) => !hasItem(id))) candidates.push({ kind: "item", weight: POST_WAVE_EVENT_WEIGHTS.item });
+    if (Object.keys(ITEMS).some((id) => !hasItem(id))) candidates.push({ kind: "shop", weight: POST_WAVE_EVENT_WEIGHTS.shop });
+    if (loop >= TRAP_EVENT_START_LOOP && Object.keys(DEBUFF_ITEMS).some((id) => !hasDebuff(id))) candidates.push({ kind: "trap", weight: POST_WAVE_EVENT_WEIGHTS.trap });
+    let total = 0;
+    for (const c of candidates) total += c.weight;
+    if (total <= 0) return null;
+    let pick = random() * total;
+    for (const c of candidates) {
+      pick -= c.weight;
+      if (pick <= 0) return c.kind;
+    }
+    return candidates[candidates.length - 1].kind;
   }
 
   function triggerItem(id, life = 1200) {
@@ -1103,6 +1194,46 @@ export function createGame(options = {}) {
     return true;
   }
 
+  function applyDebuff(id) {
+    if (!DEBUFF_ITEMS[id] || hasDebuff(id)) return false;
+    debuffItems.push(id);
+    if (id === "rottenRations") {
+      nutrients = Math.max(0, nutrients - 5);
+    } else if (id === "crackedCore") {
+      coreMax = Math.max(25, coreMax - 25);
+      coreHP = Math.min(coreHP, coreMax);
+    }
+    banner(`デバフ『${DEBUFF_ITEMS[id].name}』を背負った`);
+    return true;
+  }
+
+  function applyInitialDebuffs() {
+    if (loop < DEBUFF_START_LOOP) return;
+    const count = resetPenaltyActive ? 2 : 1;
+    const choices = chooseDebuffChoices(count);
+    const gained = [];
+    for (const id of choices) if (applyDebuff(id)) gained.push(id);
+    if (gained.length) {
+      debuffNotice = { ids: gained, penalty: resetPenaltyActive };
+      gameState = "debuffNotice";
+    }
+  }
+
+  function acknowledgeDebuffNotice() {
+    if (!debuffNotice) return false;
+    debuffNotice = null;
+    if (gameState === "debuffNotice") gameState = "playing";
+    return true;
+  }
+
+  function chooseTrapDebuff(id) {
+    if (!trapOffer || !trapOffer.choices.includes(id) || hasDebuff(id)) return false;
+    if (!applyDebuff(id)) return false;
+    trapOffer = null;
+    if (gameState === "trap") gameState = "playing";
+    return true;
+  }
+
   function openShopOffer(excludedIds = []) {
     const goods = chooseShopGoods(excludedIds);
     if (!goods.length) {
@@ -1147,6 +1278,7 @@ export function createGame(options = {}) {
     if (wave >= MAX_WAVE) {
       gameState = "clear";
       banner("迷宮を守り抜いた");
+      emitEvent("loopCleared", { loop, score, wave });
       return;
     }
     if (hasItem("coreBandage") && coreHP < coreMax) {
@@ -1156,17 +1288,26 @@ export function createGame(options = {}) {
       popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `+${amount}`, "#9effa0");
     }
     waveCountdown = nextWaveInterval();
-    const choices = chooseItemOfferChoices();
-    if (choices.length) {
-      itemOffer = { wave, choices, shopExclude: [...choices] };
+    const eventKind = choosePostWaveEventKind();
+    if (eventKind === "item") {
+      const choices = chooseItemOfferChoices();
+      if (!choices.length) return;
+      itemOffer = { wave, choices };
       gameState = "itemChoice";
       banner("アイテムを見つけた");
+    } else if (eventKind === "shop") {
+      openShopOffer();
+    } else if (eventKind === "trap") {
+      const choices = chooseDebuffChoices();
+      if (!choices.length) return;
+      trapOffer = { wave, choices };
+      gameState = "trap";
+      banner("ギルド参謀の罠");
     }
   }
 
   function chooseItemOffer(id = null) {
     if (!itemOffer) return false;
-    const shopExclude = [...new Set(itemOffer.shopExclude || itemOffer.choices)];
     if (id === null) {
       if (hasItem("thiefBag")) {
         nutrients += 8;
@@ -1175,14 +1316,14 @@ export function createGame(options = {}) {
       }
       itemOffer = null;
       banner("アイテムを見送った");
-      if (gameState === "itemChoice" && !openShopOffer(shopExclude)) gameState = "playing";
+      if (gameState === "itemChoice") gameState = "playing";
       return true;
     }
     if (!itemOffer.choices.includes(id) || hasItem(id)) return false;
     if (!applyItem(id)) return false;
     banner(`アイテム『${ITEMS[id].name}』を入手`);
     itemOffer = null;
-    if (gameState === "itemChoice" && !openShopOffer(shopExclude)) gameState = "playing";
+    if (gameState === "itemChoice") gameState = "playing";
     return true;
   }
 
@@ -1196,7 +1337,7 @@ export function createGame(options = {}) {
       choices.push(pool.splice(idx, 1)[0]);
     }
     if (!choices.length) return false;
-    itemOffer = { wave: itemOffer.wave, choices, shopExclude: [...new Set([...(itemOffer.shopExclude || []), ...choices])] };
+    itemOffer = { wave: itemOffer.wave, choices };
     usedItems.add("wildCard");
     triggerItem("wildCard", 1500);
     banner("見切り札 ─ 選択肢を引き直した");
@@ -1282,6 +1423,7 @@ export function createGame(options = {}) {
       prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
       nonCombatMs: 0,
     };
+    if (hasDebuff("dullFeed")) strengthenMonsterHp(monster, 0.92);
     if (opts.fromEgg) {
       if (hasItem("boneMeal")) strengthenMonsterHp(monster, 1.25);
       if (hasItem("crackedEgg")) {
@@ -1512,6 +1654,7 @@ export function createGame(options = {}) {
   }
 
   function pickHeroClass() {
+    if (loop >= TERMINATOR_LOOP) return "xTerminator";
     const weighted = [];
     let total = 0;
     for (const key in HERO_CLASSES) {
@@ -1539,6 +1682,7 @@ export function createGame(options = {}) {
 
   function spawnHero(cls = null, col = null, row = null) {
     cls = HERO_CLASSES[cls] ? cls : pickHeroClass();
+    if (loop >= TERMINATOR_LOOP) cls = "xTerminator";
     if (col === null || row === null) {
       const cells = heroEntryCells();
       if (!cells.length) return false;
@@ -2057,7 +2201,7 @@ export function createGame(options = {}) {
     if (hasItem("earlyDrum")) rewardMul *= 1.2;
     const reward = Math.round((4 + h.wave) * rewardMul);
     nutrients += reward;
-    score += 80 * h.wave + 20;
+    score += Math.round((80 * h.wave + 20) * scoreMultiplier());
     kills++;
     emitEvent("heroKilled", { cls: h.cls, wave: h.wave, x: h.px, y: h.py });
     popDmg(h.px, h.py, `+${reward}`, "#ffcf4d");
@@ -2158,6 +2302,7 @@ export function createGame(options = {}) {
     if (e.cls && hasItem("sleepSand") && waveOpeningActive()) mul *= 1.15;
     if (e.cls && hasItem("gapStake") && distToCore(e) <= 3) mul *= 1.18;
     if (e.cls && hasItem("blackRaindrop") && waveIsActive()) mul *= 1.12;
+    if (e.cls && hasDebuff("informantMap")) mul *= 0.9;
     return Math.max(MOVEMENT_TICK, Math.round(base * mul));
   }
 
@@ -2504,7 +2649,7 @@ export function createGame(options = {}) {
       return;
     }
     if (step.tile.t === "earth") {
-      const digDmg = Math.max(1, Math.round(heroDigDmg(h.atk) * (hasItem("masonGloves") ? 0.85 : 1)));
+      const digDmg = Math.max(1, Math.round(heroDigDmg(h.atk) * (hasItem("masonGloves") ? 0.85 : 1) * (hasDebuff("informantMap") ? 1.1 : 1)));
       step.tile.dig = (step.tile.dig || 0) + digDmg;
       effects.push({ type: "dig", x: cx(step.col), y: cy(step.row), life: 300, max: 300, hero: true });
       h.actCd = DIG_CD;
@@ -2743,8 +2888,10 @@ export function createGame(options = {}) {
     }
   }
 
-  function resetGame(seed = options.seed ?? autoSeed()) {
+  function resetGame(seed = options.seed ?? autoSeed(), nextLoop = loop, resetOptions = {}) {
     random = typeof options.random === "function" ? options.random : mulberry32(seed);
+    loop = clampLoop(nextLoop);
+    if (Object.prototype.hasOwnProperty.call(resetOptions, "resetPenaltyActive")) resetPenaltyActive = !!resetOptions.resetPenaltyActive;
     monsters = [];
     heroes = [];
     eggs = [];
@@ -2752,8 +2899,11 @@ export function createGame(options = {}) {
     spawnQueue = [];
     pickups = [];
     items = [];
+    debuffItems = [];
     itemOffer = null;
     shopOffer = null;
+    trapOffer = null;
+    debuffNotice = null;
     itemEvents = [];
     usedItems = new Set();
     slowFields = [];
@@ -2776,11 +2926,14 @@ export function createGame(options = {}) {
     unlocked = new Set(Object.keys(VEIN).filter((key) => VEIN[key].unlock <= 1));
     gameState = "playing";
     buildGrid();
+    if (!resetOptions.skipInitialDebuffs) {
+      if (loop >= TERMINATOR_LOOP) banner("20周目 ─ 全冒険者がXターミネーター化");
+      applyInitialDebuffs();
+    }
   }
 
-  function startGame() {
-    resetGame(options.seed ?? autoSeed());
-    gameState = "playing";
+  function startGame(nextLoop = loop, resetOptions = {}) {
+    resetGame(options.seed ?? autoSeed(), nextLoop, resetOptions);
   }
 
   function gameOver() {
@@ -2842,7 +2995,7 @@ export function createGame(options = {}) {
     return PIXEL_ACTIONS.includes(a) ? a : "idle";
   }
 
-  resetGame();
+  resetGame(options.seed ?? autoSeed(), loop, { resetPenaltyActive, skipInitialDebuffs: true });
   gameState = "title";
 
   return {
@@ -2855,8 +3008,12 @@ export function createGame(options = {}) {
     get pickups() { return pickups; },
     get slowFields() { return slowFields; },
     get items() { return items; },
+    get debuffItems() { return debuffItems; },
     get itemOffer() { return itemOffer ? { wave: itemOffer.wave, choices: [...itemOffer.choices] } : null; },
     get shopOffer() { return shopOffer ? { wave: shopOffer.wave, goods: shopOffer.goods.map((g) => ({ ...g })) } : null; },
+    get trapOffer() { return trapOffer ? { wave: trapOffer.wave, choices: [...trapOffer.choices] } : null; },
+    get debuffNotice() { return debuffNotice ? { ids: [...debuffNotice.ids], penalty: !!debuffNotice.penalty } : null; },
+    get postWaveEvent() { return itemOffer ? "item" : (shopOffer ? "shop" : (trapOffer ? "trap" : null)); },
     get itemEvents() { return itemEvents; },
     get usedItems() { return [...usedItems]; },
     get canRerollItemOffer() { return !!itemOffer && hasItem("wildCard") && !usedItems.has("wildCard"); },
@@ -2872,7 +3029,10 @@ export function createGame(options = {}) {
     get nutrients() { return nutrients; },
     set nutrients(v) { nutrients = v; },
     get score() { return score; },
+    get scoreMultiplier() { return scoreMultiplier(); },
     get kills() { return kills; },
+    get loop() { return loop; },
+    set loop(v) { loop = clampLoop(v); },
     get playerDigCount() { return playerDigCount; },
     get waveCountdown() { return waveCountdown; },
     set waveCountdown(v) { waveCountdown = v; },
@@ -2884,33 +3044,33 @@ export function createGame(options = {}) {
     set gameState(v) { gameState = v; },
     get ruleConfig() { return clonePlain(ruleConfig); },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, buyShopItem, closeShopOffer, clearCoreHitEffects, drainEvents,
-    hasItem, applyItem,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, buyShopItem, closeShopOffer, chooseTrapDebuff, acknowledgeDebuffNotice, clearCoreHitEffects, drainEvents,
+    hasItem, applyItem, hasDebuff, applyDebuff,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
     isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemHighlights, itemRarity, itemShopPrice,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS,
-    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
+    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS,
+    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, pixelDebuffFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
 export const Core = {
   DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig,
-  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS,
-  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, heroDigDmg, resolveHeroStats, cx, cy,
+  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS,
+  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, pixelDebuffFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
 };
 
 export function exposeGameNamespace(currentGame = null) {

@@ -385,7 +385,7 @@
         36
       ]
     },
-    "priest": {
+    "xTerminator": {
       "sheet": "actors",
       "x": 0,
       "y": 1248,
@@ -399,7 +399,7 @@
         36
       ]
     },
-    "saint": {
+    "priest": {
       "sheet": "actors",
       "x": 0,
       "y": 1296,
@@ -413,7 +413,7 @@
         36
       ]
     },
-    "mage": {
+    "saint": {
       "sheet": "actors",
       "x": 0,
       "y": 1344,
@@ -427,7 +427,7 @@
         36
       ]
     },
-    "supermage": {
+    "mage": {
       "sheet": "actors",
       "x": 0,
       "y": 1392,
@@ -441,7 +441,7 @@
         36
       ]
     },
-    "sage": {
+    "supermage": {
       "sheet": "actors",
       "x": 0,
       "y": 1440,
@@ -455,7 +455,7 @@
         36
       ]
     },
-    "egg_spitter": {
+    "sage": {
       "sheet": "actors",
       "x": 0,
       "y": 1488,
@@ -469,7 +469,7 @@
         36
       ]
     },
-    "egg_golem": {
+    "egg_spitter": {
       "sheet": "actors",
       "x": 0,
       "y": 1536,
@@ -483,7 +483,7 @@
         36
       ]
     },
-    "egg_flame": {
+    "egg_golem": {
       "sheet": "actors",
       "x": 0,
       "y": 1584,
@@ -497,7 +497,7 @@
         36
       ]
     },
-    "egg_tarantula": {
+    "egg_flame": {
       "sheet": "actors",
       "x": 0,
       "y": 1632,
@@ -511,7 +511,7 @@
         36
       ]
     },
-    "egg_titan": {
+    "egg_tarantula": {
       "sheet": "actors",
       "x": 0,
       "y": 1680,
@@ -525,7 +525,7 @@
         36
       ]
     },
-    "egg_infernal": {
+    "egg_titan": {
       "sheet": "actors",
       "x": 0,
       "y": 1728,
@@ -539,7 +539,7 @@
         36
       ]
     },
-    "egg_goldweaver": {
+    "egg_infernal": {
       "sheet": "actors",
       "x": 0,
       "y": 1776,
@@ -553,7 +553,7 @@
         36
       ]
     },
-    "egg_goldcore": {
+    "egg_goldweaver": {
       "sheet": "actors",
       "x": 0,
       "y": 1824,
@@ -567,10 +567,24 @@
         36
       ]
     },
-    "egg_whiteflame": {
+    "egg_goldcore": {
       "sheet": "actors",
       "x": 0,
       "y": 1872,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_whiteflame": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1920,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1417,6 +1431,63 @@
     "boneContract": {
       "sheet": "items",
       "x": 2736,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    }
+  },
+  "debuffs": {
+    "rottenRations": {
+      "sheet": "debuffs",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "crackedCore": {
+      "sheet": "debuffs",
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "informantMap": {
+      "sheet": "debuffs",
+      "x": 96,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "sharpenedBlade": {
+      "sheet": "debuffs",
+      "x": 144,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "dullFeed": {
+      "sheet": "debuffs",
+      "x": 192,
       "y": 0,
       "w": 48,
       "h": 48,

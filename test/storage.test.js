@@ -54,10 +54,14 @@ describe("ローカル保存", () => {
       { type: "discoverHero", cls: "warrior" },
       { type: "discoverItem", id: "rustyPickaxe" },
       { type: "discoverItem", id: "rustyPickaxe" },
+      { type: "loopCleared", loop: 2 },
     ]);
     expect(result.changed).toBe(true);
     expect(result.progress).toEqual({
       highestWave: 3,
+      highestClearedLoop: 2,
+      resetPenaltyActive: false,
+      activeRun: null,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
       discoveredItems: ["rustyPickaxe"],
@@ -73,6 +77,9 @@ describe("ローカル保存", () => {
     expect(loadStoredRuleConfig()).toBe(null);
     expect(loadProgress()).toEqual({
       highestWave: 0,
+      highestClearedLoop: 0,
+      resetPenaltyActive: false,
+      activeRun: null,
       discoveredMonsters: [],
       discoveredHeroes: [],
       discoveredItems: [],
@@ -87,6 +94,9 @@ describe("ローカル保存", () => {
     }));
     expect(loadProgress()).toEqual({
       highestWave: 2,
+      highestClearedLoop: 0,
+      resetPenaltyActive: false,
+      activeRun: null,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
       discoveredItems: [],

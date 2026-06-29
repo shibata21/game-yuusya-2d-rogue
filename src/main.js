@@ -10,11 +10,13 @@ import {
   pixelActorX,
   pixelActorFrameIndex,
   pixelItemFrameIndex,
+  pixelDebuffFrameIndex,
   COLS,
   ROWS,
   TILE,
   W,
   H,
+  MAX_LOOP,
   CORE_COL,
   CORE_ROW,
   ENTRANCE_COL,
@@ -22,6 +24,7 @@ import {
   PIXEL_TILES,
   PIXEL_EFFECTS,
   PIXEL_ITEMS,
+  PIXEL_DEBUFFS,
   PIXEL_FRAMES,
 } from "./gameCore.js";
 import { DEV_GROUPS } from "./devTuning.js";
@@ -36,14 +39,15 @@ import {
 } from "./storage.js";
 import "./style.css";
 
-function createConfiguredGame() {
-  const next = createGame({ ruleConfig: loadStoredRuleConfig() });
+function createConfiguredGame(loop = 1, resetPenaltyActive = false) {
+  const next = createGame({ ruleConfig: loadStoredRuleConfig(), loop, resetPenaltyActive });
   exposeGameNamespace(next);
   return next;
 }
 
-let gameApi = createConfiguredGame();
-let progress = loadProgress();
+let progress = resolveInterruptedRunOnBoot(loadProgress());
+let selectedLoop = defaultLoop();
+let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
 let codexOpen = false;
 let codexTab = "monster";
 let lastItemOfferKey = "";
@@ -57,7 +61,7 @@ let audioSaveTimer = null;
 let lastCoreHitSoundAt = 0;
 
 const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
-const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
+const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage"];
 const ITEM_CODEX_ORDER = PIXEL_ITEMS;
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 const TAP_MOVE_CANCEL = 10;
@@ -76,6 +80,22 @@ const AUDIO_KEYS = {
   heroDeaths: ["heroDeath1", "heroDeath2", "heroDeath3"],
 };
 let audioSettings = { ...AUDIO_DEFAULTS };
+
+function selectableMaxLoop() {
+  return Math.max(1, Math.min(MAX_LOOP, (progress.highestClearedLoop || 0) + 1));
+}
+
+function defaultLoop() {
+  return selectableMaxLoop();
+}
+
+function resolveInterruptedRunOnBoot(raw) {
+  if (!raw.activeRun) return raw;
+  const next = { ...raw, activeRun: null };
+  if ((raw.activeRun.loop || 0) >= 10) next.resetPenaltyActive = true;
+  saveProgress(next);
+  return next;
+}
 
 function audioAssetUrl(name) {
   return `assets/audio/${name}?v=${AUDIO_ASSET_VERSION}`;
@@ -243,7 +263,7 @@ function playHeroDeathVoice() {
 
 function syncAudioState(forceStart = false) {
   if (!activeScene || !activeScene.sound) return;
-  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "itemChoice" || gameApi.gameState === "shop";
+  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "itemChoice" || gameApi.gameState === "shop" || gameApi.gameState === "trap" || gameApi.gameState === "debuffNotice";
   if (!shouldPlay) {
     if (bgmSound && bgmSound.isPlaying) bgmSound.stop();
     return;
@@ -315,6 +335,7 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet("actors", pixelAssetUrl("actors.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("items", pixelAssetUrl("items.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.spritesheet("debuffs", pixelAssetUrl("debuffs.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.audio(AUDIO_KEYS.bgm, audioAssetUrl("bgm_dungeon_loop.wav"));
     this.load.audio(AUDIO_KEYS.dig, audioAssetUrl("dig.wav"));
     this.load.audio(AUDIO_KEYS.button, audioAssetUrl("button.wav"));
@@ -691,6 +712,62 @@ function progressSets() {
   };
 }
 
+function renderLoopSelector() {
+  const select = document.getElementById("loopSelect");
+  const info = document.getElementById("loopInfo");
+  if (!select) return;
+  const max = selectableMaxLoop();
+  selectedLoop = Math.max(1, Math.min(max, selectedLoop || defaultLoop()));
+  const current = String(selectedLoop);
+  select.innerHTML = Array.from({ length: max }, (_, i) => {
+    const loop = i + 1;
+    return `<option value="${loop}"${String(loop) === current ? " selected" : ""}>${loop}周目</option>`;
+  }).join("");
+  select.value = current;
+  if (info) {
+    const parts = [`${max}周目まで選択可能`, `スコアx${(1 + (selectedLoop - 1) * 0.15).toFixed(2)}`];
+    if (progress.resetPenaltyActive && selectedLoop >= 10) parts.push("リセット罰あり");
+    info.textContent = parts.join(" / ");
+  }
+}
+
+function markRunInterrupted() {
+  if (!progress.activeRun) return;
+  const next = { ...progress, activeRun: null };
+  if ((progress.activeRun.loop || 0) >= 10) next.resetPenaltyActive = true;
+  progress = next;
+  saveProgress(progress);
+}
+
+function markRunStarted(loop) {
+  markRunInterrupted();
+  progress = { ...progress, activeRun: { loop, startedAt: Date.now() } };
+  saveProgress(progress);
+}
+
+function markRunEnded(kind) {
+  if (!progress.activeRun) return;
+  const next = { ...progress, activeRun: null };
+  if (kind === "earlyDead" && gameApi.loop >= 10) next.resetPenaltyActive = true;
+  progress = next;
+  saveProgress(progress);
+  renderLoopSelector();
+}
+
+function syncRunOutcome() {
+  if (!progress.activeRun) return;
+  if (gameApi.gameState === "dead") {
+    markRunEnded(gameApi.wave <= 3 ? "earlyDead" : "dead");
+    updateProgressStatus();
+  } else if (gameApi.gameState === "clear") {
+    const result = applyProgressEvents(progress, [{ type: "loopCleared", loop: gameApi.loop, wave: gameApi.wave, score: gameApi.score }]);
+    progress = result.progress;
+    saveProgress(progress);
+    renderLoopSelector();
+    updateProgressStatus();
+  }
+}
+
 function syncProgressEvents() {
   if (!gameApi.drainEvents) return;
   const events = gameApi.drainEvents();
@@ -700,6 +777,7 @@ function syncProgressEvents() {
   progress = result.progress;
   saveProgress(progress);
   updateProgressStatus();
+  renderLoopSelector();
   if (codexOpen) renderCodex();
 }
 
@@ -762,10 +840,31 @@ function itemIconHtml(id, className = "item-icon", size = 24) {
   return `<span class="${escapeHtml(className)}" aria-hidden="true" style='${itemIconStyle(id, size)}'></span>`;
 }
 
+function debuffIconStyle(id, size = 24) {
+  const frame = pixelDebuffFrameIndex(id);
+  return [
+    `background-image:url("${pixelAssetUrl("debuffs.png")}")`,
+    `background-size:${PIXEL_DEBUFFS.length * size}px ${size}px`,
+    `background-position:-${frame * size}px 0`,
+    `width:${size}px`,
+    `height:${size}px`,
+  ].join(";");
+}
+
+function debuffIconHtml(id, className = "debuff-icon", size = 24) {
+  return `<span class="${escapeHtml(className)}" aria-hidden="true" style='${debuffIconStyle(id, size)}'></span>`;
+}
+
 function itemLabel(id) {
   const a = gameApi.ITEMS[id];
   if (!a) return id;
   return `${a.name}: ${a.profile}`;
+}
+
+function debuffLabel(id) {
+  const d = gameApi.DEBUFF_ITEMS[id];
+  if (!d) return id;
+  return `${d.name}: ${d.profile}`;
 }
 
 function itemRarity(id) {
@@ -1034,7 +1133,8 @@ function updateDevStatus(text = "変更は次回開始時に反映") {
 function updateProgressStatus() {
   const status = document.getElementById("progressStatus");
   if (!status) return;
-  status.textContent = `最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}`;
+  const penalty = progress.resetPenaltyActive ? " / リセット罰あり" : "";
+  status.textContent = `最高到達 W${progress.highestWave} / 最高周回 ${progress.highestClearedLoop || 0} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}${penalty}`;
 }
 
 function saveDevPanel() {
@@ -1094,6 +1194,8 @@ function bindDevPanel() {
   if (resetProgress) resetProgress.addEventListener("click", () => {
     clearProgress();
     progress = loadProgress();
+    selectedLoop = defaultLoop();
+    renderLoopSelector();
     updateProgressStatus();
     if (codexOpen) renderCodex();
   });
@@ -1213,6 +1315,22 @@ function renderItems() {
   }).join("");
 }
 
+function renderDebuffs() {
+  const bar = document.getElementById("debuffBar");
+  if (!bar) return;
+  const held = gameApi.debuffItems || [];
+  if (!held.length) {
+    bar.innerHTML = `<span class="debuff-empty">デバフなし</span>`;
+    return;
+  }
+  bar.innerHTML = held.map((id) => {
+    const d = gameApi.DEBUFF_ITEMS[id];
+    if (!d) return "";
+    const label = debuffLabel(id);
+    return `<button type="button" class="debuff" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${debuffIconHtml(id, "debuff-icon", 24)}<span>${escapeHtml(d.name)}</span></button>`;
+  }).join("");
+}
+
 function renderItemOffer() {
   const overlay = document.getElementById("itemChoiceOverlay");
   const grid = document.getElementById("itemChoiceGrid");
@@ -1238,6 +1356,49 @@ function renderItemOffer() {
         <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(id)}</b><em>${escapeHtml(a.profile)}</em></span>
       </button>`;
   }).join("");
+}
+
+function renderTrapOffer() {
+  const overlay = document.getElementById("trapChoiceOverlay");
+  const grid = document.getElementById("trapChoiceGrid");
+  if (!overlay || !grid) return;
+  const offer = gameApi.trapOffer;
+  overlay.classList.toggle("hidden", !offer);
+  if (!offer) {
+    grid.innerHTML = "";
+    return;
+  }
+  grid.innerHTML = offer.choices.map((id) => {
+    const d = gameApi.DEBUFF_ITEMS[id];
+    if (!d) return "";
+    return `
+      <button type="button" class="item-choice-card debuff-choice-card" data-trap-debuff="${escapeHtml(id)}">
+        ${debuffIconHtml(id, "item-choice-icon debuff-choice-icon", 38)}
+        <span><b>${escapeHtml(d.name)}</b><em>${escapeHtml(d.profile)}</em></span>
+      </button>`;
+  }).join("");
+}
+
+function renderDebuffNotice() {
+  const overlay = document.getElementById("debuffNoticeOverlay");
+  const body = document.getElementById("debuffNoticeBody");
+  if (!overlay || !body) return;
+  const notice = gameApi.debuffNotice;
+  overlay.classList.toggle("hidden", !notice);
+  if (!notice) {
+    body.innerHTML = "";
+    return;
+  }
+  const reason = notice.penalty ? "リセット検知により、今回はデバフが2個になった。" : "10周目以降の初期罠として、デバフを背負わされた。";
+  body.innerHTML = `
+    <p>${escapeHtml(reason)}</p>
+    <div class="debuff-notice-list">
+      ${notice.ids.map((id) => {
+        const d = gameApi.DEBUFF_ITEMS[id];
+        if (!d) return "";
+        return `<span>${debuffIconHtml(id, "debuff-icon", 28)}<b>${escapeHtml(d.name)}</b><em>${escapeHtml(d.profile)}</em></span>`;
+      }).join("")}
+    </div>`;
 }
 
 function renderShopOffer() {
@@ -1274,6 +1435,7 @@ function renderShopOffer() {
 }
 
 function updateHud() {
+  syncRunOutcome();
   const ratio = Math.max(0, Math.min(1, gameApi.coreHP / gameApi.CORE_MAX));
   document.getElementById("coreFill").style.width = `${ratio * 100}%`;
   document.getElementById("coreNum").textContent = `${Math.ceil(gameApi.coreHP)} / ${gameApi.CORE_MAX}`;
@@ -1281,11 +1443,15 @@ function updateHud() {
   if (coreLine) coreLine.classList.toggle("core-alert", gameApi.coreHP > 0 && gameApi.gameState === "playing" && (effectLevel("corehit") > 0 || effectLevel("coreShock") > 0));
   document.getElementById("nutNum").textContent = Math.floor(gameApi.nutrients);
   document.getElementById("waveNum").textContent = `${gameApi.wave}/${gameApi.MAX_WAVE}`;
+  document.getElementById("loopNum").textContent = `${gameApi.loop}/${MAX_LOOP}`;
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
   document.getElementById("scoreNum").textContent = gameApi.score;
   renderItems();
+  renderDebuffs();
   renderItemOffer();
   renderShopOffer();
+  renderTrapOffer();
+  renderDebuffNotice();
   document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
@@ -1296,6 +1462,12 @@ function updateHud() {
     waveTimer = "時間停止中";
   } else if (gameApi.gameState === "shop") {
     waveLabel = "ショップ";
+    waveTimer = "時間停止中";
+  } else if (gameApi.gameState === "trap") {
+    waveLabel = "罠選択";
+    waveTimer = "時間停止中";
+  } else if (gameApi.gameState === "debuffNotice") {
+    waveLabel = "デバフ確認";
     waveTimer = "時間停止中";
   } else if (gameApi.waveSettleDelay > 0) {
     waveLabel = "撃退確認中";
@@ -1319,7 +1491,7 @@ function updateHud() {
   document.getElementById("deadWave").textContent = gameApi.wave;
   document.getElementById("deadKills").textContent = gameApi.kills;
   document.getElementById("deadScore").textContent = gameApi.score;
-  document.getElementById("clearWaveLabel").textContent = `${gameApi.MAX_WAVE}ウェーブ突破`;
+  document.getElementById("clearWaveLabel").textContent = `${gameApi.loop}周目 ${gameApi.MAX_WAVE}ウェーブ突破`;
   document.getElementById("clearKills").textContent = gameApi.kills;
   document.getElementById("clearScore").textContent = gameApi.score;
   document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveSettleDelay > 0 || gameApi.waveCountdown <= 3000;
@@ -1331,8 +1503,11 @@ function startGame() {
   hideItemPopup();
   lastItemBarKey = "";
   lastShopOfferKey = "";
-  gameApi = createConfiguredGame();
-  gameApi.startGame();
+  const select = document.getElementById("loopSelect");
+  selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(select && select.value) || defaultLoop())));
+  markRunStarted(selectedLoop);
+  gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
+  gameApi.startGame(selectedLoop, { resetPenaltyActive: progress.resetPenaltyActive });
   syncAudioState(true);
   syncProgressEvents();
   updateHud();
@@ -1342,10 +1517,12 @@ function openStartFlow() {
   hideItemPopup();
   lastItemBarKey = "";
   lastShopOfferKey = "";
-  gameApi = createConfiguredGame();
+  selectedLoop = defaultLoop();
+  gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
   gameApi.gameState = "title";
   syncAudioState();
   syncProgressEvents();
+  renderLoopSelector();
   updateHud();
 }
 
@@ -1363,6 +1540,11 @@ function boot() {
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("restartBtn").addEventListener("click", openStartFlow);
   document.getElementById("clearRestartBtn").addEventListener("click", openStartFlow);
+  const loopSelect = document.getElementById("loopSelect");
+  if (loopSelect) loopSelect.addEventListener("change", () => {
+    selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(loopSelect.value) || defaultLoop())));
+    renderLoopSelector();
+  });
   document.getElementById("codexBtn").addEventListener("click", showCodex);
   document.getElementById("codexBackBtn").addEventListener("click", hideCodex);
   for (const btn of document.querySelectorAll("[data-codex-tab]")) {
@@ -1401,11 +1583,23 @@ function boot() {
   if (closeShop) closeShop.addEventListener("click", () => {
     if (gameApi.closeShopOffer()) updateHud();
   });
+  const trapChoiceGrid = document.getElementById("trapChoiceGrid");
+  if (trapChoiceGrid) trapChoiceGrid.addEventListener("click", (event) => {
+    const target = event.target && typeof event.target.closest === "function" ? event.target : null;
+    const button = target ? target.closest("[data-trap-debuff]") : null;
+    if (!button) return;
+    if (gameApi.chooseTrapDebuff(button.dataset.trapDebuff)) updateHud();
+  });
+  const ackDebuff = document.getElementById("ackDebuffBtn");
+  if (ackDebuff) ackDebuff.addEventListener("click", () => {
+    if (gameApi.acknowledgeDebuffNotice()) updateHud();
+  });
   bindItemHud();
   bindButtonSounds();
   bindAudioPanel();
   bindDevPanel();
 
+  renderLoopSelector();
   updateHud();
   return new Phaser.Game({
     type: Phaser.AUTO,

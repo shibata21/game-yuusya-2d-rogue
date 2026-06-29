@@ -326,20 +326,7 @@ async function run() {
       throw new Error(`アイテム3択表示が不正です: ${JSON.stringify(offer)}`);
     }
     await evaluate(client, `document.querySelector('[data-item-choice="rustyPickaxe"]').click()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && document.getElementById("itemChoiceOverlay").classList.contains("hidden") && !document.getElementById("itemShopOverlay").classList.contains("hidden") && document.querySelectorAll("[data-shop-item]").length === 4`, "ショップ表示");
-    const shop = await evaluate(client, `({
-      state: globalThis.MakaiDefense.current.gameState,
-      goods: globalThis.MakaiDefense.current.shopOffer?.goods || [],
-      cards: document.querySelectorAll("[data-shop-item]").length,
-      label: document.getElementById("waveLabel").textContent,
-      timer: document.getElementById("waveTimer").textContent,
-      priceText: document.querySelector("[data-shop-item] .shop-price")?.textContent || ""
-    })`);
-    if (shop.state !== "shop" || shop.cards !== 4 || shop.goods.some((g) => offer.choices.includes(g.id)) || shop.label !== "ショップ" || shop.timer !== "時間停止中" || !shop.priceText.includes("栄養")) {
-      throw new Error(`ショップ表示が不正です: ${JSON.stringify(shop)}`);
-    }
-    await evaluate(client, `document.getElementById("closeShopBtn").click()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemShopOverlay").classList.contains("hidden")`, "ショップ閉店後の再開");
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemChoiceOverlay").classList.contains("hidden") && document.getElementById("itemShopOverlay").classList.contains("hidden")`, "アイテム選択後の再開");
     const itemResult = await evaluate(client, `({
       items: globalThis.MakaiDefense.current.items,
       bar: document.getElementById("itemBar").textContent,
@@ -350,6 +337,31 @@ async function run() {
     if (!itemResult.items.includes("rustyPickaxe") || itemResult.bar.includes("錆びたつるはし") || itemResult.icons < 1 || !itemResult.buttonLabel.includes("錆びたつるはし") || !itemResult.popupExists) {
       throw new Error(`アイテム選択後状態が不正です: ${JSON.stringify(itemResult)}`);
     }
+
+    await evaluate(client, `(() => {
+      const game = globalThis.MakaiDefense.current;
+      const rolls = [0.7, 0, 0, 0, 0, 0];
+      game.setRandom(() => rolls.length ? rolls.shift() : 0);
+      game.wave = 2;
+      game.gameState = "playing";
+      game.heroes.length = 0;
+      game.spawnQueue.length = 0;
+      game.settleWave();
+    })()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && !document.getElementById("itemShopOverlay").classList.contains("hidden") && document.querySelectorAll("[data-shop-item]").length === 5`, "ショップ表示");
+    const shop = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      goods: globalThis.MakaiDefense.current.shopOffer?.goods || [],
+      cards: document.querySelectorAll("[data-shop-item]").length,
+      label: document.getElementById("waveLabel").textContent,
+      timer: document.getElementById("waveTimer").textContent,
+      priceText: document.querySelector("[data-shop-item] .shop-price")?.textContent || ""
+    })`);
+    if (shop.state !== "shop" || shop.cards !== 5 || shop.goods.some((g) => g.id === "rustyPickaxe") || shop.label !== "ショップ" || shop.timer !== "時間停止中" || !shop.priceText.includes("栄養")) {
+      throw new Error(`ショップ表示が不正です: ${JSON.stringify(shop)}`);
+    }
+    await evaluate(client, `document.getElementById("closeShopBtn").click()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemShopOverlay").classList.contains("hidden")`, "ショップ閉店後の再開");
     const popupResult = await evaluate(client, `new Promise((resolve) => {
       const button = document.querySelector('[data-item-id="rustyPickaxe"]');
       const rect = button.getBoundingClientRect();
@@ -395,7 +407,7 @@ async function run() {
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、開始、音量設定、開発JSON出力、アイテム3択、長押しポップアップ、アイテム図鑑を検査しました");
+    console.log("OK: ブラウザ初回ロード、開始、音量設定、開発JSON出力、アイテム3択、ショップ、長押しポップアップ、アイテム図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

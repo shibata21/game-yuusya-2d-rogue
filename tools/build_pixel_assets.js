@@ -3,11 +3,11 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
-const heroNames = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "priest", "saint", "mage", "supermage", "sage"];
+const heroNames = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage"];
 const dirVec = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 const eliteBase = {
   superslime: "slime", crownslime: "slime",
@@ -52,6 +52,7 @@ const heroPalettes = {
   max: { dark: "#07080c", mid: "#171b24", light: "#303849", skin: "#d39a73", metal: "#dbe4ef", accent: "#1f1f27", weapon: "fist" },
   shon: { dark: "#171a22", mid: "#5c6978", light: "#c4d1dd", skin: "#e0aa80", metal: "#f0f4f8", accent: "#ffcf4d", weapon: "handgun" },
   hori: { dark: "#51332b", mid: "#b56f55", light: "#f3c092", skin: "#e3a679", metal: "#d8dde4", accent: "#8ed36f", weapon: "vegetable" },
+  xTerminator: { dark: "#080b10", mid: "#1e2832", light: "#7a8794", skin: "#aeb7c0", metal: "#cfd8e3", accent: "#ff3355", weapon: "handgun" },
 };
 
 const eggPalette = {
@@ -825,8 +826,13 @@ function drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame) {
     rect(img, headX - 8, headY - 8, 16, 18, "#131720", 235);
     tri(img, headX - 8, headY - 3, headX - 3, headY + 14, headX + 1, headY + 2, "#10131a", 230);
     tri(img, headX + 8, headY - 3, headX + 3, headY + 14, headX - 1, headY + 2, "#10131a", 230);
+  } else if (name === "xTerminator") {
+    oval(img, cx, cy + 4, 13, 13, "#0a0d13", 245);
+    rect(img, cx - 9, cy - 7, 18, 23, "#18202b", 245);
+    line(img, cx - 8, cy - 4, cx + 8, cy + 5, "#4f5968", 2, 155);
+    diamond(img, cx, cy + 7, 3, "#ff3355", 210);
   }
-  oval(img, headX, headY, name === "hori" ? 9 : 8, 8, pal.skin, 245);
+  oval(img, headX, headY, name === "hori" ? 9 : 8, 8, name === "xTerminator" ? "#222c38" : pal.skin, 245);
   if (name === "max") {
     rect(img, headX - 4, headY + 5, 8, 3, "#05060a", 235);
     tri(img, headX - 7, headY + 4, headX - 2, headY + 10, headX + 1, headY + 4, "#05060a", 230);
@@ -843,6 +849,11 @@ function drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame) {
     line(img, headX - 7, headY - 7, headX + 7, headY - 5, "#343b48", 1, 160);
     rect(img, headX - 4, headY - 1 + dy, 3, 2, "#171b24", 230);
     rect(img, headX + 2, headY - 1 + dy, 3, 2, "#171b24", 230);
+  } else if (name === "xTerminator") {
+    rect(img, headX - 8, headY - 9, 16, 5, "#111722", 245);
+    line(img, headX - 6, headY - 1 + dy, headX + 6, headY + 3 + dy, "#ff3355", 2, 250);
+    line(img, headX + 6, headY - 1 + dy, headX - 6, headY + 3 + dy, "#ff3355", 2, 250);
+    diamond(img, headX, headY + 1 + dy, 2, "#ff99aa", 220);
   } else {
     rect(img, headX - 8, headY - 11, 16, 5, "#d9c18a", 245);
     rect(img, headX - 7, headY - 8, 14, 3, "#d9c18a", 230);
@@ -867,7 +878,7 @@ function drawHero(img, name, action, dir, frame) {
   const lift = (action === "cast" || action === "heal") ? [0, -1, -3, -1][frame] : 0;
   const cx = 24 + dx * lunge;
   const cy = 23 + bob + lift + dy * Math.min(2, lunge);
-  const modern = ["max", "shon", "hori"].includes(name);
+  const modern = ["max", "shon", "hori", "xTerminator"].includes(name);
   if (modern) drawModernBody(img, name, pal, cx, cy, dx, dy, action, frame);
   else drawArmoredBody(img, name, pal, cx, cy, dx, dy, action, frame, caster);
   if (action === "dig") {
@@ -1137,8 +1148,46 @@ function drawItemIcon(name) {
   return img;
 }
 
+function drawDebuffIcon(name) {
+  const img = image();
+  oval(img, 24, 36, 17, 5, "#0c0812", 90);
+  diamond(img, 24, 24, 19, "#3a121b", 70);
+  if (name === "rottenRations") {
+    oval(img, 24, 27, 12, 10, "#6c5a32", 245);
+    rect(img, 15, 20, 18, 8, "#3b2b1a", 240);
+    diamond(img, 18, 24, 2, "#91c46a", 230);
+    diamond(img, 30, 30, 2, "#5f8a45", 220);
+    line(img, 15, 35, 34, 16, "#ff6b6b", 2, 215);
+  } else if (name === "crackedCore") {
+    diamond(img, 24, 24, 15, "#e0556b", 245);
+    diamond(img, 24, 23, 10, "#ff9aa8", 220);
+    line(img, 23, 10, 20, 24, "#170912", 2, 230);
+    line(img, 20, 24, 27, 28, "#170912", 2, 230);
+    line(img, 27, 28, 23, 39, "#170912", 2, 230);
+  } else if (name === "informantMap") {
+    rect(img, 11, 14, 27, 20, "#d8c9a0", 245);
+    line(img, 19, 15, 17, 34, "#4a2d22", 1, 190);
+    line(img, 13, 29, 34, 17, "#ff3355", 2, 225);
+    rect(img, 26, 23, 8, 5, "#17131a", 230);
+    rect(img, 28, 24, 2, 2, "#ffcf4d", 235);
+    rect(img, 32, 24, 2, 2, "#ffcf4d", 235);
+  } else if (name === "sharpenedBlade") {
+    line(img, 15, 36, 34, 12, "#cfd8e3", 6, 245);
+    line(img, 18, 36, 37, 13, "#ffffff", 2, 230);
+    rect(img, 12, 34, 11, 5, "#4a2c1c", 245);
+    for (let i = 0; i < 3; i++) diamond(img, 31 + i * 3, 15 + i * 6, 2, "#ff3355", 210);
+  } else if (name === "dullFeed") {
+    oval(img, 24, 28, 13, 9, "#5b5142", 245);
+    rect(img, 14, 20, 20, 7, "#847761", 230);
+    for (let i = 0; i < 6; i++) diamond(img, 15 + i * 4, 30 + (i % 2), 1, "#2e3a24", 230);
+    line(img, 13, 17, 35, 37, "#ff6b6b", 2, 210);
+  }
+  clearCellEdge(img);
+  return img;
+}
+
 function writeSourceFrames() {
-  for (const dir of ["actors", "tiles", "effects", "items"]) ensureDir(path.join(SOURCE_DIR, dir));
+  for (const dir of ["actors", "tiles", "effects", "items", "debuffs"]) ensureDir(path.join(SOURCE_DIR, dir));
   for (const name of TILES) writePng(spritePath("tiles", name), drawTile(name));
   for (const name of ACTORS) {
     for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) {
@@ -1147,6 +1196,7 @@ function writeSourceFrames() {
   }
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) writePng(spritePath("effects", name, f), drawEffect(name, f));
   for (const name of ITEM_ICONS) writePng(spritePath("items", name), drawItemIcon(name));
+  for (const name of DEBUFF_ICONS) writePng(spritePath("debuffs", name), drawDebuffIcon(name));
 }
 
 function actorFrameX(actionIndex, dirIndex, frame) {
@@ -1174,16 +1224,21 @@ function writeAtlas() {
   const items = image(CELL * ITEM_ICONS.length, CELL);
   ITEM_ICONS.forEach((name, col) => copyInto(items, readPng(spritePath("items", name)), col * CELL, 0));
   writePng(path.join(OUT_DIR, "items.png"), items);
+
+  const debuffs = image(CELL * DEBUFF_ICONS.length, CELL);
+  DEBUFF_ICONS.forEach((name, col) => copyInto(debuffs, readPng(spritePath("debuffs", name)), col * CELL, 0));
+  writePng(path.join(OUT_DIR, "debuffs.png"), debuffs);
 }
 
 function writeMeta() {
-  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, items: {} };
+  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, items: {}, debuffs: {} };
   ACTORS.forEach((name, row) => {
     meta.actors[name] = { sheet: "actors", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, directions: DIRECTIONS.length, actions: ACTIONS.length, anchor: [CELL / 2, Math.round(CELL * 0.75)] };
   });
   TILES.forEach((name, col) => { meta.tiles[name] = { sheet: "tiles", x: col * CELL, y: 0, w: CELL, h: CELL }; });
   EFFECTS.forEach((name, row) => { meta.effects[name] = { sheet: "effects", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, anchor: [CELL / 2, CELL / 2] }; });
   ITEM_ICONS.forEach((name, col) => { meta.items[name] = { sheet: "items", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
+  DEBUFF_ICONS.forEach((name, col) => { meta.debuffs[name] = { sheet: "debuffs", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
   fs.writeFileSync(path.join(OUT_DIR, "sprites.json"), JSON.stringify(meta, null, 2) + "\n");
 }
 

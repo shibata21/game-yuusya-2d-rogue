@@ -14,9 +14,11 @@ import {
   PIXEL_FRAMES,
   PIXEL_TILES,
   PIXEL_ITEMS,
+  PIXEL_DEBUFFS,
   PIXEL_ASSET_VERSION,
   pixelAssetUrl,
   pixelItemFrameIndex,
+  pixelDebuffFrameIndex,
 } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -70,6 +72,12 @@ function tileCrop(name) {
 function itemCrop(name) {
   const img = png("assets/pixel/items.png");
   const col = Object.keys(meta.items).indexOf(name);
+  return crop(img, col * meta.cell, 0, meta.cell, meta.cell);
+}
+
+function debuffCrop(name) {
+  const img = png("assets/pixel/debuffs.png");
+  const col = Object.keys(meta.debuffs).indexOf(name);
   return crop(img, col * meta.cell, 0, meta.cell, meta.cell);
 }
 
@@ -180,6 +188,7 @@ describe("ピクセル素材", () => {
     expect(Object.keys(meta.tiles)).toEqual(PIXEL_TILES);
     expect(Object.keys(meta.effects)).toEqual(PIXEL_EFFECTS);
     expect(Object.keys(meta.items)).toEqual(PIXEL_ITEMS);
+    expect(Object.keys(meta.debuffs)).toEqual(PIXEL_DEBUFFS);
   });
 
   it("アトラスPNGの寸法が正しい", () => {
@@ -187,6 +196,7 @@ describe("ピクセル素材", () => {
     const tiles = png("assets/pixel/tiles.png");
     const effects = png("assets/pixel/effects.png");
     const items = png("assets/pixel/items.png");
+    const debuffs = png("assets/pixel/debuffs.png");
     expect(actors.width).toBe(PIXEL_CELL * PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length);
     expect(actors.height).toBe(PIXEL_CELL * PIXEL_ACTORS.length);
     expect(tiles.width).toBe(PIXEL_CELL * PIXEL_TILES.length);
@@ -195,13 +205,17 @@ describe("ピクセル素材", () => {
     expect(effects.height).toBe(PIXEL_CELL * PIXEL_EFFECTS.length);
     expect(items.width).toBe(PIXEL_CELL * PIXEL_ITEMS.length);
     expect(items.height).toBe(PIXEL_CELL);
+    expect(debuffs.width).toBe(PIXEL_CELL * PIXEL_DEBUFFS.length);
+    expect(debuffs.height).toBe(PIXEL_CELL);
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v22-hori-shon");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v22-hori-shon");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v22-hori-shon");
+    expect(PIXEL_ASSET_VERSION).toBe("v23-loop");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v23-loop");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v23-loop");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v23-loop");
     expect(pixelItemFrameIndex("rustyPickaxe")).toBe(PIXEL_ITEMS.indexOf("rustyPickaxe"));
+    expect(pixelDebuffFrameIndex("crackedCore")).toBe(PIXEL_DEBUFFS.indexOf("crackedCore"));
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -271,6 +285,18 @@ describe("ピクセル素材", () => {
     const gunMetal = pixelsIn(attack, (x, y, r, g, b) => x >= 30 && x <= 47 && y >= 10 && y <= 23 && r >= 180 && g >= 180 && b >= 180);
     expect(longHair).toBeGreaterThan(80);
     expect(gunMetal).toBeGreaterThan(12);
+  });
+
+  it("Xターミネーターは黒装甲と赤いXバイザーが読める", () => {
+    const idle = actorCrop("xTerminator", "idle", "s", 1);
+    const attack = actorCrop("xTerminator", "attack", "e", 2);
+    const armor = pixelsIn(idle, (x, y, r, g, b) => x >= 9 && x <= 39 && y >= 15 && y <= 43 && r < 50 && g < 60 && b < 75);
+    const visor = pixelsIn(idle, (x, y, r, g, b) => x >= 14 && x <= 34 && y >= 8 && y <= 18 && r > 210 && g < 95 && b < 120);
+    const gun = pixelsIn(attack, (x, y, r, g, b) => x >= 30 && x <= 47 && y >= 10 && y <= 23 && r >= 170 && g >= 170 && b >= 170);
+    expect(armor).toBeGreaterThan(160);
+    expect(visor).toBeGreaterThan(8);
+    expect(gun).toBeGreaterThan(12);
+    expect(diffRatio(actorCrop("shon", "idle", "s", 1), idle)).toBeGreaterThan(0.18);
   });
 
   it("下向き冒険者の剣は下へ突き出さず体の前で振る", () => {
@@ -350,6 +376,24 @@ describe("ピクセル素材", () => {
     for (let i = 0; i < PIXEL_ITEMS.length; i++) {
       for (let j = i + 1; j < PIXEL_ITEMS.length; j++) {
         expect(diffRatio(itemCrop(PIXEL_ITEMS[i]), itemCrop(PIXEL_ITEMS[j])), `${PIXEL_ITEMS[i]}/${PIXEL_ITEMS[j]}`).toBeGreaterThan(0.08);
+      }
+    }
+  });
+
+  it("デバフは個別に読める警告アイコンを持つ", () => {
+    expect(PIXEL_DEBUFFS).toEqual(["rottenRations", "crackedCore", "informantMap", "sharpenedBlade", "dullFeed"]);
+    for (const name of PIXEL_DEBUFFS) {
+      const img = debuffCrop(name);
+      const b = alphaBounds(img);
+      const w = b.maxX - b.minX + 1;
+      const h = b.maxY - b.minY + 1;
+      expect(b.count, name).toBeGreaterThan(130);
+      expect(w, name).toBeGreaterThanOrEqual(20);
+      expect(h, name).toBeGreaterThanOrEqual(20);
+    }
+    for (let i = 0; i < PIXEL_DEBUFFS.length; i++) {
+      for (let j = i + 1; j < PIXEL_DEBUFFS.length; j++) {
+        expect(diffRatio(debuffCrop(PIXEL_DEBUFFS[i]), debuffCrop(PIXEL_DEBUFFS[j])), `${PIXEL_DEBUFFS[i]}/${PIXEL_DEBUFFS[j]}`).toBeGreaterThan(0.08);
       }
     }
   });

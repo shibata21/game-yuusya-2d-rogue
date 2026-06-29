@@ -108,8 +108,25 @@ textarea {
   display: none;
 }
 
+.debuffs {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 5px;
+  min-height: 28px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+
+.debuffs::-webkit-scrollbar {
+  display: none;
+}
+
 .item,
-.item-empty {
+.item-empty,
+.debuff,
+.debuff-empty {
   position: relative;
   overflow: hidden;
   display: inline-flex;
@@ -131,8 +148,19 @@ textarea {
   -webkit-touch-callout: none;
 }
 
+.debuff {
+  border-color: #5a2f3c;
+  background: #1a1018;
+  color: #ffb4c2;
+}
+
+.debuff span {
+  font-size: 9px;
+}
+
 .item-icon,
-.item-choice-icon {
+.item-choice-icon,
+.debuff-icon {
   display: inline-block;
   flex: none;
   background-repeat: no-repeat;
@@ -142,6 +170,12 @@ textarea {
 
 .item-icon {
   border: 1px solid #3a2c52;
+  border-radius: 4px;
+  background-color: #0c0814;
+}
+
+.debuff-icon {
+  border: 1px solid #6a3444;
   border-radius: 4px;
   background-color: #0c0814;
 }
@@ -742,7 +776,9 @@ button {
 }
 
 .overlay.item-choice,
-.overlay.item-shop {
+.overlay.item-shop,
+.overlay.trap-choice,
+.overlay.debuff-notice {
   z-index: 8;
   justify-content: center;
   background: linear-gradient(180deg, rgba(9, 7, 13, 0.90), rgba(9, 7, 13, 0.97));
@@ -750,7 +786,8 @@ button {
 }
 
 .item-choice-grid,
-.item-shop-grid {
+.item-shop-grid,
+.trap-choice-grid {
   width: min(100%, 356px);
   display: grid;
   grid-template-columns: 1fr;
@@ -807,6 +844,66 @@ button {
   line-height: 1.45;
 }
 
+.debuff-choice-card {
+  border-color: #74354b;
+  background: #1a1018;
+}
+
+.debuff-choice-card b {
+  color: #ffb4c2;
+}
+
+.debuff-choice-icon {
+  border-color: #74354b;
+}
+
+.debuff-notice-body {
+  width: min(100%, 356px);
+  display: grid;
+  gap: 9px;
+  color: var(--ink);
+  line-height: 1.45;
+}
+
+.debuff-notice-body p {
+  margin: 0;
+  color: #ffb4c2;
+  font-size: 12px;
+}
+
+.debuff-notice-list {
+  display: grid;
+  gap: 7px;
+}
+
+.debuff-notice-list span {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+  border: 1px solid #74354b;
+  border-radius: 8px;
+  background: #171121;
+  padding: 7px 9px;
+}
+
+.debuff-notice-list b,
+.debuff-notice-list em {
+  display: block;
+}
+
+.debuff-notice-list b {
+  color: #ffb4c2;
+  font-size: 12px;
+}
+
+.debuff-notice-list em {
+  color: var(--ink-dim);
+  font-style: normal;
+  font-size: 10px;
+}
+
 .item-shop-grid {
   gap: 7px;
 }
@@ -858,7 +955,8 @@ button {
 
 .btn-skip-item,
 .btn-reroll-item,
-.btn-close-shop {
+.btn-close-shop,
+.btn-ack-debuff {
   min-width: 112px;
   background: linear-gradient(180deg, #4a3c61, #2c213d);
   border: 2px solid #171020;
@@ -880,6 +978,37 @@ button {
   border-radius: 8px;
   padding: 12px 14px;
   max-width: 324px;
+}
+
+.loop-select {
+  width: min(100%, 324px);
+  display: grid;
+  grid-template-columns: auto minmax(96px, 1fr);
+  gap: 6px 10px;
+  align-items: center;
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.loop-select span {
+  color: var(--amber);
+}
+
+.loop-select select {
+  min-width: 0;
+  border: 1px solid #4a385f;
+  border-radius: 6px;
+  background: #120d1b;
+  color: var(--ink);
+  font: inherit;
+  padding: 7px 8px;
+}
+
+.loop-select em {
+  grid-column: 1 / -1;
+  color: var(--ink-dim);
+  font-style: normal;
+  font-size: 10px;
 }
 
 .key {

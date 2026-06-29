@@ -29,6 +29,11 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="itemChoiceOverlay"');
     expect(html).toContain('id="itemChoiceGrid"');
     expect(html).toContain('id="skipItemBtn"');
+    expect(html).toContain('id="loopSelect"');
+    expect(html).toContain('id="loopInfo"');
+    expect(html).toContain('id="debuffBar"');
+    expect(html).toContain('id="debuffNoticeOverlay"');
+    expect(html).toContain('id="trapChoiceOverlay"');
     expect(html).toContain('id="startTitlePanel"');
     expect(html).not.toContain('id="startDialoguePanel"');
     expect(html).not.toContain('id="startPowerPanel"');
@@ -43,10 +48,10 @@ describe("Phaserアプリ構成", () => {
     expect(html).not.toContain("hakaishin_dungeon");
   });
 
-  it("Phaserシーンは4枚のアトラスをspritesheetとして読む", () => {
+  it("Phaserシーンは5枚のアトラスをspritesheetとして読む", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     expect(src).toContain('import Phaser from "phaser"');
-    expect(src).toContain("let gameApi = createConfiguredGame();");
+    expect(src).toContain("let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);");
     expect(src).not.toContain("let gameApi = createGame({ seed: 1 });");
     expect(src).toContain("loadStoredRuleConfig");
     expect(src).toContain("saveStoredRuleConfig");
@@ -56,6 +61,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('this.load.spritesheet("actors"');
     expect(src).toContain('this.load.spritesheet("effects"');
     expect(src).toContain('this.load.spritesheet("items"');
+    expect(src).toContain('this.load.spritesheet("debuffs"');
     expect(src).toContain("this.load.audio(AUDIO_KEYS.bgm");
     expect(src).toContain("bgm_dungeon_loop.wav");
     expect(src).toContain("core_hit.wav");
@@ -90,9 +96,14 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("itemCard");
     expect(src).toContain("renderItemOffer");
     expect(src).toContain("renderShopOffer");
+    expect(src).toContain("renderTrapOffer");
+    expect(src).toContain("renderDebuffNotice");
+    expect(src).toContain("renderLoopSelector");
     expect(src).toContain("chooseItemOffer");
     expect(src).toContain("buyShopItem");
     expect(src).toContain("closeShopOffer");
+    expect(src).toContain("chooseTrapDebuff");
+    expect(src).toContain("acknowledgeDebuffNotice");
     expect(src).toContain("bindItemHud");
     expect(src).toContain("ITEM_LONG_PRESS_MS");
     expect(src).toContain("showItemPopup");
@@ -126,6 +137,10 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".item-choice-icon");
     expect(css).toContain(".item-shop-card");
     expect(css).toContain(".item-rarity-gold");
+    expect(css).toContain(".loop-select");
+    expect(css).toContain(".debuffs");
+    expect(css).toContain(".trap-choice-grid");
+    expect(css).toContain(".debuff-notice-body");
     expect(css).toContain(".dev-json-output");
     expect(css).not.toContain(".power-status");
     expect(css).not.toContain("demon-squirrel-king.png");
@@ -146,7 +161,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v22-hori-shon");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v23-loop");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
