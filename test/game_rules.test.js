@@ -1079,7 +1079,11 @@ describe("ゲームルール", () => {
     expect(G.wave).toBe(1);
     expect(G.gameState).toBe("itemChoice");
     expect(G.chooseItemOffer(null)).toBe(true);
+    expect(G.gameState).toBe("shop");
     expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
+    G.update(G.WAVE_INTERVAL);
+    expect(G.wave).toBe(1);
+    expect(G.closeShopOffer()).toBe(true);
     G.update(G.WAVE_INTERVAL);
     expect(G.wave).toBe(2);
     expect(G.spawnQueue.length + G.heroes.length).toBeGreaterThan(0);
@@ -1410,7 +1414,7 @@ describe("ゲームルール", () => {
     expect(G.items).toHaveLength(0);
   });
 
-  it("ウェーブ終了時にアイテム3択を表示し、選ぶとゲームへ戻る", () => {
+  it("ウェーブ終了時にアイテム3択を表示し、選ぶとショップへ進む", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 5;
@@ -1420,10 +1424,23 @@ describe("ゲームルール", () => {
     expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
 
     expect(G.chooseItemOffer("blackSoilBag")).toBe(true);
-    expect(G.gameState).toBe("playing");
+    expect(G.gameState).toBe("shop");
     expect(G.itemOffer).toBe(null);
     expect(G.items).toEqual(["blackSoilBag"]);
     expect(G.itemEvents.some((e) => e.id === "blackSoilBag")).toBe(true);
+    expect(G.shopOffer).toEqual({
+      wave: 5,
+      goods: [
+        { id: "crackedMap", price: 17, sold: false },
+        { id: "masonGloves", price: 17, sold: false },
+        { id: "deepCompass", price: 34, sold: false },
+        { id: "oldIncense", price: 57, sold: false },
+      ],
+    });
+
+    expect(G.closeShopOffer()).toBe(true);
+    expect(G.gameState).toBe("playing");
+    expect(G.shopOffer).toBe(null);
   });
 
   it("update経由のウェーブ終了は最後の冒険者死亡後に余韻を挟む", () => {
@@ -1454,10 +1471,11 @@ describe("ゲームルール", () => {
     expect(G.gameState).toBe("itemChoice");
     G.drainEvents();
     expect(G.chooseItemOffer(null)).toBe(true);
-    expect(G.gameState).toBe("playing");
+    expect(G.gameState).toBe("shop");
     expect(G.items).toHaveLength(0);
     expect(G.itemOffer).toBe(null);
     expect(G.drainEvents().some((e) => e.type === "discoverItem")).toBe(false);
+    expect(G.shopOffer.goods.map((g) => g.id)).toEqual(["crackedMap", "masonGloves", "deepCompass", "oldIncense"]);
   });
 
   it("アイテム選択中はupdateでゲーム時間が進まない", () => {
@@ -1479,6 +1497,71 @@ describe("ゲームルール", () => {
     expect(effect.life).toBe(1000);
   });
 
+  it("アイテムはレアリティを持ち、強い格ほどショップ価格が高い", () => {
+    for (const id of PIXEL_ITEMS) {
+      expect(["normal", "rare", "gold"]).toContain(G.ITEMS[id].rarity);
+    }
+    expect(G.ITEM_RARITIES.normal.name).toBe("ノーマル");
+    expect(G.ITEM_RARITIES.rare.name).toBe("レア");
+    expect(G.ITEM_RARITIES.gold.name).toBe("ゴールド");
+    expect(G.ITEM_RARITIES.normal.shopWeight).toBeGreaterThan(G.ITEM_RARITIES.rare.shopWeight);
+    expect(G.ITEM_RARITIES.rare.shopWeight).toBeGreaterThan(G.ITEM_RARITIES.gold.shopWeight);
+    expect(G.itemShopPrice("rustyPickaxe", 0)).toBeLessThan(G.itemShopPrice("blackSoilBag", 0));
+    expect(G.itemShopPrice("blackSoilBag", 0)).toBeLessThan(G.itemShopPrice("oldIncense", 0));
+    expect(G.itemShopPrice("rustyPickaxe", 5)).toBe(17);
+    expect(G.itemShopPrice("blackSoilBag", 5)).toBe(34);
+    expect(G.itemShopPrice("oldIncense", 5)).toBe(57);
+  });
+
+  it("ショップでは栄養を払って複数アイテムを購入でき、足りない商品は買えない", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.wave = 5;
+    G.nutrients = 100;
+    G.gameState = "playing";
+    G.settleWave();
+    expect(G.chooseItemOffer("blackSoilBag")).toBe(true);
+    expect(G.gameState).toBe("shop");
+    expect(G.shopOffer.goods.map((g) => g.id)).toEqual(["crackedMap", "masonGloves", "deepCompass", "oldIncense"]);
+
+    expect(G.buyShopItem("crackedMap")).toBe(true);
+    expect(G.nutrients).toBe(83);
+    expect(G.items).toEqual(["blackSoilBag", "crackedMap"]);
+    expect(G.shopOffer.goods.find((g) => g.id === "crackedMap").sold).toBe(true);
+
+    expect(G.buyShopItem("masonGloves")).toBe(true);
+    expect(G.nutrients).toBe(66);
+    expect(G.items).toEqual(["blackSoilBag", "crackedMap", "masonGloves"]);
+
+    G.nutrients = 10;
+    expect(G.buyShopItem("deepCompass")).toBe(false);
+    expect(G.nutrients).toBe(10);
+    expect(G.items).not.toContain("deepCompass");
+
+    expect(G.closeShopOffer()).toBe(true);
+    expect(G.gameState).toBe("playing");
+  });
+
+  it("ショップ中はupdateでゲーム時間が進まない", () => {
+    carveAll();
+    G.setRandom(() => 0);
+    G.wave = 4;
+    G.waveCountdown = 5000;
+    G.nutrients = 30;
+    G.gameState = "playing";
+    G.settleWave();
+    expect(G.chooseItemOffer(null)).toBe(true);
+    G.effects.push({ type: "float", x: 0, y: 0, text: "商店", life: 1000, max: 1000, vy: -0.1 });
+    const effect = G.effects[G.effects.length - 1];
+
+    G.update(1000);
+
+    expect(G.gameState).toBe("shop");
+    expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
+    expect(G.nutrients).toBe(30);
+    expect(effect.life).toBe(1000);
+  });
+
   it("最終ウェーブ終了時はアイテムよりクリアを優先する", () => {
     carveAll();
     G.setRandom(() => 0);
@@ -1487,6 +1570,7 @@ describe("ゲームルール", () => {
     G.settleWave();
     expect(G.gameState).toBe("clear");
     expect(G.itemOffer).toBe(null);
+    expect(G.shopOffer).toBe(null);
     expect(G.items).toHaveLength(0);
   });
 

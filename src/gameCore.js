@@ -52,6 +52,7 @@ export const VEIN_FADE_START = 120000;
 export const VEIN_DECAY_TIME = 240000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 export const ITEM_OFFER_CHOICES = 3;
+export const SHOP_STOCK_COUNT = 4;
 export const REAPER_SPAWN_CHANCE = 0.002;
 
 export const RULE_CONSTANT_KEYS = [
@@ -101,6 +102,12 @@ export const RULE_TABLE_NUMBER_KEYS = {
   kinds: ["hp", "atk", "range", "moveCd", "atkCd", "aggro", "rank", "breedEvery", "breedCap", "eggChance", "evoLevel"],
   veins: ["unlock", "touchNeed", "finalTouchNeed", "spawnWeight", "soilAffinity"],
   heroes: ["rank", "hpMul", "atkMul", "defense", "range", "moveMul", "atkCd", "weight", "unlock", "healCd", "healRange", "healMul", "areaScale", "areaMax", "maxPerWave", "dodgeChance", "critChance", "critMul"],
+};
+
+export const ITEM_RARITIES = {
+  normal: { name: "ノーマル", priceBase: 12, priceWave: 1, shopWeight: 6 },
+  rare: { name: "レア", priceBase: 24, priceWave: 2, shopWeight: 3 },
+  gold: { name: "ゴールド", priceBase: 42, priceWave: 3, shopWeight: 1 },
 };
 
 export const ITEMS = {
@@ -163,6 +170,69 @@ export const ITEMS = {
   redMoonShard: { name: "赤月の破片", passive: true, profile: "ウェーブ後半ほど魔物の攻撃力が上がる。" },
   boneContract: { name: "白骨の契約書", passive: false, profile: "取得時にコアHPを消費し、現存魔物を強化する。" },
 };
+
+const ITEM_RARITY_BY_ID = {
+  rustyPickaxe: "normal",
+  blackSoilBag: "rare",
+  undergroundLantern: "normal",
+  crackedMap: "normal",
+  masonGloves: "normal",
+  deepCompass: "rare",
+  oldIncense: "gold",
+  herdFlute: "gold",
+  warmNest: "rare",
+  eggGuardBell: "rare",
+  boneMeal: "rare",
+  redCollar: "normal",
+  warPaint: "normal",
+  sleepSand: "normal",
+  curseNail: "rare",
+  blackBell: "normal",
+  stickyMud: "normal",
+  coreShard: "gold",
+  coreBandage: "rare",
+  redSealingWax: "rare",
+  quakeStone: "gold",
+  leftoverMeat: "normal",
+  silverMuzzle: "normal",
+  bloodyPlate: "rare",
+  trainingStick: "normal",
+  victoryBoneFlute: "rare",
+  crybabyBell: "normal",
+  shadowThread: "normal",
+  spareHeart: "rare",
+  ledger: "rare",
+  tornWallet: "normal",
+  demonCoin: "gold",
+  fakeGold: "rare",
+  wildCard: "rare",
+  thiefBag: "normal",
+  dryBread: "normal",
+  blackSeed: "rare",
+  reversedHourglass: "normal",
+  earlyDrum: "normal",
+  breathingFlute: "normal",
+  gapStake: "normal",
+  moleClaw: "rare",
+  obsidianLid: "rare",
+  wanderingPowder: "rare",
+  trailMark: "normal",
+  charmRope: "normal",
+  angerMask: "normal",
+  nestFlag: "normal",
+  oldEggshell: "normal",
+  crackedEgg: "normal",
+  royalEggshell: "rare",
+  rottenCrown: "gold",
+  rebelCharm: "rare",
+  crowdMark: "rare",
+  lowestCandle: "gold",
+  blackRaindrop: "rare",
+  redMoonShard: "gold",
+  boneContract: "gold",
+};
+
+for (const id of Object.keys(ITEMS)) ITEMS[id].rarity = ITEM_RARITY_BY_ID[id] || "normal";
 
 export const KINDS = {
   slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 3, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68", name: "スライム", profile: "迷宮の湿気が集まると出てくる。本人たちは採用面接に受かったと思っている。" },
@@ -484,6 +554,7 @@ export function createGame(options = {}) {
   let pickups = [];
   let items = [];
   let itemOffer = null;
+  let shopOffer = null;
   let itemEvents = [];
   let usedItems = new Set();
   let slowFields = [];
@@ -933,6 +1004,37 @@ export function createGame(options = {}) {
     return choices;
   }
 
+  function itemRarity(id) {
+    return (ITEMS[id] && ITEM_RARITIES[ITEMS[id].rarity]) ? ITEMS[id].rarity : "normal";
+  }
+
+  function itemShopPrice(id, shopWave = wave) {
+    const rarity = ITEM_RARITIES[itemRarity(id)];
+    return Math.round(rarity.priceBase + Math.max(0, shopWave || 0) * rarity.priceWave);
+  }
+
+  function chooseShopGoods(excludedIds = []) {
+    const excluded = new Set(excludedIds);
+    const pool = Object.keys(ITEMS).filter((id) => !hasItem(id) && !excluded.has(id));
+    const goods = [];
+    while (pool.length && goods.length < SHOP_STOCK_COUNT) {
+      let total = 0;
+      for (const id of pool) total += ITEM_RARITIES[itemRarity(id)].shopWeight;
+      let pick = random() * total;
+      let idx = pool.length - 1;
+      for (let i = 0; i < pool.length; i++) {
+        pick -= ITEM_RARITIES[itemRarity(pool[i])].shopWeight;
+        if (pick <= 0) {
+          idx = i;
+          break;
+        }
+      }
+      const id = pool.splice(idx, 1)[0];
+      goods.push({ id, price: itemShopPrice(id, wave), sold: false });
+    }
+    return goods;
+  }
+
   function triggerItem(id, life = 1200) {
     if (!ITEMS[id]) return;
     itemEvents.push({ id, life, max: life });
@@ -1001,6 +1103,43 @@ export function createGame(options = {}) {
     return true;
   }
 
+  function openShopOffer(excludedIds = []) {
+    const goods = chooseShopGoods(excludedIds);
+    if (!goods.length) {
+      shopOffer = null;
+      return false;
+    }
+    shopOffer = { wave, goods };
+    gameState = "shop";
+    banner("アイテム商店が開いた");
+    return true;
+  }
+
+  function buyShopItem(id) {
+    if (!shopOffer || !ITEMS[id]) return false;
+    const good = shopOffer.goods.find((g) => g.id === id);
+    if (!good || good.sold || hasItem(id)) return false;
+    const price = Math.max(0, Math.floor(good.price || itemShopPrice(id, shopOffer.wave)));
+    if (nutrients < price) return false;
+    nutrients -= price;
+    if (!applyItem(id)) {
+      nutrients += price;
+      return false;
+    }
+    good.sold = true;
+    banner(`アイテム『${ITEMS[id].name}』を購入`);
+    return true;
+  }
+
+  function closeShopOffer() {
+    if (!shopOffer) return false;
+    shopOffer = null;
+    waveCountdown = nextWaveInterval();
+    if (gameState === "shop") gameState = "playing";
+    banner("商店を閉じた");
+    return true;
+  }
+
   function settleWave() {
     if (wave <= 0 || waveSettled >= wave) return;
     waveSettleDelay = 0;
@@ -1019,7 +1158,7 @@ export function createGame(options = {}) {
     waveCountdown = nextWaveInterval();
     const choices = chooseItemOfferChoices();
     if (choices.length) {
-      itemOffer = { wave, choices };
+      itemOffer = { wave, choices, shopExclude: [...choices] };
       gameState = "itemChoice";
       banner("アイテムを見つけた");
     }
@@ -1027,6 +1166,7 @@ export function createGame(options = {}) {
 
   function chooseItemOffer(id = null) {
     if (!itemOffer) return false;
+    const shopExclude = [...new Set(itemOffer.shopExclude || itemOffer.choices)];
     if (id === null) {
       if (hasItem("thiefBag")) {
         nutrients += 8;
@@ -1034,15 +1174,15 @@ export function createGame(options = {}) {
         banner("盗賊の袋 ─ 栄養+8");
       }
       itemOffer = null;
-      if (gameState === "itemChoice") gameState = "playing";
       banner("アイテムを見送った");
+      if (gameState === "itemChoice" && !openShopOffer(shopExclude)) gameState = "playing";
       return true;
     }
     if (!itemOffer.choices.includes(id) || hasItem(id)) return false;
     if (!applyItem(id)) return false;
     banner(`アイテム『${ITEMS[id].name}』を入手`);
     itemOffer = null;
-    if (gameState === "itemChoice") gameState = "playing";
+    if (gameState === "itemChoice" && !openShopOffer(shopExclude)) gameState = "playing";
     return true;
   }
 
@@ -1056,7 +1196,7 @@ export function createGame(options = {}) {
       choices.push(pool.splice(idx, 1)[0]);
     }
     if (!choices.length) return false;
-    itemOffer = { wave: itemOffer.wave, choices };
+    itemOffer = { wave: itemOffer.wave, choices, shopExclude: [...new Set([...(itemOffer.shopExclude || []), ...choices])] };
     usedItems.add("wildCard");
     triggerItem("wildCard", 1500);
     banner("見切り札 ─ 選択肢を引き直した");
@@ -2613,6 +2753,7 @@ export function createGame(options = {}) {
     pickups = [];
     items = [];
     itemOffer = null;
+    shopOffer = null;
     itemEvents = [];
     usedItems = new Set();
     slowFields = [];
@@ -2715,6 +2856,7 @@ export function createGame(options = {}) {
     get slowFields() { return slowFields; },
     get items() { return items; },
     get itemOffer() { return itemOffer ? { wave: itemOffer.wave, choices: [...itemOffer.choices] } : null; },
+    get shopOffer() { return shopOffer ? { wave: shopOffer.wave, goods: shopOffer.goods.map((g) => ({ ...g })) } : null; },
     get itemEvents() { return itemEvents; },
     get usedItems() { return [...usedItems]; },
     get canRerollItemOffer() { return !!itemOffer && hasItem("wildCard") && !usedItems.has("wildCard"); },
@@ -2742,19 +2884,19 @@ export function createGame(options = {}) {
     set gameState(v) { gameState = v; },
     get ruleConfig() { return clonePlain(ruleConfig); },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, clearCoreHitEffects, drainEvents,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, buyShopItem, closeShopOffer, clearCoreHitEffects, drainEvents,
     hasItem, applyItem,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
-    isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemHighlights,
+    isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemHighlights, itemRarity, itemShopPrice,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, ITEMS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
     PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
@@ -2762,11 +2904,11 @@ export function createGame(options = {}) {
 
 export const Core = {
   DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig,
-  VEIN, KINDS, HERO_CLASSES, ITEMS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
+  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
   PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS,
   PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, heroDigDmg, resolveHeroStats, cx, cy,
 };

@@ -89,7 +89,10 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("discoveredItems");
     expect(src).toContain("itemCard");
     expect(src).toContain("renderItemOffer");
+    expect(src).toContain("renderShopOffer");
     expect(src).toContain("chooseItemOffer");
+    expect(src).toContain("buyShopItem");
+    expect(src).toContain("closeShopOffer");
     expect(src).toContain("bindItemHud");
     expect(src).toContain("ITEM_LONG_PRESS_MS");
     expect(src).toContain("showItemPopup");
@@ -121,6 +124,8 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain("-webkit-touch-callout: none");
     expect(css).toContain(".item-choice-card");
     expect(css).toContain(".item-choice-icon");
+    expect(css).toContain(".item-shop-card");
+    expect(css).toContain(".item-rarity-gold");
     expect(css).toContain(".dev-json-output");
     expect(css).not.toContain(".power-status");
     expect(css).not.toContain("demon-squirrel-king.png");

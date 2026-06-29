@@ -326,7 +326,20 @@ async function run() {
       throw new Error(`アイテム3択表示が不正です: ${JSON.stringify(offer)}`);
     }
     await evaluate(client, `document.querySelector('[data-item-choice="rustyPickaxe"]').click()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemChoiceOverlay").classList.contains("hidden")`, "アイテム選択後の再開");
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && document.getElementById("itemChoiceOverlay").classList.contains("hidden") && !document.getElementById("itemShopOverlay").classList.contains("hidden") && document.querySelectorAll("[data-shop-item]").length === 4`, "ショップ表示");
+    const shop = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      goods: globalThis.MakaiDefense.current.shopOffer?.goods || [],
+      cards: document.querySelectorAll("[data-shop-item]").length,
+      label: document.getElementById("waveLabel").textContent,
+      timer: document.getElementById("waveTimer").textContent,
+      priceText: document.querySelector("[data-shop-item] .shop-price")?.textContent || ""
+    })`);
+    if (shop.state !== "shop" || shop.cards !== 4 || shop.goods.some((g) => offer.choices.includes(g.id)) || shop.label !== "ショップ" || shop.timer !== "時間停止中" || !shop.priceText.includes("栄養")) {
+      throw new Error(`ショップ表示が不正です: ${JSON.stringify(shop)}`);
+    }
+    await evaluate(client, `document.getElementById("closeShopBtn").click()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemShopOverlay").classList.contains("hidden")`, "ショップ閉店後の再開");
     const itemResult = await evaluate(client, `({
       items: globalThis.MakaiDefense.current.items,
       bar: document.getElementById("itemBar").textContent,

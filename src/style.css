@@ -211,6 +211,36 @@ textarea {
   image-rendering: crisp-edges;
 }
 
+.item-rarity {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+  padding: 2px 5px;
+  border: 1px solid #3a2c52;
+  border-radius: 5px;
+  background: #0c0814;
+  color: var(--ink-dim);
+  font-style: normal;
+  font-size: 9px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.item-rarity-normal {
+  border-color: #4a5b66;
+  color: #cfd8e3;
+}
+
+.item-rarity-rare {
+  border-color: #5b6fd6;
+  color: #9fe8d8;
+}
+
+.item-rarity-gold {
+  border-color: #b57922;
+  color: #ffcf4d;
+}
+
 .core-line {
   grid-column: 1 / -1;
   display: flex;
@@ -711,14 +741,16 @@ button {
   color: #9fe8d8;
 }
 
-.overlay.item-choice {
+.overlay.item-choice,
+.overlay.item-shop {
   z-index: 8;
   justify-content: center;
   background: linear-gradient(180deg, rgba(9, 7, 13, 0.90), rgba(9, 7, 13, 0.97));
   line-height: 1.2;
 }
 
-.item-choice-grid {
+.item-choice-grid,
+.item-shop-grid {
   width: min(100%, 356px);
   display: grid;
   grid-template-columns: 1fr;
@@ -746,6 +778,12 @@ button {
   box-shadow: inset 0 0 0 1px #000, 0 1px 0 #0c0814;
 }
 
+.item-choice-card:disabled {
+  cursor: default;
+  transform: none;
+  box-shadow: inset 0 0 0 1px #000, 0 3px 0 #0c0814;
+}
+
 .item-choice-card span {
   min-width: 0;
 }
@@ -769,6 +807,48 @@ button {
   line-height: 1.45;
 }
 
+.item-shop-grid {
+  gap: 7px;
+}
+
+.item-shop-card {
+  min-height: 76px;
+  grid-template-columns: 46px minmax(0, 1fr);
+}
+
+.item-shop-normal {
+  border-color: #41505b;
+}
+
+.item-shop-rare {
+  border-color: #4d6796;
+}
+
+.item-shop-gold {
+  border-color: #8a631f;
+  background: #1b1520;
+}
+
+.item-shop-short {
+  opacity: 0.62;
+}
+
+.item-shop-sold {
+  opacity: 0.55;
+}
+
+.shop-price {
+  display: inline-block;
+  margin-top: 5px;
+  padding: 3px 7px;
+  border: 1px solid #5a4220;
+  border-radius: 5px;
+  background: #211821;
+  color: var(--amber);
+  font-size: 10px;
+  line-height: 1;
+}
+
 .item-choice-icon {
   border: 1px solid #4a385f;
   border-radius: 6px;
@@ -777,7 +857,8 @@ button {
 }
 
 .btn-skip-item,
-.btn-reroll-item {
+.btn-reroll-item,
+.btn-close-shop {
   min-width: 112px;
   background: linear-gradient(180deg, #4a3c61, #2c213d);
   border: 2px solid #171020;

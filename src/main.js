@@ -47,6 +47,7 @@ let progress = loadProgress();
 let codexOpen = false;
 let codexTab = "monster";
 let lastItemOfferKey = "";
+let lastShopOfferKey = "";
 let lastItemBarKey = "";
 let itemPress = null;
 let activeItemPopupId = null;
@@ -242,7 +243,7 @@ function playHeroDeathVoice() {
 
 function syncAudioState(forceStart = false) {
   if (!activeScene || !activeScene.sound) return;
-  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "itemChoice";
+  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "itemChoice" || gameApi.gameState === "shop";
   if (!shouldPlay) {
     if (bgmSound && bgmSound.isPlaying) bgmSound.stop();
     return;
@@ -767,6 +768,20 @@ function itemLabel(id) {
   return `${a.name}: ${a.profile}`;
 }
 
+function itemRarity(id) {
+  const rarity = gameApi.itemRarity ? gameApi.itemRarity(id) : (gameApi.ITEMS[id] && gameApi.ITEMS[id].rarity) || "normal";
+  return gameApi.ITEM_RARITIES[rarity] ? rarity : "normal";
+}
+
+function itemRarityName(id) {
+  return gameApi.ITEM_RARITIES[itemRarity(id)].name;
+}
+
+function itemRarityBadgeHtml(id) {
+  const rarity = itemRarity(id);
+  return `<i class="item-rarity item-rarity-${escapeHtml(rarity)}">${escapeHtml(itemRarityName(id))}</i>`;
+}
+
 function monsterCard(kind) {
   const k = gameApi.KINDS[kind];
   const found = progressSets().monsters.has(kind);
@@ -848,9 +863,9 @@ function itemCard(id) {
     <article class="codex-card">
       <div class="codex-sprite-wrap">${itemIconHtml(id, "codex-item-icon", 48)}</div>
       <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(a.name)}</strong><em>${a.passive ? "常時" : "取得時"}</em></div>
+        <div class="codex-title"><strong>${escapeHtml(a.name)}</strong><em>${escapeHtml(itemRarityName(id))}</em></div>
         <div class="codex-stats">
-          ${statPill("種別", a.passive ? "常時" : "取得時")}
+          ${statPill("種別", a.passive ? "常時" : "取得時")}${statPill("格", itemRarityName(id))}
         </div>
         <p>${escapeHtml(a.profile)}</p>
       </div>
@@ -1098,7 +1113,7 @@ function showItemPopup(id, target) {
   if (!popup || !a || !target) return;
   popup.innerHTML = `
     ${itemIconHtml(id, "item-popup-icon", 30)}
-    <span><b>${escapeHtml(a.name)}</b><em>${escapeHtml(a.profile)}</em></span>`;
+    <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(id)}</b><em>${escapeHtml(a.profile)}</em></span>`;
   popup.classList.remove("hidden");
   popup.style.visibility = "hidden";
   popup.style.left = "0px";
@@ -1220,7 +1235,40 @@ function renderItemOffer() {
     return `
       <button type="button" class="item-choice-card" data-item-choice="${escapeHtml(id)}">
         ${itemIconHtml(id, "item-choice-icon", 38)}
-        <span><b>${escapeHtml(a.name)}</b><em>${escapeHtml(a.profile)}</em></span>
+        <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(id)}</b><em>${escapeHtml(a.profile)}</em></span>
+      </button>`;
+  }).join("");
+}
+
+function renderShopOffer() {
+  const overlay = document.getElementById("itemShopOverlay");
+  const grid = document.getElementById("itemShopGrid");
+  if (!overlay || !grid) return;
+  const offer = gameApi.shopOffer;
+  overlay.classList.toggle("hidden", !offer);
+  if (!offer) {
+    lastShopOfferKey = "";
+    grid.innerHTML = "";
+    return;
+  }
+  const key = `${offer.wave}:${Math.floor(gameApi.nutrients)}:${offer.goods.map((g) => `${g.id}:${g.price}:${g.sold ? 1 : 0}`).join(",")}`;
+  if (key === lastShopOfferKey) return;
+  lastShopOfferKey = key;
+  grid.innerHTML = offer.goods.map((good) => {
+    const a = gameApi.ITEMS[good.id];
+    if (!a) return "";
+    const owned = gameApi.items.includes(good.id);
+    const sold = good.sold || owned;
+    const affordable = gameApi.nutrients >= good.price;
+    const disabled = sold || !affordable;
+    const priceLabel = sold ? "購入済み" : `栄養 ${good.price}`;
+    const classes = ["item-choice-card", "item-shop-card", `item-shop-${itemRarity(good.id)}`];
+    if (sold) classes.push("item-shop-sold");
+    if (!sold && !affordable) classes.push("item-shop-short");
+    return `
+      <button type="button" class="${classes.join(" ")}" data-shop-item="${escapeHtml(good.id)}"${disabled ? " disabled" : ""}>
+        ${itemIconHtml(good.id, "item-choice-icon", 38)}
+        <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(good.id)}</b><em>${escapeHtml(a.profile)}</em><strong class="shop-price">${escapeHtml(priceLabel)}</strong></span>
       </button>`;
   }).join("");
 }
@@ -1237,6 +1285,7 @@ function updateHud() {
   document.getElementById("scoreNum").textContent = gameApi.score;
   renderItems();
   renderItemOffer();
+  renderShopOffer();
   document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
@@ -1244,6 +1293,9 @@ function updateHud() {
   let waveTimer = `${Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000)} 秒`;
   if (gameApi.gameState === "itemChoice") {
     waveLabel = "アイテム選択";
+    waveTimer = "時間停止中";
+  } else if (gameApi.gameState === "shop") {
+    waveLabel = "ショップ";
     waveTimer = "時間停止中";
   } else if (gameApi.waveSettleDelay > 0) {
     waveLabel = "撃退確認中";
@@ -1278,6 +1330,7 @@ function updateHud() {
 function startGame() {
   hideItemPopup();
   lastItemBarKey = "";
+  lastShopOfferKey = "";
   gameApi = createConfiguredGame();
   gameApi.startGame();
   syncAudioState(true);
@@ -1288,6 +1341,7 @@ function startGame() {
 function openStartFlow() {
   hideItemPopup();
   lastItemBarKey = "";
+  lastShopOfferKey = "";
   gameApi = createConfiguredGame();
   gameApi.gameState = "title";
   syncAudioState();
@@ -1335,6 +1389,17 @@ function boot() {
   const rerollItem = document.getElementById("rerollItemBtn");
   if (rerollItem) rerollItem.addEventListener("click", () => {
     if (gameApi.rerollItemOffer()) updateHud();
+  });
+  const itemShopGrid = document.getElementById("itemShopGrid");
+  if (itemShopGrid) itemShopGrid.addEventListener("click", (event) => {
+    const target = event.target && typeof event.target.closest === "function" ? event.target : null;
+    const button = target ? target.closest("[data-shop-item]") : null;
+    if (!button) return;
+    if (gameApi.buyShopItem(button.dataset.shopItem)) updateHud();
+  });
+  const closeShop = document.getElementById("closeShopBtn");
+  if (closeShop) closeShop.addEventListener("click", () => {
+    if (gameApi.closeShopOffer()) updateHud();
   });
   bindItemHud();
   bindButtonSounds();
