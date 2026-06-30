@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
@@ -1186,8 +1186,47 @@ function drawDebuffIcon(name) {
   return img;
 }
 
+function drawDialoguePortrait(name) {
+  const img = image();
+  oval(img, 24, 42, 17, 4, "#0c0812", 110);
+  diamond(img, 24, 25, 20, "#241a36", 55);
+  if (name === "executive") {
+    tri(img, 12, 42, 24, 9, 36, 42, "#211329", 245);
+    tri(img, 15, 42, 24, 16, 33, 42, "#4b2b6f", 235);
+    line(img, 15, 40, 24, 13, "#9a73d6", 2, 180);
+    line(img, 33, 40, 24, 13, "#9a73d6", 2, 180);
+    rect(img, 17, 34, 14, 7, "#3a234f", 245);
+    oval(img, 24, 22, 9, 10, "#d0a17a", 245);
+    rect(img, 17, 20, 14, 5, "#2a153c", 245);
+    tri(img, 15, 20, 24, 6, 33, 20, "#30184a", 245);
+    tri(img, 20, 13, 24, 4, 28, 13, "#ffcf4d", 235);
+    line(img, 18, 27, 30, 27, "#2a1117", 1, 220);
+    rect(img, 20, 22, 3, 2, "#101018", 245);
+    rect(img, 27, 22, 3, 2, "#101018", 245);
+    diamond(img, 24, 35, 4, "#ffcf4d", 235);
+    line(img, 13, 42, 35, 42, "#5a3f7c", 2, 190);
+  } else if (name === "gorilla") {
+    rect(img, 15, 34, 18, 9, "#6a4430", 245);
+    rect(img, 16, 34, 16, 8, "#f0d6b0", 235);
+    oval(img, 24, 23, 14, 13, "#5a3828", 245);
+    oval(img, 24, 29, 11, 8, "#b98a69", 245);
+    oval(img, 14, 24, 4, 5, "#4b2d22", 235);
+    oval(img, 34, 24, 4, 5, "#4b2d22", 235);
+    oval(img, 20, 24, 2, 2, "#111018", 245);
+    oval(img, 28, 24, 2, 2, "#111018", 245);
+    rect(img, 21, 30, 6, 2, "#3a1d18", 230);
+    line(img, 18, 35, 30, 35, "#8f4f5a", 2, 210);
+    tri(img, 11, 42, 17, 31, 23, 42, "#7a4c36", 230);
+    tri(img, 25, 42, 31, 31, 37, 42, "#7a4c36", 230);
+    diamond(img, 24, 39, 3, "#ffcf4d", 220);
+  }
+  noise(img, name === "executive" ? 19 : 23, ["#ffffff", "#ffcf4d", "#5a3f7c"], 9, 55);
+  clearCellEdge(img);
+  return img;
+}
+
 function writeSourceFrames() {
-  for (const dir of ["actors", "tiles", "effects", "items", "debuffs"]) ensureDir(path.join(SOURCE_DIR, dir));
+  for (const dir of ["actors", "tiles", "effects", "items", "debuffs", "dialogue"]) ensureDir(path.join(SOURCE_DIR, dir));
   for (const name of TILES) writePng(spritePath("tiles", name), drawTile(name));
   for (const name of ACTORS) {
     for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) {
@@ -1197,6 +1236,7 @@ function writeSourceFrames() {
   for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) writePng(spritePath("effects", name, f), drawEffect(name, f));
   for (const name of ITEM_ICONS) writePng(spritePath("items", name), drawItemIcon(name));
   for (const name of DEBUFF_ICONS) writePng(spritePath("debuffs", name), drawDebuffIcon(name));
+  for (const name of DIALOGUE_PORTRAITS) writePng(spritePath("dialogue", name), drawDialoguePortrait(name));
 }
 
 function actorFrameX(actionIndex, dirIndex, frame) {
@@ -1228,10 +1268,14 @@ function writeAtlas() {
   const debuffs = image(CELL * DEBUFF_ICONS.length, CELL);
   DEBUFF_ICONS.forEach((name, col) => copyInto(debuffs, readPng(spritePath("debuffs", name)), col * CELL, 0));
   writePng(path.join(OUT_DIR, "debuffs.png"), debuffs);
+
+  const dialogue = image(CELL * DIALOGUE_PORTRAITS.length, CELL);
+  DIALOGUE_PORTRAITS.forEach((name, col) => copyInto(dialogue, readPng(spritePath("dialogue", name)), col * CELL, 0));
+  writePng(path.join(OUT_DIR, "dialogue_portraits.png"), dialogue);
 }
 
 function writeMeta() {
-  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, items: {}, debuffs: {} };
+  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, items: {}, debuffs: {}, dialogue: {} };
   ACTORS.forEach((name, row) => {
     meta.actors[name] = { sheet: "actors", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, directions: DIRECTIONS.length, actions: ACTIONS.length, anchor: [CELL / 2, Math.round(CELL * 0.75)] };
   });
@@ -1239,6 +1283,7 @@ function writeMeta() {
   EFFECTS.forEach((name, row) => { meta.effects[name] = { sheet: "effects", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, anchor: [CELL / 2, CELL / 2] }; });
   ITEM_ICONS.forEach((name, col) => { meta.items[name] = { sheet: "items", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
   DEBUFF_ICONS.forEach((name, col) => { meta.debuffs[name] = { sheet: "debuffs", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
+  DIALOGUE_PORTRAITS.forEach((name, col) => { meta.dialogue[name] = { sheet: "dialogue_portraits", x: col * CELL, y: 0, w: CELL, h: CELL, anchor: [CELL / 2, CELL / 2] }; });
   fs.writeFileSync(path.join(OUT_DIR, "sprites.json"), JSON.stringify(meta, null, 2) + "\n");
 }
 

@@ -1496,5 +1496,29 @@
         24
       ]
     }
+  },
+  "dialogue": {
+    "executive": {
+      "sheet": "dialogue_portraits",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "gorilla": {
+      "sheet": "dialogue_portraits",
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    }
   }
 }

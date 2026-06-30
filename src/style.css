@@ -108,25 +108,8 @@ textarea {
   display: none;
 }
 
-.debuffs {
-  grid-column: 1 / -1;
-  display: flex;
-  gap: 5px;
-  min-height: 28px;
-  align-items: center;
-  overflow-x: auto;
-  scrollbar-width: none;
-  touch-action: pan-x;
-}
-
-.debuffs::-webkit-scrollbar {
-  display: none;
-}
-
 .item,
-.item-empty,
-.debuff,
-.debuff-empty {
+.item-empty {
   position: relative;
   overflow: hidden;
   display: inline-flex;
@@ -148,14 +131,10 @@ textarea {
   -webkit-touch-callout: none;
 }
 
-.debuff {
+.item-debuff {
   border-color: #5a2f3c;
   background: #1a1018;
   color: #ffb4c2;
-}
-
-.debuff span {
-  font-size: 9px;
 }
 
 .item-icon,
@@ -180,6 +159,26 @@ textarea {
   background-color: #0c0814;
 }
 
+.hud-message {
+  grid-column: 1 / -1;
+  min-height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 4px 8px;
+  border: 1px solid #5a3f7c;
+  border-radius: 6px;
+  background: rgba(18, 13, 27, 0.94);
+  color: var(--gold);
+  font-size: 11px;
+  line-height: 1.2;
+  text-align: center;
+  box-shadow: inset 0 0 0 1px #000;
+}
+
+.hud-message.hidden {
+  display: none;
+}
+
 .item-used {
   opacity: 0.72;
   border-color: #5a4b32;
@@ -192,6 +191,10 @@ textarea {
   font-style: normal;
   color: #ffcf4d;
   font-size: 9px;
+}
+
+.debuff-badge {
+  color: #ff8ea3;
 }
 
 .item-popup {
@@ -273,6 +276,12 @@ textarea {
 .item-rarity-gold {
   border-color: #b57922;
   color: #ffcf4d;
+}
+
+.item-rarity-debuff {
+  border-color: #6a3444;
+  background: #2a1118;
+  color: #ffb4c2;
 }
 
 .core-line {

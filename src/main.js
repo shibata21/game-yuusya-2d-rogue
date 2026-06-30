@@ -11,6 +11,7 @@ import {
   pixelActorFrameIndex,
   pixelItemFrameIndex,
   pixelDebuffFrameIndex,
+  pixelDialoguePortraitFrameIndex,
   COLS,
   ROWS,
   TILE,
@@ -25,6 +26,7 @@ import {
   PIXEL_EFFECTS,
   PIXEL_ITEMS,
   PIXEL_DEBUFFS,
+  PIXEL_DIALOGUE_PORTRAITS,
   PIXEL_FRAMES,
 } from "./gameCore.js";
 import { DEV_GROUPS } from "./devTuning.js";
@@ -858,6 +860,15 @@ function debuffIconHtml(id, className = "debuff-icon", size = 24) {
   return `<span class="${escapeHtml(className)}" aria-hidden="true" style='${debuffIconStyle(id, size)}'></span>`;
 }
 
+function dialoguePortraitStyle(id, size = 48) {
+  const frame = pixelDialoguePortraitFrameIndex(id);
+  return [
+    `background-image:url("${pixelAssetUrl("dialogue_portraits.png")}")`,
+    `background-size:${PIXEL_DIALOGUE_PORTRAITS.length * size}px ${size}px`,
+    `background-position:-${frame * size}px 0`,
+  ].join(";");
+}
+
 function itemLabel(id) {
   const a = gameApi.ITEMS[id];
   if (!a) return id;
@@ -1215,10 +1226,13 @@ function hideItemPopup() {
 function showItemPopup(id, target) {
   const popup = document.getElementById("itemPopup");
   const a = gameApi.ITEMS[id];
-  if (!popup || !a || !target) return;
-  popup.innerHTML = `
-    ${itemIconHtml(id, "item-popup-icon", 30)}
-    <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(id)}</b><em>${escapeHtml(a.profile)}</em></span>`;
+  const d = gameApi.DEBUFF_ITEMS[id];
+  if (!popup || (!a && !d) || !target) return;
+  popup.innerHTML = a
+    ? `${itemIconHtml(id, "item-popup-icon", 30)}
+    <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(id)}</b><em>${escapeHtml(a.profile)}</em></span>`
+    : `${debuffIconHtml(id, "item-popup-icon debuff-icon", 30)}
+    <span><b>${escapeHtml(d.name)} <i class="item-rarity item-rarity-debuff">デバフ</i></b><em>${escapeHtml(d.profile)}</em></span>`;
   popup.classList.remove("hidden");
   popup.style.visibility = "hidden";
   popup.style.left = "0px";
@@ -1242,7 +1256,7 @@ function clearItemPress() {
 
 function startItemPress(event, button) {
   clearItemPress();
-  const id = button.dataset.itemId;
+  const id = button.dataset.itemId || button.dataset.debuffId;
   if (!id) return;
   event.preventDefault();
   try {
@@ -1273,21 +1287,21 @@ function bindItemHud() {
   const bar = document.getElementById("itemBar");
   if (!bar) return;
   bar.addEventListener("pointerdown", (event) => {
-    const button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-item-id]") : null;
+    const button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-item-id], [data-debuff-id]") : null;
     if (!button) return;
     startItemPress(event, button);
   });
   bar.addEventListener("pointermove", moveItemPress);
   for (const type of ["pointerup", "pointercancel", "pointerleave"]) bar.addEventListener(type, clearItemPress);
   bar.addEventListener("contextmenu", (event) => {
-    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id]")) event.preventDefault();
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id], [data-debuff-id]")) event.preventDefault();
   });
   bar.addEventListener("selectstart", (event) => {
-    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id]")) event.preventDefault();
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id], [data-debuff-id]")) event.preventDefault();
   });
   document.addEventListener("pointerdown", (event) => {
     const target = event.target && typeof event.target.closest === "function" ? event.target : null;
-    if (target && (target.closest("#itemBar [data-item-id]") || target.closest("#itemPopup"))) return;
+    if (target && (target.closest("#itemBar [data-item-id], #itemBar [data-debuff-id]") || target.closest("#itemPopup"))) return;
     hideItemPopup();
   });
   window.addEventListener("scroll", hideItemPopup, { passive: true });
@@ -1298,16 +1312,17 @@ function renderItems() {
   const bar = document.getElementById("itemBar");
   if (!bar) return;
   const held = gameApi.items;
+  const debuffs = gameApi.debuffItems || [];
   const used = new Set(gameApi.usedItems);
-  const key = held.join(",") + "|" + [...used].sort().join(",");
+  const key = held.join(",") + "|d:" + debuffs.join(",") + "|" + [...used].sort().join(",");
   if (key === lastItemBarKey) return;
   lastItemBarKey = key;
-  if (activeItemPopupId && !held.includes(activeItemPopupId)) hideItemPopup();
-  if (!held.length) {
+  if (activeItemPopupId && !held.includes(activeItemPopupId) && !debuffs.includes(activeItemPopupId)) hideItemPopup();
+  if (!held.length && !debuffs.length) {
     bar.innerHTML = `<span class="item-empty">アイテムなし</span>`;
     return;
   }
-  bar.innerHTML = held.map((id) => {
+  const itemHtml = held.map((id) => {
     const a = gameApi.ITEMS[id];
     if (!a) return "";
     const classes = ["item"];
@@ -1316,22 +1331,22 @@ function renderItems() {
     const label = itemLabel(id);
     return `<button type="button" class="${classes.join(" ")}" data-item-id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${itemIconHtml(id, "item-icon", 24)}${badge}</button>`;
   }).join("");
-}
-
-function renderDebuffs() {
-  const bar = document.getElementById("debuffBar");
-  if (!bar) return;
-  const held = gameApi.debuffItems || [];
-  if (!held.length) {
-    bar.innerHTML = `<span class="debuff-empty">デバフなし</span>`;
-    return;
-  }
-  bar.innerHTML = held.map((id) => {
+  const debuffHtml = debuffs.map((id) => {
     const d = gameApi.DEBUFF_ITEMS[id];
     if (!d) return "";
     const label = debuffLabel(id);
-    return `<button type="button" class="debuff" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${debuffIconHtml(id, "debuff-icon", 24)}<span>${escapeHtml(d.name)}</span></button>`;
+    return `<button type="button" class="item item-debuff" data-debuff-id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${debuffIconHtml(id, "item-icon debuff-icon", 24)}<i class="item-badge debuff-badge">罠</i></button>`;
   }).join("");
+  bar.innerHTML = itemHtml + debuffHtml;
+}
+
+function renderHudMessage() {
+  const box = document.getElementById("hudMessage");
+  if (!box) return;
+  const banners = gameApi.effects.filter((e) => e.type === "banner" && e.text);
+  const latest = banners[banners.length - 1];
+  box.classList.toggle("hidden", !latest);
+  box.textContent = latest ? latest.text : "";
 }
 
 function renderItemOffer() {
@@ -1464,6 +1479,9 @@ function renderDialogue() {
   if (dialogue.portrait === "slime") {
     portrait.classList.add("dialogue-sprite");
     portrait.innerHTML = `<span class="dialogue-sprite-crop" style='${codexSpriteStyle("slime")}'></span>`;
+  } else if (PIXEL_DIALOGUE_PORTRAITS.includes(dialogue.portrait)) {
+    portrait.classList.add("dialogue-sprite");
+    portrait.innerHTML = `<span class="dialogue-sprite-crop" style='${dialoguePortraitStyle(dialogue.portrait)}'></span>`;
   }
   topic.textContent = dialogue.topic || "会話";
   speaker.textContent = dialogue.speaker || "";
@@ -1485,7 +1503,6 @@ function updateHud() {
   document.getElementById("scoreNum").textContent = gameApi.score;
   renderLoopSelector();
   renderItems();
-  renderDebuffs();
   renderItemOffer();
   renderShopOffer();
   renderTrapOffer();
@@ -1538,6 +1555,7 @@ function updateHud() {
   document.getElementById("clearScore").textContent = gameApi.score;
   document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveSettleDelay > 0 || gameApi.waveCountdown <= 3000;
   updateProgressStatus();
+  renderHudMessage();
   syncAudioState();
 }
 

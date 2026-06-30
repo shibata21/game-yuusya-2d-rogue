@@ -1438,7 +1438,7 @@ describe("ゲームルール", () => {
     G.gameState = "playing";
     G.settleWave();
     expect(G.gameState).toBe("dialogue");
-    expect(G.dialogue).toMatchObject({ id: "itemChoice", speaker: "親切なゴリラおばさん", returnState: "itemChoice" });
+    expect(G.dialogue).toMatchObject({ id: "itemChoice", speaker: "ゴリラおばさん", returnState: "itemChoice" });
     expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
     expect(G.chooseItemOffer("blackSoilBag")).toBe(false);
     advanceDialogueAll();
@@ -1452,9 +1452,9 @@ describe("ゲームルール", () => {
     expect(G.shopOffer).toBe(null);
   });
 
-  it("撃退後イベントは65%で発生し、外れた場合はそのまま再開する", () => {
+  it("撃退後イベントは30%で発生し、外れた場合はそのまま再開する", () => {
     carveAll();
-    expect(POST_WAVE_EVENT_CHANCE).toBe(0.65);
+    expect(POST_WAVE_EVENT_CHANCE).toBe(0.30);
     G.setRandom(() => 0.99);
     G.wave = 5;
     G.waveCountdown = 5000;
@@ -1466,6 +1466,26 @@ describe("ゲームルール", () => {
     expect(G.shopOffer).toBe(null);
     expect(G.trapOffer).toBe(null);
     expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
+  });
+
+  it("アイテム欄が満杯なら無料アイテムは取れず、選択画面に残る", () => {
+    carveAll();
+    for (const id of PIXEL_ITEMS.slice(0, G.ITEM_CAP)) expect(G.applyItem(id, { ignoreCap: true }), id).toBe(true);
+    expect(G.items).toHaveLength(G.ITEM_CAP);
+    G.setRandom(() => 0);
+    G.wave = 5;
+    G.gameState = "playing";
+    G.settleWave();
+    advanceDialogueAll();
+    expect(G.gameState).toBe("itemChoice");
+    const choice = G.itemOffer.choices[0];
+
+    expect(G.chooseItemOffer(choice)).toBe(true);
+    expect(G.gameState).toBe("itemChoice");
+    expect(G.items).toHaveLength(G.ITEM_CAP);
+    expect(G.items).not.toContain(choice);
+    expect(G.itemOffer.choices).toContain(choice);
+    expect(G.effects.some((e) => e.type === "banner" && e.text === "もう取れません")).toBe(true);
   });
 
   it("update経由のウェーブ終了は最後の冒険者死亡後に余韻を挟む", () => {
@@ -1586,6 +1606,28 @@ describe("ゲームルール", () => {
     expect(G.gameState).toBe("playing");
   });
 
+  it("アイテム欄が満杯ならショップ購入はできず、栄養と商品状態を変えない", () => {
+    carveAll();
+    for (const id of PIXEL_ITEMS.slice(0, G.ITEM_CAP)) expect(G.applyItem(id, { ignoreCap: true }), id).toBe(true);
+    const rolls = [0, 0.7, 0, 0, 0, 0, 0];
+    G.setRandom(() => rolls.length ? rolls.shift() : 0);
+    G.wave = 5;
+    G.nutrients = 100;
+    G.gameState = "playing";
+    G.settleWave();
+    advanceDialogueAll();
+    expect(G.gameState).toBe("shop");
+    const good = G.shopOffer.goods[0];
+    const beforeNut = G.nutrients;
+
+    expect(G.buyShopItem(good.id)).toBe(true);
+    expect(G.gameState).toBe("shop");
+    expect(G.nutrients).toBe(beforeNut);
+    expect(G.items).toHaveLength(G.ITEM_CAP);
+    expect(G.shopOffer.goods.find((g) => g.id === good.id).sold).toBe(false);
+    expect(G.effects.some((e) => e.type === "banner" && e.text === "もう取れません")).toBe(true);
+  });
+
   it("ショップ中はupdateでゲーム時間が進まない", () => {
     carveAll();
     const rolls = [0, 0.7, 0, 0, 0, 0, 0];
@@ -1699,7 +1741,7 @@ describe("ゲームルール", () => {
   it("58種のアイテムはすべて取得でき、発見イベントを出す", () => {
     carveAll();
     for (const id of PIXEL_ITEMS) {
-      expect(G.applyItem(id), id).toBe(true);
+      expect(G.applyItem(id, { ignoreCap: true }), id).toBe(true);
     }
     expect(G.items).toEqual(PIXEL_ITEMS);
     const events = G.drainEvents().filter((e) => e.type === "discoverItem").map((e) => e.id);
@@ -1874,6 +1916,15 @@ describe("ゲームルール", () => {
     game.startGame(1);
     expect(game.gameState).toBe("dialogue");
     expect(game.dialogue).toMatchObject({ id: "intro", speaker: "迷宮王直属幹部", index: 0, returnState: "playing" });
+    const introLines = [];
+    while (game.gameState === "dialogue") {
+      introLines.push(game.dialogue.text);
+      game.advanceDialogue();
+    }
+    expect(introLines.some((line) => line.includes("触れ続けると育つ"))).toBe(true);
+    expect(introLines.some((line) => line.includes("ホーム"))).toBe(false);
+    expect(introLines.some((line) => line.includes("ウェーブ後の出来事"))).toBe(false);
+    game.startGame(1);
     const beforeNut = game.nutrients;
     const beforeCountdown = game.waveCountdown;
     game.update(1000);
@@ -1925,6 +1976,7 @@ describe("ゲームルール", () => {
     expect(G.VEIN_SPAWN_BURST_CAP).toBe(3);
     expect(G.VEIN_FADE_START).toBe(120000);
     expect(G.VEIN_DECAY_TIME).toBe(240000);
+    expect(G.ITEM_CAP).toBe(10);
     expect(G.SOIL_CHARGE_MOVES).toBe(10);
     expect(KINDS.slime.breedEvery).toBe(14000);
     expect(G.monsterIncomeRate()).toBeCloseTo(0.045);

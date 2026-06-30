@@ -362,7 +362,7 @@ async function run() {
       label: document.getElementById("waveLabel").textContent,
       timer: document.getElementById("waveTimer").textContent
     })`);
-    if (itemDialogue.state !== "dialogue" || itemDialogue.speaker !== "親切なゴリラおばさん" || !itemDialogue.hiddenChoice || itemDialogue.label !== "会話中" || itemDialogue.timer !== "時間停止中") {
+    if (itemDialogue.state !== "dialogue" || itemDialogue.speaker !== "ゴリラおばさん" || !itemDialogue.hiddenChoice || itemDialogue.label !== "会話中" || itemDialogue.timer !== "時間停止中") {
       throw new Error(`アイテム3択前会話が不正です: ${JSON.stringify(itemDialogue)}`);
     }
     await advanceDialogueTo(client, "itemChoice", "アイテム3択前会話後の選択状態");
@@ -392,9 +392,32 @@ async function run() {
 
     await evaluate(client, `(() => {
       const game = globalThis.MakaiDefense.current;
+      const ids = globalThis.MakaiDefense.Core.PIXEL_ITEMS;
+      for (const id of ids) {
+        if (game.items.length >= game.ITEM_CAP) break;
+        if (!game.items.includes(id)) game.items.push(id);
+      }
+      game.setRandom(() => 0);
+      game.wave = 4;
+      game.gameState = "playing";
+      game.heroes.length = 0;
+      game.spawnQueue.length = 0;
+      game.settleWave();
+    })()`);
+    await advanceDialogueTo(client, "itemChoice", "満杯時アイテム3択前会話後の選択状態");
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "itemChoice" && document.querySelectorAll("[data-item-choice]").length === 3`, "満杯時アイテム3択表示");
+    await evaluate(client, `document.querySelector("[data-item-choice]").click()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "itemChoice" && document.getElementById("hudMessage").textContent.includes("もう取れません") && globalThis.MakaiDefense.current.items.length === globalThis.MakaiDefense.current.ITEM_CAP`, "満杯時の取得不可表示");
+    await evaluate(client, `document.getElementById("skipItemBtn").click()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing"`, "満杯時アイテム選択後の再開");
+    await evaluate(client, `globalThis.MakaiDefense.current.applyDebuff("rottenRations")`);
+    await waitFor(client, `!!document.querySelector('[data-debuff-id="rottenRations"]')`, "デバフのアイテム欄同居表示");
+
+    await evaluate(client, `(() => {
+      const game = globalThis.MakaiDefense.current;
       const rolls = [0, 0.7, 0, 0, 0, 0, 0];
       game.setRandom(() => rolls.length ? rolls.shift() : 0);
-      game.wave = 2;
+      game.wave = 6;
       game.gameState = "playing";
       game.heroes.length = 0;
       game.spawnQueue.length = 0;
@@ -429,7 +452,7 @@ async function run() {
     await evaluate(client, `(() => {
       const game = globalThis.MakaiDefense.current;
       game.setRandom(() => 0.99);
-      game.wave = 3;
+      game.wave = 7;
       game.gameState = "playing";
       game.heroes.length = 0;
       game.spawnQueue.length = 0;
@@ -481,7 +504,7 @@ async function run() {
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、下部周回UI、開始会話、音量設定、開発JSON出力、アイテム3択前会話、アイテム3択、ショップ前会話、ショップ、イベントなし、長押しポップアップ、アイテム図鑑を検査しました");
+    console.log("OK: ブラウザ初回ロード、下部周回UI、開始会話、音量設定、開発JSON出力、アイテム3択前会話、アイテム3択、満杯時取得不可、デバフ同居、ショップ前会話、ショップ、イベントなし、長押しポップアップ、アイテム図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

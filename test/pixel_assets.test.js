@@ -15,10 +15,12 @@ import {
   PIXEL_TILES,
   PIXEL_ITEMS,
   PIXEL_DEBUFFS,
+  PIXEL_DIALOGUE_PORTRAITS,
   PIXEL_ASSET_VERSION,
   pixelAssetUrl,
   pixelItemFrameIndex,
   pixelDebuffFrameIndex,
+  pixelDialoguePortraitFrameIndex,
 } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -78,6 +80,12 @@ function itemCrop(name) {
 function debuffCrop(name) {
   const img = png("assets/pixel/debuffs.png");
   const col = Object.keys(meta.debuffs).indexOf(name);
+  return crop(img, col * meta.cell, 0, meta.cell, meta.cell);
+}
+
+function dialoguePortraitCrop(name) {
+  const img = png("assets/pixel/dialogue_portraits.png");
+  const col = Object.keys(meta.dialogue).indexOf(name);
   return crop(img, col * meta.cell, 0, meta.cell, meta.cell);
 }
 
@@ -189,6 +197,7 @@ describe("ピクセル素材", () => {
     expect(Object.keys(meta.effects)).toEqual(PIXEL_EFFECTS);
     expect(Object.keys(meta.items)).toEqual(PIXEL_ITEMS);
     expect(Object.keys(meta.debuffs)).toEqual(PIXEL_DEBUFFS);
+    expect(Object.keys(meta.dialogue)).toEqual(PIXEL_DIALOGUE_PORTRAITS);
   });
 
   it("アトラスPNGの寸法が正しい", () => {
@@ -197,6 +206,7 @@ describe("ピクセル素材", () => {
     const effects = png("assets/pixel/effects.png");
     const items = png("assets/pixel/items.png");
     const debuffs = png("assets/pixel/debuffs.png");
+    const dialogue = png("assets/pixel/dialogue_portraits.png");
     expect(actors.width).toBe(PIXEL_CELL * PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length);
     expect(actors.height).toBe(PIXEL_CELL * PIXEL_ACTORS.length);
     expect(tiles.width).toBe(PIXEL_CELL * PIXEL_TILES.length);
@@ -207,15 +217,19 @@ describe("ピクセル素材", () => {
     expect(items.height).toBe(PIXEL_CELL);
     expect(debuffs.width).toBe(PIXEL_CELL * PIXEL_DEBUFFS.length);
     expect(debuffs.height).toBe(PIXEL_CELL);
+    expect(dialogue.width).toBe(PIXEL_CELL * PIXEL_DIALOGUE_PORTRAITS.length);
+    expect(dialogue.height).toBe(PIXEL_CELL);
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v23-loop");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v23-loop");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v23-loop");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v23-loop");
+    expect(PIXEL_ASSET_VERSION).toBe("v24-dialogue");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v24-dialogue");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v24-dialogue");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v24-dialogue");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v24-dialogue");
     expect(pixelItemFrameIndex("rustyPickaxe")).toBe(PIXEL_ITEMS.indexOf("rustyPickaxe"));
     expect(pixelDebuffFrameIndex("crackedCore")).toBe(PIXEL_DEBUFFS.indexOf("crackedCore"));
+    expect(pixelDialoguePortraitFrameIndex("gorilla")).toBe(PIXEL_DIALOGUE_PORTRAITS.indexOf("gorilla"));
   });
 
   it("進化モンスターは通常種と同じ形の色違いになる", () => {
@@ -396,6 +410,20 @@ describe("ピクセル素材", () => {
         expect(diffRatio(debuffCrop(PIXEL_DEBUFFS[i]), debuffCrop(PIXEL_DEBUFFS[j])), `${PIXEL_DEBUFFS[i]}/${PIXEL_DEBUFFS[j]}`).toBeGreaterThan(0.08);
       }
     }
+  });
+
+  it("会話ポートレートは幹部とゴリラおばさんを区別できる", () => {
+    expect(PIXEL_DIALOGUE_PORTRAITS).toEqual(["executive", "gorilla"]);
+    for (const name of PIXEL_DIALOGUE_PORTRAITS) {
+      const img = dialoguePortraitCrop(name);
+      const b = alphaBounds(img);
+      const w = b.maxX - b.minX + 1;
+      const h = b.maxY - b.minY + 1;
+      expect(b.count, name).toBeGreaterThan(190);
+      expect(w, name).toBeGreaterThanOrEqual(22);
+      expect(h, name).toBeGreaterThanOrEqual(26);
+    }
+    expect(diffRatio(dialoguePortraitCrop("executive"), dialoguePortraitCrop("gorilla"))).toBeGreaterThan(0.18);
   });
 
   it("鉱脈タイルは種別マークを持ち、進化後は枠が光る", () => {

@@ -52,6 +52,7 @@ export const VEIN_FADE_START = 120000;
 export const VEIN_DECAY_TIME = 240000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 export const ITEM_OFFER_CHOICES = 3;
+export const ITEM_CAP = 10;
 export const SHOP_STOCK_COUNT = 5;
 export const MAX_LOOP = 20;
 export const LOOP_HP_STEP = 0.08;
@@ -63,7 +64,7 @@ export const TRAP_EVENT_START_LOOP = 5;
 export const DEBUFF_START_LOOP = 10;
 export const TERMINATOR_LOOP = 20;
 export const REAPER_SPAWN_CHANCE = 0.002;
-export const POST_WAVE_EVENT_CHANCE = 0.65;
+export const POST_WAVE_EVENT_CHANCE = 0.30;
 
 export const POST_WAVE_EVENT_WEIGHTS = {
   item: 60,
@@ -111,6 +112,7 @@ export const RULE_CONSTANT_KEYS = [
   "EVO_TIME",
   "VEIN_FADE_START",
   "VEIN_DECAY_TIME",
+  "ITEM_CAP",
   "REAPER_SPAWN_CHANCE",
 ];
 
@@ -344,6 +346,7 @@ const RULE_CONSTANT_DEFAULTS = {
   EVO_TIME,
   VEIN_FADE_START,
   VEIN_DECAY_TIME,
+  ITEM_CAP,
   REAPER_SPAWN_CHANCE,
 };
 
@@ -453,7 +456,7 @@ function createRuntimeTables(ruleConfig) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v23-loop";
+export const PIXEL_ASSET_VERSION = "v24-dialogue";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -463,6 +466,7 @@ export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "mo
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 export const PIXEL_ITEMS = Object.keys(ITEMS);
 export const PIXEL_DEBUFFS = Object.keys(DEBUFF_ITEMS);
+export const PIXEL_DIALOGUE_PORTRAITS = ["executive", "gorilla"];
 const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 
 const DIALOGUES = {
@@ -473,18 +477,17 @@ const DIALOGUES = {
     lines: [
       "起きたな。迷宮王直属幹部として、これより最下層コアの防衛を任せる。",
       "土を掘れば通路になる。色のついた鉱脈を掘れば、そこから魔物が出る。",
-      "魔物は生まれた場所の近くを守りやすい。防衛線を作るつもりで掘れ。",
+      "鉱脈は近くの魔物が触れ続けると育つ。育ててから掘れば、強い魔物が出る。",
       "栄養は採掘に使う。冒険者を倒せば戻るが、足りない時は無理に掘るな。",
-      "ウェーブ後の出来事は戦況を変える。話を聞いてから選べ。",
       "では始めろ。コアを落とされるな。",
     ],
   },
   itemChoice: {
-    speaker: "親切なゴリラおばさん",
+    speaker: "ゴリラおばさん",
     portrait: "gorilla",
     topic: "アイテム選択",
     lines: [
-      "あら、ここで品を選ぶのね。親切なゴリラおばさんが見ててあげる。",
+      "あら、ここで品を選ぶのね。ゴリラおばさんが見ててあげる。",
       "選べるものは一つだけよ。すぐ効くものも、あとで効くものもあるわ。",
       "見送るのも手だけど、迷宮は遠慮だけでは守れないわよ。",
     ],
@@ -570,6 +573,11 @@ export function pixelDebuffFrameIndex(id) {
   return col < 0 ? 0 : col;
 }
 
+export function pixelDialoguePortraitFrameIndex(id) {
+  const col = PIXEL_DIALOGUE_PORTRAITS.indexOf(id);
+  return col < 0 ? 0 : col;
+}
+
 function mulberry32(seed) {
   let t = seed >>> 0;
   return function next() {
@@ -628,6 +636,7 @@ export function createGame(options = {}) {
     EVO_TIME,
     VEIN_FADE_START,
     VEIN_DECAY_TIME,
+    ITEM_CAP,
     REAPER_SPAWN_CHANCE,
   } = ruleConfig.constants;
   const { KINDS, VEIN, HERO_CLASSES } = runtimeTables;
@@ -779,6 +788,10 @@ export function createGame(options = {}) {
 
   function hasItem(id) {
     return items.includes(id);
+  }
+
+  function itemCapacityReached() {
+    return items.length >= ITEM_CAP;
   }
 
   function hasDebuff(id) {
@@ -1252,8 +1265,12 @@ export function createGame(options = {}) {
     return made;
   }
 
-  function applyItem(id) {
+  function applyItem(id, opts = {}) {
     if (!ITEMS[id] || hasItem(id)) return false;
+    if (!opts.ignoreCap && itemCapacityReached()) {
+      banner("もう取れません");
+      return false;
+    }
     items.push(id);
     emitEvent("discoverItem", { id });
     triggerItem(id);
@@ -1344,6 +1361,10 @@ export function createGame(options = {}) {
     if (!shopOffer || !ITEMS[id]) return false;
     const good = shopOffer.goods.find((g) => g.id === id);
     if (!good || good.sold || hasItem(id)) return false;
+    if (itemCapacityReached()) {
+      banner("もう取れません");
+      return true;
+    }
     const price = Math.max(0, Math.floor(good.price || itemShopPrice(id, shopOffer.wave)));
     if (nutrients < price) return false;
     nutrients -= price;
@@ -1426,6 +1447,10 @@ export function createGame(options = {}) {
       return true;
     }
     if (!itemOffer.choices.includes(id) || hasItem(id)) return false;
+    if (itemCapacityReached()) {
+      banner("もう取れません");
+      return true;
+    }
     if (!applyItem(id)) return false;
     banner(`アイテム『${ITEMS[id].name}』を入手`);
     itemOffer = null;
@@ -3165,9 +3190,9 @@ export function createGame(options = {}) {
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS,
-    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, pixelDebuffFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
+    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, ITEM_CAP, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
@@ -3177,9 +3202,9 @@ export const Core = {
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS,
-  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, pixelDebuffFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
+  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, ITEM_CAP, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
 };
 
 export function exposeGameNamespace(currentGame = null) {

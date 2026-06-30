@@ -38,6 +38,7 @@ const ITEM_ICONS = [
   "rebelCharm", "crowdMark", "lowestCandle", "blackRaindrop", "redMoonShard", "boneContract",
 ];
 const DEBUFF_ICONS = ["rottenRations", "crackedCore", "informantMap", "sharpenedBlade", "dullFeed"];
+const DIALOGUE_PORTRAITS = ["executive", "gorilla"];
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -147,6 +148,6 @@ function spritePath(group, name, frame = null, dir = null, action = null) {
 }
 
 module.exports = {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS,
+  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 };

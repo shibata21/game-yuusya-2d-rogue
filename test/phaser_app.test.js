@@ -35,7 +35,8 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('<span>周回</span>');
     expect(html).not.toContain('id="loopNum"');
     expect(html).not.toContain("挑戦する周回</span>");
-    expect(html).toContain('id="debuffBar"');
+    expect(html).toContain('id="hudMessage"');
+    expect(html).not.toContain('id="debuffBar"');
     expect(html).toContain('id="debuffNoticeOverlay"');
     expect(html).toContain('id="trapChoiceOverlay"');
     expect(html).toContain('id="startTitlePanel"');
@@ -108,6 +109,10 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("renderDialogue");
     expect(src).toContain("dialogueAdvanceBtn");
     expect(src).toContain("advanceDialogue");
+    expect(src).toContain("dialogue_portraits.png");
+    expect(src).toContain("pixelDialoguePortraitFrameIndex");
+    expect(src).toContain("data-debuff-id");
+    expect(src).toContain("hudMessage");
     expect(src).toContain('gameApi.gameState === "dialogue"');
     expect(src).toContain("renderLoopSelector");
     expect(src).toContain("select.disabled = !selectable");
@@ -153,7 +158,9 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".loop-select");
     expect(css).toContain("grid-template-columns: minmax(0, 1fr) 92px 116px");
     expect(css).toContain(".loop-select select:disabled");
-    expect(css).toContain(".debuffs");
+    expect(css).toContain(".hud-message");
+    expect(css).toContain(".item-debuff");
+    expect(css).not.toContain(".debuffs");
     expect(css).toContain(".trap-choice-grid");
     expect(css).toContain(".debuff-notice-body");
     expect(css).toContain(".dialogue-overlay");
@@ -179,7 +186,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v23-loop");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v24-dialogue");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
