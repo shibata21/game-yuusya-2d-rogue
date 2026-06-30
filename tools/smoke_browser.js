@@ -155,6 +155,16 @@ async function waitFor(client, expression, label) {
   throw new Error(`${label}を確認できません。`);
 }
 
+async function advanceDialogueTo(client, expectedState, label) {
+  for (let i = 0; i < 20; i++) {
+    const state = await evaluate(client, `globalThis.MakaiDefense.current.gameState`);
+    if (state !== "dialogue") break;
+    await evaluate(client, `document.getElementById("dialogueAdvanceBtn").click()`);
+    await sleep(60);
+  }
+  await waitFor(client, `globalThis.MakaiDefense.current.gameState === ${JSON.stringify(expectedState)}`, label);
+}
+
 async function run() {
   if (!fs.existsSync(path.join(repoDir, "dist/index.html"))) {
     throw new Error("dist/index.htmlがありません。先に npm run build を実行してください。");
@@ -255,7 +265,21 @@ async function run() {
     }
 
     await evaluate(client, `document.getElementById("startBtn").click()`);
-    await waitFor(client, `globalThis.MakaiDefense?.current?.gameState === "playing"`, "開始ボタン後のplaying状態");
+    await waitFor(client, `globalThis.MakaiDefense?.current?.gameState === "dialogue" && !document.getElementById("dialogueOverlay").classList.contains("hidden")`, "開始チュートリアル会話表示");
+    const introDialogue = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      id: globalThis.MakaiDefense.current.dialogue?.id || "",
+      speaker: document.getElementById("dialogueSpeaker").textContent,
+      topic: document.getElementById("dialogueTopic").textContent,
+      text: document.getElementById("dialogueText").textContent,
+      label: document.getElementById("waveLabel").textContent,
+      timer: document.getElementById("waveTimer").textContent,
+      startHidden: document.getElementById("startOverlay").classList.contains("hidden")
+    })`);
+    if (introDialogue.state !== "dialogue" || introDialogue.id !== "intro" || introDialogue.speaker !== "迷宮王直属幹部" || introDialogue.topic !== "防衛開始" || !introDialogue.text.includes("最下層コア") || introDialogue.label !== "会話中" || introDialogue.timer !== "時間停止中" || !introDialogue.startHidden) {
+      throw new Error(`開始チュートリアル会話が不正です: ${JSON.stringify(introDialogue)}`);
+    }
+    await advanceDialogueTo(client, "playing", "開始チュートリアル後のplaying状態");
     const playing = await evaluate(client, `({
       state: globalThis.MakaiDefense.current.gameState,
       coreHP: globalThis.MakaiDefense.current.coreHP,
@@ -330,6 +354,18 @@ async function run() {
       game.spawnQueue.length = 0;
       game.settleWave();
     })()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "dialogue" && globalThis.MakaiDefense.current.dialogue?.id === "itemChoice" && !document.getElementById("dialogueOverlay").classList.contains("hidden")`, "アイテム3択前会話表示");
+    const itemDialogue = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      speaker: document.getElementById("dialogueSpeaker").textContent,
+      hiddenChoice: document.getElementById("itemChoiceOverlay").classList.contains("hidden"),
+      label: document.getElementById("waveLabel").textContent,
+      timer: document.getElementById("waveTimer").textContent
+    })`);
+    if (itemDialogue.state !== "dialogue" || itemDialogue.speaker !== "親切なゴリラおばさん" || !itemDialogue.hiddenChoice || itemDialogue.label !== "会話中" || itemDialogue.timer !== "時間停止中") {
+      throw new Error(`アイテム3択前会話が不正です: ${JSON.stringify(itemDialogue)}`);
+    }
+    await advanceDialogueTo(client, "itemChoice", "アイテム3択前会話後の選択状態");
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "itemChoice" && !document.getElementById("itemChoiceOverlay").classList.contains("hidden") && document.querySelectorAll("[data-item-choice]").length === 3`, "アイテム3択表示");
     const offer = await evaluate(client, `({
       state: globalThis.MakaiDefense.current.gameState,
@@ -364,6 +400,18 @@ async function run() {
       game.spawnQueue.length = 0;
       game.settleWave();
     })()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "dialogue" && globalThis.MakaiDefense.current.dialogue?.id === "shop" && !document.getElementById("dialogueOverlay").classList.contains("hidden")`, "ショップ前会話表示");
+    const shopDialogue = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      speaker: document.getElementById("dialogueSpeaker").textContent,
+      hiddenShop: document.getElementById("itemShopOverlay").classList.contains("hidden"),
+      label: document.getElementById("waveLabel").textContent,
+      timer: document.getElementById("waveTimer").textContent
+    })`);
+    if (shopDialogue.state !== "dialogue" || shopDialogue.speaker !== "コンビニ店員のスライム" || !shopDialogue.hiddenShop || shopDialogue.label !== "会話中" || shopDialogue.timer !== "時間停止中") {
+      throw new Error(`ショップ前会話が不正です: ${JSON.stringify(shopDialogue)}`);
+    }
+    await advanceDialogueTo(client, "shop", "ショップ前会話後のショップ状態");
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && !document.getElementById("itemShopOverlay").classList.contains("hidden") && document.querySelectorAll("[data-shop-item]").length === 5`, "ショップ表示");
     const shop = await evaluate(client, `({
       state: globalThis.MakaiDefense.current.gameState,
@@ -433,7 +481,7 @@ async function run() {
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、下部周回UI、開始、音量設定、開発JSON出力、アイテム3択、ショップ、イベントなし、長押しポップアップ、アイテム図鑑を検査しました");
+    console.log("OK: ブラウザ初回ロード、下部周回UI、開始会話、音量設定、開発JSON出力、アイテム3択前会話、アイテム3択、ショップ前会話、ショップ、イベントなし、長押しポップアップ、アイテム図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

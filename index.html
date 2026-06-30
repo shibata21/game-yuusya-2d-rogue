@@ -32,6 +32,20 @@
 
         <div class="stage">
           <div id="game-root"></div>
+          <div class="dialogue-overlay hidden" id="dialogueOverlay" role="dialog" aria-live="polite" aria-label="会話">
+            <button class="dialogue-box" id="dialogueAdvanceBtn" type="button">
+              <span class="dialogue-portrait" id="dialoguePortrait" aria-hidden="true"></span>
+              <span class="dialogue-body">
+                <span class="dialogue-topic" id="dialogueTopic">会話</span>
+                <span class="dialogue-speaker" id="dialogueSpeaker"></span>
+                <span class="dialogue-text" id="dialogueText"></span>
+                <span class="dialogue-foot">
+                  <span id="dialogueProgress">1 / 1</span>
+                  <span id="dialogueNext">次へ</span>
+                </span>
+              </span>
+            </button>
+          </div>
           <div class="overlay" id="startOverlay">
             <div class="start-panel" id="startTitlePanel">
               <h2>迷宮を守り抜け</h2>

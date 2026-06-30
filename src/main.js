@@ -263,7 +263,7 @@ function playHeroDeathVoice() {
 
 function syncAudioState(forceStart = false) {
   if (!activeScene || !activeScene.sound) return;
-  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "itemChoice" || gameApi.gameState === "shop" || gameApi.gameState === "trap" || gameApi.gameState === "debuffNotice";
+  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "dialogue" || gameApi.gameState === "itemChoice" || gameApi.gameState === "shop" || gameApi.gameState === "trap" || gameApi.gameState === "debuffNotice";
   if (!shouldPlay) {
     if (bgmSound && bgmSound.isPlaying) bgmSound.stop();
     return;
@@ -1340,13 +1340,15 @@ function renderItemOffer() {
   const reroll = document.getElementById("rerollItemBtn");
   if (!overlay || !grid) return;
   const offer = gameApi.itemOffer;
-  overlay.classList.toggle("hidden", !offer);
-  if (reroll) reroll.classList.toggle("hidden", !offer || !gameApi.canRerollItemOffer);
+  const visible = !!offer && gameApi.gameState === "itemChoice";
+  overlay.classList.toggle("hidden", !visible);
+  if (reroll) reroll.classList.toggle("hidden", !visible || !gameApi.canRerollItemOffer);
   if (!offer) {
     lastItemOfferKey = "";
     grid.innerHTML = "";
     return;
   }
+  if (!visible) return;
   const key = `${offer.wave}:${offer.choices.join(",")}`;
   if (key === lastItemOfferKey) return;
   lastItemOfferKey = key;
@@ -1366,11 +1368,13 @@ function renderTrapOffer() {
   const grid = document.getElementById("trapChoiceGrid");
   if (!overlay || !grid) return;
   const offer = gameApi.trapOffer;
-  overlay.classList.toggle("hidden", !offer);
+  const visible = !!offer && gameApi.gameState === "trap";
+  overlay.classList.toggle("hidden", !visible);
   if (!offer) {
     grid.innerHTML = "";
     return;
   }
+  if (!visible) return;
   grid.innerHTML = offer.choices.map((id) => {
     const d = gameApi.DEBUFF_ITEMS[id];
     if (!d) return "";
@@ -1387,11 +1391,13 @@ function renderDebuffNotice() {
   const body = document.getElementById("debuffNoticeBody");
   if (!overlay || !body) return;
   const notice = gameApi.debuffNotice;
-  overlay.classList.toggle("hidden", !notice);
+  const visible = !!notice && gameApi.gameState === "debuffNotice";
+  overlay.classList.toggle("hidden", !visible);
   if (!notice) {
     body.innerHTML = "";
     return;
   }
+  if (!visible) return;
   const reason = notice.penalty ? "リセット検知により、今回はデバフが2個になった。" : "10周目以降の初期罠として、デバフを背負わされた。";
   body.innerHTML = `
     <p>${escapeHtml(reason)}</p>
@@ -1409,12 +1415,14 @@ function renderShopOffer() {
   const grid = document.getElementById("itemShopGrid");
   if (!overlay || !grid) return;
   const offer = gameApi.shopOffer;
-  overlay.classList.toggle("hidden", !offer);
+  const visible = !!offer && gameApi.gameState === "shop";
+  overlay.classList.toggle("hidden", !visible);
   if (!offer) {
     lastShopOfferKey = "";
     grid.innerHTML = "";
     return;
   }
+  if (!visible) return;
   const key = `${offer.wave}:${Math.floor(gameApi.nutrients)}:${offer.goods.map((g) => `${g.id}:${g.price}:${g.sold ? 1 : 0}`).join(",")}`;
   if (key === lastShopOfferKey) return;
   lastShopOfferKey = key;
@@ -1437,6 +1445,33 @@ function renderShopOffer() {
   }).join("");
 }
 
+function renderDialogue() {
+  const overlay = document.getElementById("dialogueOverlay");
+  const portrait = document.getElementById("dialoguePortrait");
+  const topic = document.getElementById("dialogueTopic");
+  const speaker = document.getElementById("dialogueSpeaker");
+  const text = document.getElementById("dialogueText");
+  const progressText = document.getElementById("dialogueProgress");
+  const next = document.getElementById("dialogueNext");
+  if (!overlay || !portrait || !topic || !speaker || !text || !progressText || !next) return;
+  const dialogue = gameApi.dialogue;
+  const visible = !!dialogue && gameApi.gameState === "dialogue";
+  overlay.classList.toggle("hidden", !visible);
+  if (!visible) return;
+  portrait.className = `dialogue-portrait dialogue-${dialogue.portrait || "mark"}`;
+  portrait.removeAttribute("style");
+  portrait.innerHTML = "";
+  if (dialogue.portrait === "slime") {
+    portrait.classList.add("dialogue-sprite");
+    portrait.innerHTML = `<span class="dialogue-sprite-crop" style='${codexSpriteStyle("slime")}'></span>`;
+  }
+  topic.textContent = dialogue.topic || "会話";
+  speaker.textContent = dialogue.speaker || "";
+  text.textContent = dialogue.text || "";
+  progressText.textContent = `${dialogue.index + 1} / ${dialogue.total}`;
+  next.textContent = dialogue.index + 1 >= dialogue.total ? "進む" : "次へ";
+}
+
 function updateHud() {
   syncRunOutcome();
   const ratio = Math.max(0, Math.min(1, gameApi.coreHP / gameApi.CORE_MAX));
@@ -1455,12 +1490,16 @@ function updateHud() {
   renderShopOffer();
   renderTrapOffer();
   renderDebuffNotice();
+  renderDialogue();
   document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
   let waveLabel = "次の襲来まで";
   let waveTimer = `${Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000)} 秒`;
-  if (gameApi.gameState === "itemChoice") {
+  if (gameApi.gameState === "dialogue") {
+    waveLabel = "会話中";
+    waveTimer = "時間停止中";
+  } else if (gameApi.gameState === "itemChoice") {
     waveLabel = "アイテム選択";
     waveTimer = "時間停止中";
   } else if (gameApi.gameState === "shop") {
@@ -1597,6 +1636,15 @@ function boot() {
   const ackDebuff = document.getElementById("ackDebuffBtn");
   if (ackDebuff) ackDebuff.addEventListener("click", () => {
     if (gameApi.acknowledgeDebuffNotice()) updateHud();
+  });
+  const dialogueAdvance = document.getElementById("dialogueAdvanceBtn");
+  if (dialogueAdvance) dialogueAdvance.addEventListener("click", () => {
+    if (gameApi.advanceDialogue()) updateHud();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (gameApi.gameState !== "dialogue" || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    if (gameApi.advanceDialogue()) updateHud();
   });
   bindItemHud();
   bindButtonSounds();

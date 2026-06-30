@@ -465,6 +465,42 @@ export const PIXEL_ITEMS = Object.keys(ITEMS);
 export const PIXEL_DEBUFFS = Object.keys(DEBUFF_ITEMS);
 const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 
+const DIALOGUES = {
+  intro: {
+    speaker: "迷宮王直属幹部",
+    portrait: "executive",
+    topic: "防衛開始",
+    lines: [
+      "起きたな。迷宮王直属幹部として、これより最下層コアの防衛を任せる。",
+      "土を掘れば通路になる。色のついた鉱脈を掘れば、そこから魔物が出る。",
+      "魔物は生まれた場所の近くを守りやすい。防衛線を作るつもりで掘れ。",
+      "栄養は採掘に使う。冒険者を倒せば戻るが、足りない時は無理に掘るな。",
+      "ウェーブ後の出来事は戦況を変える。話を聞いてから選べ。",
+      "では始めろ。コアを落とされるな。",
+    ],
+  },
+  itemChoice: {
+    speaker: "親切なゴリラおばさん",
+    portrait: "gorilla",
+    topic: "アイテム選択",
+    lines: [
+      "あら、ここで品を選ぶのね。親切なゴリラおばさんが見ててあげる。",
+      "選べるものは一つだけよ。すぐ効くものも、あとで効くものもあるわ。",
+      "見送るのも手だけど、迷宮は遠慮だけでは守れないわよ。",
+    ],
+  },
+  shop: {
+    speaker: "コンビニ店員のスライム",
+    portrait: "slime",
+    topic: "アイテム商店",
+    lines: [
+      "いらっしゃいませ。コンビニ店員のスライムです。お支払いは栄養でお願いします。",
+      "買える商品は明るく、栄養が足りない商品は暗くしてあります。",
+      "何個買っても大丈夫です。閉じたら次の襲来準備に戻ります。",
+    ],
+  },
+};
+
 export function pixelAssetUrl(name) {
   return `${PIXEL_ASSET_PATH}${name}?v=${PIXEL_ASSET_VERSION}`;
 }
@@ -629,6 +665,8 @@ export function createGame(options = {}) {
   let events = [];
   let idc = 0;
   let gameState = "title";
+  let activeDialogue = null;
+  let dialogueReturnState = null;
   let loop = clampLoop(options.loop ?? 1);
   let resetPenaltyActive = !!options.resetPenaltyActive;
 
@@ -667,6 +705,58 @@ export function createGame(options = {}) {
     const out = events;
     events = [];
     return out;
+  }
+
+  function clearDialogue() {
+    activeDialogue = null;
+    dialogueReturnState = null;
+  }
+
+  function openDialogue(id, returnState = "playing") {
+    const source = DIALOGUES[id];
+    if (!source || !Array.isArray(source.lines) || source.lines.length <= 0) {
+      clearDialogue();
+      gameState = returnState;
+      return false;
+    }
+    activeDialogue = {
+      id,
+      speaker: source.speaker,
+      portrait: source.portrait,
+      topic: source.topic,
+      lines: source.lines.slice(),
+      index: 0,
+    };
+    dialogueReturnState = returnState;
+    gameState = "dialogue";
+    return true;
+  }
+
+  function dialogueSnapshot() {
+    if (gameState !== "dialogue" || !activeDialogue) return null;
+    const index = Math.max(0, Math.min(activeDialogue.lines.length - 1, activeDialogue.index || 0));
+    return {
+      id: activeDialogue.id,
+      speaker: activeDialogue.speaker,
+      portrait: activeDialogue.portrait,
+      topic: activeDialogue.topic,
+      text: activeDialogue.lines[index],
+      index,
+      total: activeDialogue.lines.length,
+      returnState: dialogueReturnState,
+    };
+  }
+
+  function advanceDialogue() {
+    if (gameState !== "dialogue" || !activeDialogue) return false;
+    if (activeDialogue.index < activeDialogue.lines.length - 1) {
+      activeDialogue.index++;
+      return true;
+    }
+    const nextState = dialogueReturnState || "playing";
+    clearDialogue();
+    gameState = nextState;
+    return true;
   }
 
   function canCoreAttackFrom(col, row, checkOccupied = true) {
@@ -1236,19 +1326,21 @@ export function createGame(options = {}) {
     return true;
   }
 
-  function openShopOffer(excludedIds = []) {
+  function openShopOffer(excludedIds = [], withDialogue = true) {
     const goods = chooseShopGoods(excludedIds);
     if (!goods.length) {
       shopOffer = null;
       return false;
     }
     shopOffer = { wave, goods };
-    gameState = "shop";
+    if (withDialogue) openDialogue("shop", "shop");
+    else gameState = "shop";
     banner("アイテム商店が開いた");
     return true;
   }
 
   function buyShopItem(id) {
+    if (gameState === "dialogue") return false;
     if (!shopOffer || !ITEMS[id]) return false;
     const good = shopOffer.goods.find((g) => g.id === id);
     if (!good || good.sold || hasItem(id)) return false;
@@ -1265,6 +1357,7 @@ export function createGame(options = {}) {
   }
 
   function closeShopOffer() {
+    if (gameState === "dialogue") return false;
     if (!shopOffer) return false;
     shopOffer = null;
     waveCountdown = nextWaveInterval();
@@ -1305,7 +1398,7 @@ export function createGame(options = {}) {
       const choices = chooseItemOfferChoices();
       if (!choices.length) return;
       itemOffer = { wave, choices };
-      gameState = "itemChoice";
+      openDialogue("itemChoice", "itemChoice");
       banner("アイテムを見つけた");
     } else if (eventKind === "shop") {
       openShopOffer();
@@ -1319,6 +1412,7 @@ export function createGame(options = {}) {
   }
 
   function chooseItemOffer(id = null) {
+    if (gameState === "dialogue") return false;
     if (!itemOffer) return false;
     if (id === null) {
       if (hasItem("thiefBag")) {
@@ -1340,6 +1434,7 @@ export function createGame(options = {}) {
   }
 
   function rerollItemOffer() {
+    if (gameState === "dialogue") return false;
     if (!itemOffer || !hasItem("wildCard") || usedItems.has("wildCard")) return false;
     const previous = new Set(itemOffer.choices);
     const pool = Object.keys(ITEMS).filter((id) => !hasItem(id) && !previous.has(id));
@@ -2915,6 +3010,7 @@ export function createGame(options = {}) {
     itemEvents = [];
     usedItems = new Set();
     slowFields = [];
+    clearDialogue();
     nutrients = START_NUT;
     coreMax = CORE_MAX;
     coreHP = CORE_MAX;
@@ -2942,6 +3038,7 @@ export function createGame(options = {}) {
 
   function startGame(nextLoop = loop, resetOptions = {}) {
     resetGame(options.seed ?? autoSeed(), nextLoop, resetOptions);
+    openDialogue("intro", gameState);
   }
 
   function gameOver() {
@@ -3021,6 +3118,7 @@ export function createGame(options = {}) {
     get shopOffer() { return shopOffer ? { wave: shopOffer.wave, goods: shopOffer.goods.map((g) => ({ ...g })) } : null; },
     get trapOffer() { return trapOffer ? { wave: trapOffer.wave, choices: [...trapOffer.choices] } : null; },
     get debuffNotice() { return debuffNotice ? { ids: [...debuffNotice.ids], penalty: !!debuffNotice.penalty } : null; },
+    get dialogue() { return dialogueSnapshot(); },
     get postWaveEvent() { return itemOffer ? "item" : (shopOffer ? "shop" : (trapOffer ? "trap" : null)); },
     get itemEvents() { return itemEvents; },
     get usedItems() { return [...usedItems]; },
@@ -3049,10 +3147,13 @@ export function createGame(options = {}) {
     get waveSettleDelay() { return waveSettleDelay; },
     get waveSettled() { return waveSettled; },
     get gameState() { return gameState; },
-    set gameState(v) { gameState = v; },
+    set gameState(v) {
+      gameState = v;
+      if (v !== "dialogue") clearDialogue();
+    },
     get ruleConfig() { return clonePlain(ruleConfig); },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, buyShopItem, closeShopOffer, chooseTrapDebuff, acknowledgeDebuffNotice, clearCoreHitEffects, drainEvents,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, buyShopItem, closeShopOffer, chooseTrapDebuff, acknowledgeDebuffNotice, advanceDialogue, clearCoreHitEffects, drainEvents,
     hasItem, applyItem, hasDebuff, applyDebuff,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,

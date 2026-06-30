@@ -61,6 +61,10 @@ beforeEach(() => {
   G.resetGame(1);
 });
 
+function advanceDialogueAll(game = G) {
+  for (let i = 0; i < 20 && game.gameState === "dialogue"; i++) game.advanceDialogue();
+}
+
 describe("ゲームルール", () => {
   it("初期盤面と資源が正しい", () => {
     expect(G.grid).toHaveLength(G.ROWS);
@@ -1089,6 +1093,10 @@ describe("ゲームルール", () => {
     G.heroes.length = 0;
     G.update(G.WAVE_SETTLE_DELAY);
     expect(G.wave).toBe(1);
+    expect(G.gameState).toBe("dialogue");
+    expect(G.dialogue).toMatchObject({ id: "itemChoice", returnState: "itemChoice" });
+    expect(G.chooseItemOffer(null)).toBe(false);
+    advanceDialogueAll();
     expect(G.gameState).toBe("itemChoice");
     expect(G.chooseItemOffer(null)).toBe(true);
     expect(G.gameState).toBe("playing");
@@ -1429,8 +1437,12 @@ describe("ゲームルール", () => {
     G.wave = 5;
     G.gameState = "playing";
     G.settleWave();
-    expect(G.gameState).toBe("itemChoice");
+    expect(G.gameState).toBe("dialogue");
+    expect(G.dialogue).toMatchObject({ id: "itemChoice", speaker: "親切なゴリラおばさん", returnState: "itemChoice" });
     expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
+    expect(G.chooseItemOffer("blackSoilBag")).toBe(false);
+    advanceDialogueAll();
+    expect(G.gameState).toBe("itemChoice");
 
     expect(G.chooseItemOffer("blackSoilBag")).toBe(true);
     expect(G.gameState).toBe("playing");
@@ -1470,9 +1482,12 @@ describe("ゲームルール", () => {
     expect(G.itemOffer).toBe(null);
 
     G.update(1);
-    expect(G.gameState).toBe("itemChoice");
+    expect(G.gameState).toBe("dialogue");
     expect(G.waveSettled).toBe(5);
+    expect(G.dialogue.id).toBe("itemChoice");
     expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
+    advanceDialogueAll();
+    expect(G.gameState).toBe("itemChoice");
   });
 
   it("アイテム3択は取らない選択もできる", () => {
@@ -1481,6 +1496,7 @@ describe("ゲームルール", () => {
     G.wave = 4;
     G.gameState = "playing";
     G.settleWave();
+    advanceDialogueAll();
     expect(G.gameState).toBe("itemChoice");
     G.drainEvents();
     expect(G.chooseItemOffer(null)).toBe(true);
@@ -1499,6 +1515,7 @@ describe("ゲームルール", () => {
     G.nutrients = 30;
     G.gameState = "playing";
     G.settleWave();
+    advanceDialogueAll();
     G.effects.push({ type: "float", x: 0, y: 0, text: "停止", life: 1000, max: 1000, vy: -0.1 });
     const effect = G.effects[G.effects.length - 1];
 
@@ -1538,7 +1555,8 @@ describe("ゲームルール", () => {
     G.nutrients = 100;
     G.gameState = "playing";
     G.settleWave();
-    expect(G.gameState).toBe("shop");
+    expect(G.gameState).toBe("dialogue");
+    expect(G.dialogue).toMatchObject({ id: "shop", speaker: "コンビニ店員のスライム", returnState: "shop" });
     expect(G.shopOffer.goods).toEqual([
       { id: "rustyPickaxe", price: 17, sold: false },
       { id: "blackSoilBag", price: 34, sold: false },
@@ -1546,6 +1564,9 @@ describe("ゲームルール", () => {
       { id: "crackedMap", price: 17, sold: false },
       { id: "masonGloves", price: 17, sold: false },
     ]);
+    expect(G.buyShopItem("rustyPickaxe")).toBe(false);
+    advanceDialogueAll();
+    expect(G.gameState).toBe("shop");
 
     expect(G.buyShopItem("rustyPickaxe")).toBe(true);
     expect(G.nutrients).toBe(83);
@@ -1574,6 +1595,7 @@ describe("ゲームルール", () => {
     G.nutrients = 30;
     G.gameState = "playing";
     G.settleWave();
+    advanceDialogueAll();
     G.effects.push({ type: "float", x: 0, y: 0, text: "商店", life: 1000, max: 1000, vy: -0.1 });
     const effect = G.effects[G.effects.length - 1];
 
@@ -1612,6 +1634,9 @@ describe("ゲームルール", () => {
   it("10周目以降は初期デバフを表示し、リセット罰中は2個背負う", () => {
     const normal = createGame({ random: () => 0 });
     normal.startGame(10);
+    expect(normal.gameState).toBe("dialogue");
+    expect(normal.dialogue.returnState).toBe("debuffNotice");
+    advanceDialogueAll(normal);
     expect(normal.gameState).toBe("debuffNotice");
     expect(normal.debuffNotice).toEqual({ ids: ["rottenRations"], penalty: false });
     expect(normal.debuffItems).toEqual(["rottenRations"]);
@@ -1621,6 +1646,9 @@ describe("ゲームルール", () => {
 
     const penalty = createGame({ random: () => 0 });
     penalty.startGame(10, { resetPenaltyActive: true });
+    expect(penalty.gameState).toBe("dialogue");
+    expect(penalty.dialogue.returnState).toBe("debuffNotice");
+    advanceDialogueAll(penalty);
     expect(penalty.gameState).toBe("debuffNotice");
     expect(penalty.debuffNotice).toEqual({ ids: ["rottenRations", "crackedCore"], penalty: true });
     expect(penalty.debuffItems).toEqual(["rottenRations", "crackedCore"]);
@@ -1764,6 +1792,7 @@ describe("ゲームルール", () => {
     G.gameState = "playing";
     G.setRandom(() => 0);
     G.settleWave();
+    advanceDialogueAll();
     const before = G.itemOffer.choices;
     expect(G.canRerollItemOffer).toBe(true);
     expect(G.rerollItemOffer()).toBe(true);
@@ -1838,6 +1867,26 @@ describe("ゲームルール", () => {
     const firstBoot = createGame({ seed: 1, ruleConfig: null });
     expect(firstBoot.START_NUT).toBe(25);
     expect(firstBoot.gameState).toBe("title");
+  });
+
+  it("開始時は迷宮王直属幹部のチュートリアル会話を挟んでから遊べる", () => {
+    const game = createGame({ seed: 1 });
+    game.startGame(1);
+    expect(game.gameState).toBe("dialogue");
+    expect(game.dialogue).toMatchObject({ id: "intro", speaker: "迷宮王直属幹部", index: 0, returnState: "playing" });
+    const beforeNut = game.nutrients;
+    const beforeCountdown = game.waveCountdown;
+    game.update(1000);
+    expect(game.nutrients).toBe(beforeNut);
+    expect(game.waveCountdown).toBe(beforeCountdown);
+    advanceDialogueAll(game);
+    expect(game.dialogue).toBe(null);
+    expect(game.gameState).toBe("playing");
+
+    const forced = createGame({ seed: 1 });
+    forced.startGame(1);
+    forced.gameState = "playing";
+    expect(forced.dialogue).toBe(null);
   });
 
   it("出現した魔物と冒険者と到達ウェーブをイベントで取り出せる", () => {

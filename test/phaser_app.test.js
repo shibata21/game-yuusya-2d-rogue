@@ -39,6 +39,9 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="debuffNoticeOverlay"');
     expect(html).toContain('id="trapChoiceOverlay"');
     expect(html).toContain('id="startTitlePanel"');
+    expect(html).toContain('id="dialogueOverlay"');
+    expect(html).toContain('id="dialogueAdvanceBtn"');
+    expect(html).toContain('id="dialogueSpeaker"');
     expect(html).not.toContain('id="startDialoguePanel"');
     expect(html).not.toContain('id="startPowerPanel"');
     expect(html).not.toContain('id="powerConfirmBtn"');
@@ -102,6 +105,10 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("renderShopOffer");
     expect(src).toContain("renderTrapOffer");
     expect(src).toContain("renderDebuffNotice");
+    expect(src).toContain("renderDialogue");
+    expect(src).toContain("dialogueAdvanceBtn");
+    expect(src).toContain("advanceDialogue");
+    expect(src).toContain('gameApi.gameState === "dialogue"');
     expect(src).toContain("renderLoopSelector");
     expect(src).toContain("select.disabled = !selectable");
     expect(src).not.toContain('getElementById("loopNum")');
@@ -149,6 +156,9 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".debuffs");
     expect(css).toContain(".trap-choice-grid");
     expect(css).toContain(".debuff-notice-body");
+    expect(css).toContain(".dialogue-overlay");
+    expect(css).toContain(".dialogue-box");
+    expect(css).toContain(".dialogue-portrait");
     expect(css).toContain(".dev-json-output");
     expect(css).not.toContain(".power-status");
     expect(css).not.toContain("demon-squirrel-king.png");
