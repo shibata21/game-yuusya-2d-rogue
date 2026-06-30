@@ -13,6 +13,11 @@ const SOURCE_DIR = path.join(OUT_DIR, "source", "v6-self-made");
 
 const ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",
+  "moss_shroom", "moss_mycelia", "moss_myceliaKing", "moss_virus", "moss_crystalVirus", "moss_crownVirus", "moss_root", "moss_tangleRoot", "moss_ancientRoot",
+  "meat_wolf", "meat_shadowWolf", "meat_nightfangKing", "meat_boar", "meat_fangBoar", "meat_ironBoar", "meat_hedgehog", "meat_steelHedgehog", "meat_spineKing",
+  "bug_centipede", "bug_steelCentipede", "bug_goldCentipede", "bug_beetle", "bug_shieldBeetle", "bug_fortressBeetle", "bug_needler", "bug_flyingNeedler", "bug_bowNeedler",
+  "stone_turtle", "stone_ironTurtle", "stone_goldTurtle", "stone_magnetCrab", "stone_ironCrab", "stone_blackCrab", "stone_crystalEye", "stone_quartzEye", "stone_rainbowEye",
+  "dragon_serpent", "dragon_flameSerpent", "dragon_whiteSerpent", "dragon_salamander", "dragon_lavaSalamander", "dragon_mirageSalamander", "dragon_wyvern", "dragon_stormWyvern", "dragon_skyWyvern",
   "superslime", "tarantula", "titan", "infernal",
   "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame",
   "reaper", "chimera",
@@ -36,6 +41,7 @@ const ITEM_ICONS = [
   "thiefBag", "dryBread", "blackSeed", "reversedHourglass", "earlyDrum", "breathingFlute", "gapStake", "moleClaw", "obsidianLid",
   "wanderingPowder", "trailMark", "charmRope", "angerMask", "nestFlag", "oldEggshell", "crackedEgg", "royalEggshell", "rottenCrown",
   "rebelCharm", "crowdMark", "lowestCandle", "blackRaindrop", "redMoonShard", "boneContract",
+  "undergroundStore", "veinBrush", "denLedger", "homeChime", "shopStamp", "corePiggyBank",
 ];
 const DEBUFF_ICONS = ["rottenRations", "crackedCore", "informantMap", "sharpenedBlade", "dullFeed"];
 const DIALOGUE_PORTRAITS = ["executive", "gorilla"];

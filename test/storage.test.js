@@ -2,39 +2,23 @@
 
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  __storageTestHooks,
   applyProgressEvents,
+  awardRunCoins,
   clearProgress,
   clearStoredRuleConfig,
+  coinRewardForRun,
   loadProgress,
   loadStoredRuleConfig,
   saveProgress,
   saveStoredRuleConfig,
 } from "../src/storage.js";
 
-const DEV_RULE_KEY = "makaiDefense.devRuleConfig.v1";
-const PROGRESS_KEY = "makaiDefense.progress.v1";
-
-function installLocalStorage() {
-  const data = new Map();
-  globalThis.localStorage = {
-    getItem(key) {
-      return data.has(key) ? data.get(key) : null;
-    },
-    setItem(key, value) {
-      data.set(key, String(value));
-    },
-    removeItem(key) {
-      data.delete(key);
-    },
-    clear() {
-      data.clear();
-    },
-  };
-}
+const { DEV_RULE_KEY, PROGRESS_KEY } = __storageTestHooks.keys;
 
 describe("ローカル保存", () => {
   beforeEach(() => {
-    installLocalStorage();
+    __storageTestHooks.reset();
   });
 
   it("開発設定を保存して読み戻せる", () => {
@@ -60,11 +44,17 @@ describe("ローカル保存", () => {
     expect(result.progress).toEqual({
       highestWave: 3,
       highestClearedLoop: 2,
+      coins: 0,
+      totalCoinsEarned: 0,
+      lastCoinReward: 0,
       resetPenaltyActive: false,
       activeRun: null,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
       discoveredItems: ["rustyPickaxe"],
+      unlockedMonsterFamilies: [],
+      unlockedItems: [],
+      monsterDeck: {},
     });
     expect(saveProgress(result.progress)).toBe(true);
     expect(loadProgress()).toEqual(result.progress);
@@ -72,22 +62,28 @@ describe("ローカル保存", () => {
   });
 
   it("壊れた保存値は既定値として扱う", () => {
-    globalThis.localStorage.setItem(DEV_RULE_KEY, "{");
-    globalThis.localStorage.setItem(PROGRESS_KEY, "{");
+    __storageTestHooks.setRaw(DEV_RULE_KEY, "{");
+    __storageTestHooks.setRaw(PROGRESS_KEY, "{");
     expect(loadStoredRuleConfig()).toBe(null);
     expect(loadProgress()).toEqual({
       highestWave: 0,
       highestClearedLoop: 0,
+      coins: 0,
+      totalCoinsEarned: 0,
+      lastCoinReward: 0,
       resetPenaltyActive: false,
       activeRun: null,
       discoveredMonsters: [],
       discoveredHeroes: [],
       discoveredItems: [],
+      unlockedMonsterFamilies: [],
+      unlockedItems: [],
+      monsterDeck: {},
     });
   });
 
   it("旧形式の進行データはアイテム未発見として読み込む", () => {
-    globalThis.localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+    __storageTestHooks.setRaw(PROGRESS_KEY, JSON.stringify({
       highestWave: 2,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
@@ -95,11 +91,27 @@ describe("ローカル保存", () => {
     expect(loadProgress()).toEqual({
       highestWave: 2,
       highestClearedLoop: 0,
+      coins: 0,
+      totalCoinsEarned: 0,
+      lastCoinReward: 0,
       resetPenaltyActive: false,
       activeRun: null,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
       discoveredItems: [],
+      unlockedMonsterFamilies: [],
+      unlockedItems: [],
+      monsterDeck: {},
     });
+  });
+
+  it("ラン終了コインをスコアとクリアボーナスから付与する", () => {
+    expect(coinRewardForRun(1234, 3, false)).toBe(12);
+    expect(coinRewardForRun(1234, 3, true)).toBe(237);
+    const result = awardRunCoins(loadProgress(), { score: 1234, loop: 3, cleared: true });
+    expect(result.reward).toBe(237);
+    expect(result.progress.coins).toBe(237);
+    expect(result.progress.totalCoinsEarned).toBe(237);
+    expect(result.progress.lastCoinReward).toBe(237);
   });
 });

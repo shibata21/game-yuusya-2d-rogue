@@ -78,7 +78,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("handleGameEvents");
     expect(src).toContain("playCoreHitSound");
     expect(src).toContain("playHeroDeathVoice");
-    expect(src).not.toContain("localStorage.setItem(\"makaiDefense.audio");
+    expect(src).not.toContain("local" + "Storage");
     expect(src).toContain("Phaser.Scale.FIT");
     expect(src).toContain("crackGraphics");
     expect(src).toContain("DIG_BREAK");
@@ -186,7 +186,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v24-dialogue");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v25-coins");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

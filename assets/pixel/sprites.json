@@ -105,7 +105,7 @@
         36
       ]
     },
-    "superslime": {
+    "moss_shroom": {
       "sheet": "actors",
       "x": 0,
       "y": 288,
@@ -119,7 +119,7 @@
         36
       ]
     },
-    "tarantula": {
+    "moss_mycelia": {
       "sheet": "actors",
       "x": 0,
       "y": 336,
@@ -133,7 +133,7 @@
         36
       ]
     },
-    "titan": {
+    "moss_myceliaKing": {
       "sheet": "actors",
       "x": 0,
       "y": 384,
@@ -147,7 +147,7 @@
         36
       ]
     },
-    "infernal": {
+    "moss_virus": {
       "sheet": "actors",
       "x": 0,
       "y": 432,
@@ -161,7 +161,7 @@
         36
       ]
     },
-    "crownslime": {
+    "moss_crystalVirus": {
       "sheet": "actors",
       "x": 0,
       "y": 480,
@@ -175,7 +175,7 @@
         36
       ]
     },
-    "direfang": {
+    "moss_crownVirus": {
       "sheet": "actors",
       "x": 0,
       "y": 528,
@@ -189,7 +189,7 @@
         36
       ]
     },
-    "goldweaver": {
+    "moss_root": {
       "sheet": "actors",
       "x": 0,
       "y": 576,
@@ -203,7 +203,7 @@
         36
       ]
     },
-    "goldcore": {
+    "moss_tangleRoot": {
       "sheet": "actors",
       "x": 0,
       "y": 624,
@@ -217,7 +217,7 @@
         36
       ]
     },
-    "whiteflame": {
+    "moss_ancientRoot": {
       "sheet": "actors",
       "x": 0,
       "y": 672,
@@ -231,7 +231,7 @@
         36
       ]
     },
-    "reaper": {
+    "meat_wolf": {
       "sheet": "actors",
       "x": 0,
       "y": 720,
@@ -245,7 +245,7 @@
         36
       ]
     },
-    "chimera": {
+    "meat_shadowWolf": {
       "sheet": "actors",
       "x": 0,
       "y": 768,
@@ -259,7 +259,7 @@
         36
       ]
     },
-    "warrior": {
+    "meat_nightfangKing": {
       "sheet": "actors",
       "x": 0,
       "y": 816,
@@ -273,7 +273,7 @@
         36
       ]
     },
-    "superwarrior": {
+    "meat_boar": {
       "sheet": "actors",
       "x": 0,
       "y": 864,
@@ -287,7 +287,7 @@
         36
       ]
     },
-    "ultrawarrior": {
+    "meat_fangBoar": {
       "sheet": "actors",
       "x": 0,
       "y": 912,
@@ -301,7 +301,7 @@
         36
       ]
     },
-    "tank": {
+    "meat_ironBoar": {
       "sheet": "actors",
       "x": 0,
       "y": 960,
@@ -315,7 +315,7 @@
         36
       ]
     },
-    "crossknight": {
+    "meat_hedgehog": {
       "sheet": "actors",
       "x": 0,
       "y": 1008,
@@ -329,7 +329,7 @@
         36
       ]
     },
-    "captain": {
+    "meat_steelHedgehog": {
       "sheet": "actors",
       "x": 0,
       "y": 1056,
@@ -343,7 +343,7 @@
         36
       ]
     },
-    "max": {
+    "meat_spineKing": {
       "sheet": "actors",
       "x": 0,
       "y": 1104,
@@ -357,7 +357,7 @@
         36
       ]
     },
-    "shon": {
+    "bug_centipede": {
       "sheet": "actors",
       "x": 0,
       "y": 1152,
@@ -371,7 +371,7 @@
         36
       ]
     },
-    "hori": {
+    "bug_steelCentipede": {
       "sheet": "actors",
       "x": 0,
       "y": 1200,
@@ -385,7 +385,7 @@
         36
       ]
     },
-    "xTerminator": {
+    "bug_goldCentipede": {
       "sheet": "actors",
       "x": 0,
       "y": 1248,
@@ -399,7 +399,7 @@
         36
       ]
     },
-    "priest": {
+    "bug_beetle": {
       "sheet": "actors",
       "x": 0,
       "y": 1296,
@@ -413,7 +413,7 @@
         36
       ]
     },
-    "saint": {
+    "bug_shieldBeetle": {
       "sheet": "actors",
       "x": 0,
       "y": 1344,
@@ -427,7 +427,7 @@
         36
       ]
     },
-    "mage": {
+    "bug_fortressBeetle": {
       "sheet": "actors",
       "x": 0,
       "y": 1392,
@@ -441,7 +441,7 @@
         36
       ]
     },
-    "supermage": {
+    "bug_needler": {
       "sheet": "actors",
       "x": 0,
       "y": 1440,
@@ -455,7 +455,7 @@
         36
       ]
     },
-    "sage": {
+    "bug_flyingNeedler": {
       "sheet": "actors",
       "x": 0,
       "y": 1488,
@@ -469,7 +469,7 @@
         36
       ]
     },
-    "egg_spitter": {
+    "bug_bowNeedler": {
       "sheet": "actors",
       "x": 0,
       "y": 1536,
@@ -483,7 +483,7 @@
         36
       ]
     },
-    "egg_golem": {
+    "stone_turtle": {
       "sheet": "actors",
       "x": 0,
       "y": 1584,
@@ -497,7 +497,7 @@
         36
       ]
     },
-    "egg_flame": {
+    "stone_ironTurtle": {
       "sheet": "actors",
       "x": 0,
       "y": 1632,
@@ -511,7 +511,7 @@
         36
       ]
     },
-    "egg_tarantula": {
+    "stone_goldTurtle": {
       "sheet": "actors",
       "x": 0,
       "y": 1680,
@@ -525,7 +525,7 @@
         36
       ]
     },
-    "egg_titan": {
+    "stone_magnetCrab": {
       "sheet": "actors",
       "x": 0,
       "y": 1728,
@@ -539,7 +539,7 @@
         36
       ]
     },
-    "egg_infernal": {
+    "stone_ironCrab": {
       "sheet": "actors",
       "x": 0,
       "y": 1776,
@@ -553,7 +553,7 @@
         36
       ]
     },
-    "egg_goldweaver": {
+    "stone_blackCrab": {
       "sheet": "actors",
       "x": 0,
       "y": 1824,
@@ -567,7 +567,7 @@
         36
       ]
     },
-    "egg_goldcore": {
+    "stone_crystalEye": {
       "sheet": "actors",
       "x": 0,
       "y": 1872,
@@ -581,10 +581,640 @@
         36
       ]
     },
-    "egg_whiteflame": {
+    "stone_quartzEye": {
       "sheet": "actors",
       "x": 0,
       "y": 1920,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "stone_rainbowEye": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 1968,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_serpent": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2016,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_flameSerpent": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2064,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_whiteSerpent": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2112,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_salamander": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2160,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_lavaSalamander": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2208,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_mirageSalamander": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2256,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_wyvern": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2304,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_stormWyvern": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2352,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "dragon_skyWyvern": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2400,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "superslime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2448,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "tarantula": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2496,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "titan": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2544,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2592,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "crownslime": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2640,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "direfang": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2688,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "goldweaver": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2736,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "goldcore": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2784,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "whiteflame": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2832,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "reaper": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2880,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "chimera": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2928,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "warrior": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 2976,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "superwarrior": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3024,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "ultrawarrior": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3072,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "tank": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3120,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "crossknight": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3168,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "captain": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3216,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "max": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3264,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "shon": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3312,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "hori": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3360,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "xTerminator": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3408,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "priest": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3456,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "saint": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3504,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "mage": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3552,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "supermage": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3600,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "sage": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3648,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_spitter": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3696,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_golem": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3744,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_flame": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3792,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_tarantula": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3840,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_titan": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3888,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_infernal": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3936,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_goldweaver": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 3984,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_goldcore": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 4032,
+      "w": 48,
+      "h": 48,
+      "frames": 4,
+      "directions": 8,
+      "actions": 7,
+      "anchor": [
+        24,
+        36
+      ]
+    },
+    "egg_whiteflame": {
+      "sheet": "actors",
+      "x": 0,
+      "y": 4080,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1431,6 +2061,72 @@
     "boneContract": {
       "sheet": "items",
       "x": 2736,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "undergroundStore": {
+      "sheet": "items",
+      "x": 2784,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "veinBrush": {
+      "sheet": "items",
+      "x": 2832,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "denLedger": {
+      "sheet": "items",
+      "x": 2880,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "homeChime": {
+      "sheet": "items",
+      "x": 2928,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "shopStamp": {
+      "sheet": "items",
+      "x": 2976,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "corePiggyBank": {
+      "sheet": "items",
+      "x": 3024,
       "y": 0,
       "w": 48,
       "h": 48,

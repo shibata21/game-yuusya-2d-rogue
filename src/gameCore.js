@@ -195,6 +195,12 @@ export const ITEMS = {
   blackRaindrop: { name: "黒い雨粒", passive: true, profile: "ウェーブ中、敵味方全員の移動が遅くなる。" },
   redMoonShard: { name: "赤月の破片", passive: true, profile: "ウェーブ後半ほど魔物の攻撃力が上がる。" },
   boneContract: { name: "白骨の契約書", passive: false, profile: "取得時にコアHPを消費し、現存魔物を強化する。" },
+  undergroundStore: { name: "地下倉庫", passive: true, profile: "アイテムを持てる数が増える。" },
+  veinBrush: { name: "鉱脈刷毛", passive: true, profile: "自然に生まれる鉱脈が少し増えやすくなる。" },
+  denLedger: { name: "巣番台帳", passive: true, profile: "新しく出る魔物の最大HPが少し増える。" },
+  homeChime: { name: "帰巣チャイム", passive: true, profile: "魔物が発生地点へ戻りやすくなる。" },
+  shopStamp: { name: "商店スタンプ", passive: true, profile: "アイテム商店の価格が少し下がる。" },
+  corePiggyBank: { name: "コア貯金箱", passive: true, profile: "ウェーブ撃退時、迷宮コアが無傷なら栄養を得る。" },
 };
 
 const ITEM_RARITY_BY_ID = {
@@ -256,24 +262,84 @@ const ITEM_RARITY_BY_ID = {
   blackRaindrop: "rare",
   redMoonShard: "gold",
   boneContract: "gold",
+  undergroundStore: "rare",
+  veinBrush: "normal",
+  denLedger: "rare",
+  homeChime: "normal",
+  shopStamp: "rare",
+  corePiggyBank: "gold",
 };
 
 for (const id of Object.keys(ITEMS)) ITEMS[id].rarity = ITEM_RARITY_BY_ID[id] || "normal";
 
+export const ITEM_UNLOCKS = {
+  undergroundStore: { price: 80, unlockClears: 0 },
+  veinBrush: { price: 110, unlockClears: 1 },
+  denLedger: { price: 150, unlockClears: 2 },
+  homeChime: { price: 220, unlockClears: 3 },
+  shopStamp: { price: 300, unlockClears: 5 },
+  corePiggyBank: { price: 420, unlockClears: 8 },
+};
+
 export const KINDS = {
   slime: { hp: 10, atk: 2, range: 1, moveCd: 560, atkCd: 720, aggro: 3, rank: 1, breedEvery: 14000, breedCap: 3, col: "#66bf68", name: "スライム", profile: "迷宮の湿気が集まると出てくる。本人たちは採用面接に受かったと思っている。" },
   carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣", profile: "首輪はないが飼われている顔をしている。褒められると通路を余計に走る。" },
-  spitter: { hp: 34, atk: 8, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "毒蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
+  spitter: { hp: 34, atk: 8, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
   golem: { hp: 125, atk: 5, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.08, col: "#6f86c4", name: "ゴーレム", profile: "動き出すまでが長い。動き出してからも長い。本人は慎重派と言っている。" },
   flame: { hp: 84, atk: 18, range: 3, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.055, lineFire: true, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
+  moss_shroom: { hp: 9, atk: 1, range: 1, moveCd: 570, atkCd: 760, aggro: 3, rank: 1, breedEvery: 13000, breedCap: 4, family: "moss_shroom", soilGrow: 1, col: "#8fcf6a", name: "胞子茸", profile: "歩くたび胞子を落とす小さな茸。本人は掃除をしているつもりで土を肥やす。" },
+  moss_mycelia: { hp: 48, atk: 6, range: 1, moveCd: 540, atkCd: 720, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_shroom", soilGrow: 2, col: "#b7df7a", eliteOf: "moss_shroom", name: "菌糸茸", profile: "足元から白い菌糸を伸ばす。通ったあとの土はやけに目覚めがいい。" },
+  moss_myceliaKing: { hp: 104, atk: 12, range: 1, moveCd: 520, atkCd: 690, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_shroom", soilGrow: 3, col: "#e0ef9a", eliteOf: "moss_mycelia", evoLevel: 2, name: "菌糸王", profile: "地中に王国を広げる茸。本人が座ると周囲の土が勝手に家臣になる。" },
+  moss_virus: { hp: 8, atk: 1, range: 2, moveCd: 620, atkCd: 900, aggro: 3, rank: 1, breedEvery: 15000, breedCap: 3, family: "moss_virus", weakenMs: 3200, weakenMul: 0.92, col: "#6fe0a8", name: "多脚ウイルス", profile: "立体結晶に細い足が生えたような魔物。近づく冒険者の握力を少し怪しくする。" },
+  moss_crystalVirus: { hp: 42, atk: 5, range: 2, moveCd: 600, atkCd: 860, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_virus", weakenMs: 4200, weakenMul: 0.88, col: "#7cf0d0", eliteOf: "moss_virus", name: "結晶ウイルス", profile: "結晶面をかちかち鳴らして増える。音を聞いた冒険者は武器の振りが鈍る。" },
+  moss_crownVirus: { hp: 94, atk: 11, range: 2, moveCd: 570, atkCd: 830, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_virus", weakenMs: 5600, weakenMul: 0.84, col: "#b4fff0", eliteOf: "moss_crystalVirus", evoLevel: 2, name: "王冠ウイルス", profile: "王冠のような突起を持つ結晶体。威厳はないが、冒険者の腕力は確実に落とす。" },
+  moss_root: { hp: 14, atk: 2, range: 1, moveCd: 690, atkCd: 780, aggro: 3, rank: 1, breedEvery: 16500, breedCap: 2, family: "moss_root", hitSlowMs: 360, col: "#7aa65a", name: "歩き根", profile: "根っこだけで歩く。足を取るのが仕事なので、自分の足取りはあまり気にしない。" },
+  moss_tangleRoot: { hp: 60, atk: 7, range: 1, moveCd: 660, atkCd: 740, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_root", hitSlowMs: 560, col: "#9fbd63", eliteOf: "moss_root", name: "絡み根", profile: "通路の端から蔓のように絡む根。ほどける頃には次の根が待っている。" },
+  moss_ancientRoot: { hp: 130, atk: 15, range: 1, moveCd: 640, atkCd: 700, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_root", hitSlowMs: 760, col: "#c5c96a", eliteOf: "moss_tangleRoot", evoLevel: 2, name: "古根主", profile: "古い根が主になったもの。動きは遅いが、捕まると通路そのものが足首を握る。" },
+  meat_wolf: { hp: 22, atk: 4, range: 1, moveCd: 500, atkCd: 620, aggro: 5, rank: 3, breedEvery: 32000, breedCap: 2, family: "meat_wolf", packBoost: 0.08, col: "#343a4a", name: "黒狼", profile: "群れの気配だけで走る黒い狼。一匹でも二匹分の顔をしている。" },
+  meat_shadowWolf: { hp: 78, atk: 14, range: 1, moveCd: 480, atkCd: 590, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_wolf", packBoost: 0.11, col: "#25283a", eliteOf: "meat_wolf", name: "影牙狼", profile: "影に牙があるのか、牙に影があるのか分からない。群れるほど迷宮の影が濃くなる。" },
+  meat_nightfangKing: { hp: 158, atk: 27, range: 1, moveCd: 460, atkCd: 560, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_wolf", packBoost: 0.14, col: "#1a1d2b", eliteOf: "meat_shadowWolf", evoLevel: 2, name: "夜牙王", profile: "夜の牙を束ねる王。吠えないのに周囲の狼が勝手に速度を合わせる。" },
+  meat_boar: { hp: 30, atk: 5, range: 1, moveCd: 650, atkCd: 730, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, family: "meat_boar", chargeMs: 1400, chargeMul: 1.35, col: "#8a4a32", name: "穴猪", profile: "穴から穴へ突っ込む猪。曲がることは苦手だが、止まることはもっと苦手。" },
+  meat_fangBoar: { hp: 102, atk: 18, range: 1, moveCd: 630, atkCd: 700, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_boar", chargeMs: 1500, chargeMul: 1.45, col: "#ad5b37", eliteOf: "meat_boar", name: "牙穴猪", profile: "牙で通路の空気ごと押す。走った直後の一撃だけ妙に重い。" },
+  meat_ironBoar: { hp: 190, atk: 32, range: 1, moveCd: 610, atkCd: 660, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_boar", chargeMs: 1700, chargeMul: 1.55, col: "#c06d43", eliteOf: "meat_fangBoar", evoLevel: 2, name: "鉄牙猪", profile: "鉄の牙を持つ猪。突進の勢いが残っている間、壁も敵もだいたい同じ扱いになる。" },
+  meat_hedgehog: { hp: 28, atk: 4, range: 1, moveCd: 620, atkCd: 720, aggro: 4, rank: 3, breedEvery: 34000, breedCap: 2, family: "meat_hedgehog", thorns: 2, col: "#7d6750", name: "針獣", profile: "丸まると針しか見えない獣。殴った側が先に顔をしかめる。" },
+  meat_steelHedgehog: { hp: 94, atk: 15, range: 1, moveCd: 600, atkCd: 690, aggro: 4, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_hedgehog", thorns: 4, col: "#9a8a74", eliteOf: "meat_hedgehog", name: "鋼針獣", profile: "針の芯が硬い。防具に当たっても、嫌な音だけは確実に残す。" },
+  meat_spineKing: { hp: 178, atk: 28, range: 1, moveCd: 580, atkCd: 650, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_hedgehog", thorns: 7, col: "#c3b180", eliteOf: "meat_steelHedgehog", evoLevel: 2, name: "針山王", profile: "背中が小さな山になった針獣。王座に座る者はだいたい自分の針で少し痛い。" },
+  bug_centipede: { hp: 28, atk: 7, range: 1, moveCd: 420, atkCd: 760, aggro: 4, rank: 2, breedEvery: 42000, breedCap: 2, family: "bug_centipede", skitter: 0.88, col: "#844bd6", name: "ムカデ", profile: "足の数で通路を覚える虫。数え間違えても速さだけは落ちない。" },
+  bug_steelCentipede: { hp: 96, atk: 16, range: 1, moveCd: 400, atkCd: 720, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_centipede", skitter: 0.82, col: "#b064e8", eliteOf: "bug_centipede", name: "鋼ムカデ", profile: "節の一つ一つが鋼のように硬い。足音が増えるほど前線が近づく。" },
+  bug_goldCentipede: { hp: 188, atk: 31, range: 1, moveCd: 380, atkCd: 690, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_centipede", skitter: 0.76, col: "#d2a744", eliteOf: "bug_steelCentipede", evoLevel: 2, name: "金殻ムカデ", profile: "金色の節が曲がるたびに光る。見とれる前にだいたい噛まれている。" },
+  bug_beetle: { hp: 42, atk: 5, range: 1, moveCd: 780, atkCd: 920, aggro: 4, rank: 2, breedEvery: 46000, breedCap: 2, family: "bug_beetle", frontGuard: 0.18, col: "#52664a", name: "甲虫", profile: "正面だけ妙に立派な甲虫。自信のある面を敵に向けるのが得意。" },
+  bug_shieldBeetle: { hp: 124, atk: 16, range: 1, moveCd: 760, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_beetle", frontGuard: 0.25, col: "#71865c", eliteOf: "bug_beetle", name: "盾甲虫", profile: "甲殻が盾のように広がった虫。横から見られると少し落ち着かない。" },
+  bug_fortressBeetle: { hp: 240, atk: 28, range: 1, moveCd: 740, atkCd: 850, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_beetle", frontGuard: 0.32, col: "#9da45f", eliteOf: "bug_shieldBeetle", evoLevel: 2, name: "城塞甲虫", profile: "通路に置くと城門のようになる甲虫。本人はただ正面を向いているだけ。" },
+  bug_needler: { hp: 26, atk: 6, range: 2, moveCd: 600, atkCd: 900, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, family: "bug_needler", col: "#7c45d6", name: "針虫", profile: "細い針を飛ばす虫。壁越しには撃てないので、律儀に角を曲がってから刺す。" },
+  bug_flyingNeedler: { hp: 92, atk: 17, range: 3, moveCd: 580, atkCd: 850, aggro: 3, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_needler", col: "#b85fcf", eliteOf: "bug_needler", name: "飛針虫", profile: "翅で浮いて針を構える。命中率より、針を構える姿勢の美しさにこだわる。" },
+  bug_bowNeedler: { hp: 176, atk: 32, range: 3, moveCd: 560, atkCd: 810, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_needler", col: "#cf8a3f", eliteOf: "bug_flyingNeedler", evoLevel: 2, name: "弩針虫", profile: "背中が弩のようにしなる針虫。狭い通路ほど照準が落ち着くらしい。" },
+  stone_turtle: { hp: 140, atk: 4, range: 1, moveCd: 1200, atkCd: 1100, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.018, col: "#647a96", name: "鉱亀", profile: "鉱石の甲羅を背負った亀。動かない時間を修理時間だと思っている。" },
+  stone_ironTurtle: { hp: 310, atk: 14, range: 1, moveCd: 1180, atkCd: 1060, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.024, col: "#8d9aa5", eliteOf: "stone_turtle", name: "鉄甲鉱亀", profile: "鉄混じりの甲羅を持つ。止まっていると傷口が鉱石でふさがっていく。" },
+  stone_goldTurtle: { hp: 575, atk: 28, range: 1, moveCd: 1160, atkCd: 1020, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.030, col: "#d1b45f", eliteOf: "stone_ironTurtle", evoLevel: 2, name: "金晶鉱亀", profile: "金晶の甲羅が欠けてもすぐ光を取り戻す。本人は昼寝の成果だと言う。" },
+  stone_magnetCrab: { hp: 115, atk: 5, range: 1, moveCd: 980, atkCd: 980, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.08, col: "#516f86", name: "磁石蟹", profile: "小さな磁力で仲間の鎧や甲殻を引き締める蟹。鉄粉が好物。" },
+  stone_ironCrab: { hp: 275, atk: 15, range: 1, moveCd: 960, atkCd: 940, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.12, col: "#6b8ca2", eliteOf: "stone_magnetCrab", name: "磁鉄蟹", profile: "磁力が強くなり、近くの味方が少し硬くなる。本人は方角をよく間違える。" },
+  stone_blackCrab: { hp: 520, atk: 29, range: 1, moveCd: 940, atkCd: 900, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.16, col: "#334a5a", eliteOf: "stone_ironCrab", evoLevel: 2, name: "黒磁鉄蟹", profile: "黒い磁鉄を抱えた蟹。近くにいるだけで刃先が少し逸れる。" },
+  stone_crystalEye: { hp: 82, atk: 9, range: 3, moveCd: 1000, atkCd: 980, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#8bc7e6", name: "水晶眼", profile: "水晶の目玉だけが浮く石の魔物。見つめた先に光弾を置く。" },
+  stone_quartzEye: { hp: 210, atk: 24, range: 3, moveCd: 980, atkCd: 940, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#c8e2f0", eliteOf: "stone_crystalEye", name: "石英眼", profile: "石英の濁った光を撃つ。視線が合うと、なぜかこちらが謝りたくなる。" },
+  stone_rainbowEye: { hp: 390, atk: 44, range: 4, moveCd: 960, atkCd: 900, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#f0d8ff", eliteOf: "stone_quartzEye", evoLevel: 2, name: "虹晶眼", profile: "虹色の光をたたえた巨大な眼。壁のない通路を見つけるとすぐ撃つ。" },
+  dragon_serpent: { hp: 92, atk: 17, range: 1, moveCd: 560, atkCd: 700, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 500, col: "#5fa36d", name: "大蛇", profile: "太い胴で冒険者を締める。噛むより先に足を遅くするのが礼儀らしい。" },
+  dragon_flameSerpent: { hp: 205, atk: 32, range: 1, moveCd: 540, atkCd: 660, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 700, col: "#d06a3a", eliteOf: "dragon_serpent", name: "炎大蛇", profile: "鱗の隙間から熱が漏れる大蛇。締め付けられると足が熱で重くなる。" },
+  dragon_whiteSerpent: { hp: 405, atk: 58, range: 1, moveCd: 520, atkCd: 620, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 900, col: "#f4f1cf", eliteOf: "dragon_flameSerpent", evoLevel: 2, name: "白鱗大蛇", profile: "白い鱗を持つ大蛇。締めた相手の歩幅まで静かに支配する。" },
+  dragon_salamander: { hp: 76, atk: 13, range: 1, moveCd: 520, atkCd: 740, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 2, col: "#e6502f", name: "火蜥蜴", profile: "尻尾の火で通路を焦がす蜥蜴。急いでいる時ほど足跡が熱い。" },
+  dragon_lavaSalamander: { hp: 185, atk: 28, range: 1, moveCd: 500, atkCd: 700, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 3, col: "#ff7a24", eliteOf: "dragon_salamander", name: "溶岩蜥蜴", profile: "足跡に溶岩の粒を残す。本人は通路を温めているだけのつもり。" },
+  dragon_mirageSalamander: { hp: 360, atk: 52, range: 1, moveCd: 480, atkCd: 660, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 5, col: "#ffd06a", eliteOf: "dragon_lavaSalamander", evoLevel: 2, name: "陽炎蜥蜴", profile: "歩いたあとに陽炎が立つ。踏んだ冒険者は痛みより先に景色を疑う。" },
+  dragon_wyvern: { hp: 66, atk: 12, range: 3, moveCd: 500, atkCd: 820, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 300, col: "#7eb8d8", name: "小飛竜", profile: "小さな翼で突風を撃つ竜。壁越しに撃てないので、風向きには正直。" },
+  dragon_stormWyvern: { hp: 170, atk: 28, range: 3, moveCd: 480, atkCd: 780, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 450, col: "#6ca0f0", eliteOf: "dragon_wyvern", name: "嵐飛竜", profile: "羽ばたきで短い嵐を作る。撃たれた冒険者は前へ出る足が少し遅れる。" },
+  dragon_skyWyvern: { hp: 330, atk: 54, range: 4, moveCd: 460, atkCd: 740, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 600, col: "#d9f2ff", eliteOf: "dragon_stormWyvern", evoLevel: 2, name: "天翼竜", profile: "天井近くを滑るように飛ぶ竜。突風の着弾だけは地面に律儀。" },
   superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム", profile: "ぷるぷる界の御曹司。怒ると少し赤くなるが、照れても同じ色になる。" },
   evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣", profile: "牙の手入れにうるさい。鏡がないので、水たまりの前でよく止まる。" },
-  tarantula: { hp: 108, atk: 19, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大毒蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
+  tarantula: { hp: 108, atk: 19, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
   titan: { hp: 285, atk: 16, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.035, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "昔は山だったと言い張る。否定すると返事が翌朝まで返ってこない。" },
   infernal: { hp: 195, atk: 34, range: 3, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.025, lineFire: true, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
   crownslime: { hp: 112, atk: 14, range: 1, moveCd: 500, atkCd: 650, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
   direfang: { hp: 178, atk: 30, range: 1, moveCd: 610, atkCd: 640, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, col: "#5f2020", eliteOf: "evolved", evoLevel: 2, name: "裂牙獣", profile: "走るたびに地面へ爪痕を残す。本人は道しるべのつもりらしい。" },
-  goldweaver: { hp: 205, atk: 36, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸毒蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
+  goldweaver: { hp: 205, atk: 36, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
   goldcore: { hp: 540, atk: 31, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.012, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
   whiteflame: { hp: 390, atk: 62, range: 3, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.01, lineFire: true, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
   reaper: { hp: 430, atk: 68, range: 1, moveCd: 520, atkCd: 620, aggro: 6, rank: 10, breedEvery: 0, breedCap: 1, col: "#b7c6d6", name: "死神", profile: "倒れた冒険者の影からまれに現れる。鎌の手入れだけは妙に几帳面。" },
@@ -283,9 +349,40 @@ export const KINDS = {
 export const VEIN = {
   moss: { kind: "slime", evoKind: "superslime", finalKind: "crownslime", unlock: 1, color: "#6fcf6f", core: "#bdf7bd", legend: "苔脈→スライム", evoName: "上位苔脈", finalEvoName: "王冠苔脈", touchNeed: 4, finalTouchNeed: 14, spawnWeight: 3.0, soilAffinity: 0 },
   meat: { kind: "carniv", evoKind: "evolved", finalKind: "direfang", unlock: 1, color: "#e63a2c", core: "#ffb39e", legend: "牙脈→牙獣", evoName: "上位牙脈", finalEvoName: "裂牙脈", touchNeed: 7, finalTouchNeed: 22, spawnWeight: 1.6, soilAffinity: 1 },
-  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "毒脈→毒蜘蛛", evoName: "上位毒脈", finalEvoName: "金糸毒脈", touchNeed: 10, finalTouchNeed: 34, spawnWeight: 1.1, soilAffinity: 3, unlockMsg: "新たな鉱脈『毒脈』 ─ 毒蜘蛛が眠る" },
+  venom: { kind: "spitter", evoKind: "tarantula", finalKind: "goldweaver", unlock: 3, color: "#a64dff", core: "#e0bcff", legend: "虫脈→蜘蛛", evoName: "上位虫脈", finalEvoName: "金糸虫脈", touchNeed: 10, finalTouchNeed: 34, spawnWeight: 1.1, soilAffinity: 3, unlockMsg: "新たな鉱脈『虫脈』 ─ 蜘蛛が眠る" },
   stone: { kind: "golem", evoKind: "titan", finalKind: "goldcore", unlock: 6, color: "#6f86c4", core: "#bcd0ff", legend: "石脈→ゴーレム", evoName: "上位石脈", finalEvoName: "金核石脈", touchNeed: 13, finalTouchNeed: 50, spawnWeight: 0.8, soilAffinity: 5, unlockMsg: "新たな鉱脈『石脈』 ─ ゴーレムが眠る" },
-  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "火脈→火竜", evoName: "上位火脈", finalEvoName: "白炎火脈", touchNeed: 16, finalTouchNeed: 70, spawnWeight: 0.7, soilAffinity: 6, unlockMsg: "新たな鉱脈『火脈』 ─ 火竜が眠る" },
+  ember: { kind: "flame", evoKind: "infernal", finalKind: "whiteflame", unlock: 9, color: "#ffae26", core: "#ffe39a", legend: "竜脈→火竜", evoName: "上位竜脈", finalEvoName: "白炎竜脈", touchNeed: 16, finalTouchNeed: 70, spawnWeight: 0.7, soilAffinity: 6, unlockMsg: "新たな鉱脈『竜脈』 ─ 火竜が眠る" },
+};
+
+export const DEFAULT_MONSTER_DECK = {
+  moss: "moss_slime",
+  meat: "meat_carniv",
+  venom: "venom_spider",
+  stone: "stone_golem",
+  ember: "ember_dragon",
+};
+
+export const MONSTER_FAMILIES = {
+  moss_slime: { vein: "moss", name: "スライム", kinds: ["slime", "superslime", "crownslime"], price: 0, unlockClears: 0, default: true, trait: "直接分裂し、扱いやすい。" },
+  moss_shroom: { vein: "moss", name: "菌糸", kinds: ["moss_shroom", "moss_mycelia", "moss_myceliaKing"], price: 120, unlockClears: 0, trait: "移動で土壌養分を育てる。" },
+  moss_virus: { vein: "moss", name: "ウイルス", kinds: ["moss_virus", "moss_crystalVirus", "moss_crownVirus"], price: 160, unlockClears: 0, trait: "命中した冒険者の攻撃力を下げる。" },
+  moss_root: { vein: "moss", name: "根", kinds: ["moss_root", "moss_tangleRoot", "moss_ancientRoot"], price: 200, unlockClears: 0, trait: "命中した冒険者を鈍らせる。" },
+  meat_carniv: { vein: "meat", name: "牙獣", kinds: ["carniv", "evolved", "direfang"], price: 0, unlockClears: 0, default: true, trait: "近接火力が高い。" },
+  meat_wolf: { vein: "meat", name: "黒狼", kinds: ["meat_wolf", "meat_shadowWolf", "meat_nightfangKing"], price: 180, unlockClears: 0, trait: "同族が近いほど速く強い。" },
+  meat_boar: { vein: "meat", name: "穴猪", kinds: ["meat_boar", "meat_fangBoar", "meat_ironBoar"], price: 240, unlockClears: 0, trait: "移動直後の初撃が重い。" },
+  meat_hedgehog: { vein: "meat", name: "針獣", kinds: ["meat_hedgehog", "meat_steelHedgehog", "meat_spineKing"], price: 300, unlockClears: 0, trait: "近接攻撃を受けると反撃する。" },
+  venom_spider: { vein: "venom", name: "蜘蛛", kinds: ["spitter", "tarantula", "goldweaver"], price: 0, unlockClears: 0, default: true, trait: "壁を貫通しない飛び道具を撃つ。" },
+  bug_centipede: { vein: "venom", name: "ムカデ", kinds: ["bug_centipede", "bug_steelCentipede", "bug_goldCentipede"], price: 260, unlockClears: 2, trait: "移動が速い。" },
+  bug_beetle: { vein: "venom", name: "甲虫", kinds: ["bug_beetle", "bug_shieldBeetle", "bug_fortressBeetle"], price: 340, unlockClears: 2, trait: "正面からの被ダメージを軽減する。" },
+  bug_needler: { vein: "venom", name: "針虫", kinds: ["bug_needler", "bug_flyingNeedler", "bug_bowNeedler"], price: 420, unlockClears: 2, trait: "壁を貫通しない針を撃つ。" },
+  stone_golem: { vein: "stone", name: "ゴーレム", kinds: ["golem", "titan", "goldcore"], price: 0, unlockClears: 0, default: true, trait: "高耐久で前線を止める。" },
+  stone_turtle: { vein: "stone", name: "鉱亀", kinds: ["stone_turtle", "stone_ironTurtle", "stone_goldTurtle"], price: 380, unlockClears: 4, trait: "動かずにいると自動回復する。" },
+  stone_magnetCrab: { vein: "stone", name: "磁鉄蟹", kinds: ["stone_magnetCrab", "stone_ironCrab", "stone_blackCrab"], price: 480, unlockClears: 4, trait: "近くの味方の被ダメージを下げる。" },
+  stone_crystalEye: { vein: "stone", name: "水晶眼", kinds: ["stone_crystalEye", "stone_quartzEye", "stone_rainbowEye"], price: 600, unlockClears: 4, trait: "壁を貫通しない光弾を撃つ。" },
+  ember_dragon: { vein: "ember", name: "火竜", kinds: ["flame", "infernal", "whiteflame"], price: 0, unlockClears: 0, default: true, trait: "直線炎で複数の敵を焼く。" },
+  dragon_serpent: { vein: "ember", name: "大蛇", kinds: ["dragon_serpent", "dragon_flameSerpent", "dragon_whiteSerpent"], price: 520, unlockClears: 7, trait: "命中した冒険者を締め付けて鈍らせる。" },
+  dragon_salamander: { vein: "ember", name: "火蜥蜴", kinds: ["dragon_salamander", "dragon_lavaSalamander", "dragon_mirageSalamander"], price: 660, unlockClears: 7, trait: "移動跡に熱床を残す。" },
+  dragon_wyvern: { vein: "ember", name: "飛竜", kinds: ["dragon_wyvern", "dragon_stormWyvern", "dragon_skyWyvern"], price: 800, unlockClears: 7, trait: "突風弾で攻撃し、命中時に少し鈍らせる。" },
 };
 
 export const HERO_CLASSES = {
@@ -455,13 +552,56 @@ function createRuntimeTables(ruleConfig) {
   };
 }
 
+export function resolveMonsterDeck(deck = {}) {
+  const out = clonePlain(DEFAULT_MONSTER_DECK);
+  if (!deck || typeof deck !== "object") return out;
+  for (const vein in out) {
+    const id = deck[vein];
+    if (MONSTER_FAMILIES[id] && MONSTER_FAMILIES[id].vein === vein) out[vein] = id;
+  }
+  return out;
+}
+
+function applyMonsterDeckToVeins(veinTable, deck) {
+  const resolved = resolveMonsterDeck(deck);
+  for (const vein in resolved) {
+    const family = MONSTER_FAMILIES[resolved[vein]];
+    const row = veinTable[vein];
+    if (!family || !row) continue;
+    row.kind = family.kinds[0];
+    row.evoKind = family.kinds[1];
+    row.finalKind = family.kinds[2];
+    const baseName = KINDS[row.kind] ? KINDS[row.kind].name : family.name;
+    row.legend = `${row.legend.split("→")[0]}→${baseName}`;
+  }
+}
+
+function normalizeUnlockedItems(value) {
+  if (!Array.isArray(value)) return new Set();
+  return new Set(value.filter((id) => typeof id === "string" && ITEM_UNLOCKS[id]));
+}
+
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v24-dialogue";
+export const PIXEL_ASSET_VERSION = "v25-coins";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
 export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat", "dodge"];
-export const PIXEL_ACTORS = ["slime", "carniv", "evolved", "spitter", "golem", "flame", "superslime", "tarantula", "titan", "infernal", "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame", "reaper", "chimera", "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage", "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
+export const PIXEL_ACTORS = [
+  "slime", "carniv", "evolved", "spitter", "golem", "flame",
+  "moss_shroom", "moss_mycelia", "moss_myceliaKing", "moss_virus", "moss_crystalVirus", "moss_crownVirus", "moss_root", "moss_tangleRoot", "moss_ancientRoot",
+  "meat_wolf", "meat_shadowWolf", "meat_nightfangKing", "meat_boar", "meat_fangBoar", "meat_ironBoar", "meat_hedgehog", "meat_steelHedgehog", "meat_spineKing",
+  "bug_centipede", "bug_steelCentipede", "bug_goldCentipede", "bug_beetle", "bug_shieldBeetle", "bug_fortressBeetle", "bug_needler", "bug_flyingNeedler", "bug_bowNeedler",
+  "stone_turtle", "stone_ironTurtle", "stone_goldTurtle", "stone_magnetCrab", "stone_ironCrab", "stone_blackCrab", "stone_crystalEye", "stone_quartzEye", "stone_rainbowEye",
+  "dragon_serpent", "dragon_flameSerpent", "dragon_whiteSerpent", "dragon_salamander", "dragon_lavaSalamander", "dragon_mirageSalamander", "dragon_wyvern", "dragon_stormWyvern", "dragon_skyWyvern",
+  "superslime", "tarantula", "titan", "infernal",
+  "crownslime", "direfang", "goldweaver", "goldcore", "whiteflame",
+  "reaper", "chimera",
+  "warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain",
+  "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage",
+  "egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal",
+  "egg_goldweaver", "egg_goldcore", "egg_whiteflame",
+];
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 export const PIXEL_ITEMS = Object.keys(ITEMS);
@@ -596,6 +736,9 @@ export function createGame(options = {}) {
   let random = typeof options.random === "function" ? options.random : mulberry32(options.seed ?? autoSeed());
   const ruleConfig = createRuleConfig(options.ruleConfig);
   const runtimeTables = createRuntimeTables(ruleConfig);
+  const monsterDeck = resolveMonsterDeck(options.monsterDeck);
+  applyMonsterDeckToVeins(runtimeTables.VEIN, monsterDeck);
+  const unlockedItemIds = normalizeUnlockedItems(options.unlockedItems);
   const {
     DIG_COST,
     START_NUT,
@@ -790,12 +933,38 @@ export function createGame(options = {}) {
     return items.includes(id);
   }
 
+  function itemUnlocked(id) {
+    return !!ITEMS[id] && (!ITEM_UNLOCKS[id] || unlockedItemIds.has(id));
+  }
+
+  function availableItemIds() {
+    return Object.keys(ITEMS).filter(itemUnlocked);
+  }
+
+  function effectiveItemCap() {
+    return ITEM_CAP + (hasItem("undergroundStore") ? 2 : 0);
+  }
+
   function itemCapacityReached() {
-    return items.length >= ITEM_CAP;
+    return items.length >= effectiveItemCap();
   }
 
   function hasDebuff(id) {
     return debuffItems.includes(id);
+  }
+
+  function familyOf(kind) {
+    return KINDS[kind] && KINDS[kind].family ? KINDS[kind].family : kind;
+  }
+
+  function sameFamilyNear(m, range = 2) {
+    const family = familyOf(m.kind);
+    let count = 0;
+    for (const o of monsters) {
+      if (o === m || familyOf(o.kind) !== family || cheb(o, m) > range) continue;
+      count++;
+    }
+    return count;
   }
 
   function scoreMultiplier() {
@@ -816,6 +985,7 @@ export function createGame(options = {}) {
 
   function monsterAttackPower(m) {
     if (!m) return 1;
+    const k = KINDS[m.kind] || {};
     let power = m.atk || 1;
     if (hasItem("warPaint") && waveOpeningActive()) power *= 1.15;
     if (hasItem("rebelCharm") && monsters.length <= 3) power *= 1.2;
@@ -823,6 +993,8 @@ export function createGame(options = {}) {
     if (hasItem("redMoonShard") && waveIsActive()) power *= 1 + Math.min(0.3, Math.max(0, waveElapsed - 15000) / 45000 * 0.3);
     if ((m.bloodyPlateMs || 0) > 0) power *= 1.2;
     if ((m.crybabyBellMs || 0) > 0) power *= 1.15;
+    if (k.packBoost) power *= 1 + Math.min(3, sameFamilyNear(m, 2)) * k.packBoost;
+    if (k.chargeMul && (m.chargeMs || 0) > 0) power *= k.chargeMul;
     return Math.max(1, Math.round(power));
   }
 
@@ -830,6 +1002,7 @@ export function createGame(options = {}) {
     let power = h.atk || 1;
     if (hasItem("curseNail")) power *= 0.92;
     if (hasDebuff("sharpenedBlade")) power *= 1.12;
+    if ((h.weakenMs || 0) > 0) power *= h.weakenMul || 0.9;
     return Math.max(1, Math.round(power));
   }
 
@@ -979,7 +1152,8 @@ export function createGame(options = {}) {
   function veinSpawnChance(tile) {
     if (!tile || tile.t !== "earth" || tile.sub) return 0;
     const stage = soilManaOf(tile);
-    return VEIN_SPAWN_SOIL_CHANCES[stage] ?? VEIN_SPAWN_SOIL_CHANCES[VEIN_SPAWN_SOIL_CHANCES.length - 1];
+    const chance = VEIN_SPAWN_SOIL_CHANCES[stage] ?? VEIN_SPAWN_SOIL_CHANCES[VEIN_SPAWN_SOIL_CHANCES.length - 1];
+    return chance * (hasItem("veinBrush") ? 1.15 : 1);
   }
 
   function runVeinSpawnTick() {
@@ -1162,7 +1336,7 @@ export function createGame(options = {}) {
   }
 
   function chooseItemOfferChoices() {
-    const pool = Object.keys(ITEMS).filter((id) => !hasItem(id));
+    const pool = availableItemIds().filter((id) => !hasItem(id));
     if (hasItem("fakeGold")) pool.sort((a, b) => PIXEL_ITEMS.indexOf(a) - PIXEL_ITEMS.indexOf(b));
     const choices = [];
     while (pool.length && choices.length < itemOfferChoiceCount()) {
@@ -1188,12 +1362,13 @@ export function createGame(options = {}) {
 
   function itemShopPrice(id, shopWave = wave) {
     const rarity = ITEM_RARITIES[itemRarity(id)];
-    return Math.round(rarity.priceBase + Math.max(0, shopWave || 0) * rarity.priceWave);
+    const base = rarity.priceBase + Math.max(0, shopWave || 0) * rarity.priceWave;
+    return Math.round(base * (hasItem("shopStamp") ? 0.9 : 1));
   }
 
   function chooseShopGoods(excludedIds = []) {
     const excluded = new Set(excludedIds);
-    const pool = Object.keys(ITEMS).filter((id) => !hasItem(id) && !excluded.has(id));
+    const pool = availableItemIds().filter((id) => !hasItem(id) && !excluded.has(id));
     const goods = [];
     while (pool.length && goods.length < SHOP_STOCK_COUNT) {
       let total = 0;
@@ -1215,8 +1390,8 @@ export function createGame(options = {}) {
 
   function choosePostWaveEventKind() {
     const candidates = [];
-    if (Object.keys(ITEMS).some((id) => !hasItem(id))) candidates.push({ kind: "item", weight: POST_WAVE_EVENT_WEIGHTS.item });
-    if (Object.keys(ITEMS).some((id) => !hasItem(id))) candidates.push({ kind: "shop", weight: POST_WAVE_EVENT_WEIGHTS.shop });
+    if (availableItemIds().some((id) => !hasItem(id))) candidates.push({ kind: "item", weight: POST_WAVE_EVENT_WEIGHTS.item });
+    if (availableItemIds().some((id) => !hasItem(id))) candidates.push({ kind: "shop", weight: POST_WAVE_EVENT_WEIGHTS.shop });
     if (loop >= TRAP_EVENT_START_LOOP && Object.keys(DEBUFF_ITEMS).some((id) => !hasDebuff(id))) candidates.push({ kind: "trap", weight: POST_WAVE_EVENT_WEIGHTS.trap });
     let total = 0;
     for (const c of candidates) total += c.weight;
@@ -1266,7 +1441,7 @@ export function createGame(options = {}) {
   }
 
   function applyItem(id, opts = {}) {
-    if (!ITEMS[id] || hasItem(id)) return false;
+    if (!ITEMS[id] || !itemUnlocked(id) || hasItem(id)) return false;
     if (!opts.ignoreCap && itemCapacityReached()) {
       banner("もう取れません");
       return false;
@@ -1412,6 +1587,11 @@ export function createGame(options = {}) {
         triggerItem("coreBandage");
       }
     }
+    if (hasItem("corePiggyBank") && coreHP >= coreMax) {
+      nutrients += 6;
+      triggerItem("corePiggyBank");
+      banner("コア貯金箱 ─ 栄養+6");
+    }
     waveCountdown = nextWaveInterval();
     if (random() >= POST_WAVE_EVENT_CHANCE) return;
     const eventKind = choosePostWaveEventKind();
@@ -1462,7 +1642,7 @@ export function createGame(options = {}) {
     if (gameState === "dialogue") return false;
     if (!itemOffer || !hasItem("wildCard") || usedItems.has("wildCard")) return false;
     const previous = new Set(itemOffer.choices);
-    const pool = Object.keys(ITEMS).filter((id) => !hasItem(id) && !previous.has(id));
+    const pool = availableItemIds().filter((id) => !hasItem(id) && !previous.has(id));
     const choices = [];
     while (pool.length && choices.length < itemOfferChoiceCount()) {
       const idx = ri(0, pool.length - 1);
@@ -1556,6 +1736,7 @@ export function createGame(options = {}) {
       nonCombatMs: 0,
     };
     if (hasItem("coreShard")) strengthenMonsterHp(monster, 1.06);
+    if (hasItem("denLedger")) strengthenMonsterHp(monster, 1.08);
     if (hasDebuff("dullFeed")) strengthenMonsterHp(monster, 0.92);
     if (opts.fromEgg) {
       if (hasItem("boneMeal")) strengthenMonsterHp(monster, 1.25);
@@ -1882,6 +2063,11 @@ export function createGame(options = {}) {
 
   function noteMonsterStep(e, fromCol, fromRow, toCol, toRow) {
     if (!e.kind || !KINDS[e.kind]) return;
+    const k = KINDS[e.kind];
+    if (k.soilGrow) {
+      chargeSoilAround(toCol, toRow, k.soilGrow);
+      if (k.soilGrow >= 2) chargeSoilAround(fromCol, fromRow, 1);
+    }
     e.soilSteps = (e.soilSteps || 0) + 1;
     if (e.soilSteps < SOIL_CHARGE_MOVES) return;
     e.soilSteps = 0;
@@ -1897,6 +2083,11 @@ export function createGame(options = {}) {
     if (e.kind) {
       e.prevCol = fromCol;
       e.prevRow = fromRow;
+      const k = KINDS[e.kind] || {};
+      if (k.chargeMul) e.chargeMs = k.chargeMs || 1200;
+      if (k.heatTrailDmg && OPEN.has(grid[fromRow][fromCol].t)) {
+        slowFields.push({ col: fromCol, row: fromRow, life: 3200, max: 3200, damage: k.heatTrailDmg, color: k.col });
+      }
     }
     e.dirX = Math.sign(col - e.col);
     e.dirY = Math.sign(row - e.row);
@@ -2002,6 +2193,7 @@ export function createGame(options = {}) {
     if (e.kind && e.homeCol !== undefined) {
       const homeDist = cheb(n, { col: e.homeCol, row: e.homeRow });
       if (hasItem("redCollar")) score += homeDist * 4;
+      if (hasItem("homeChime")) score += homeDist * 3;
       if (hasItem("trailMark") && homeDist <= 4) score -= 8;
     }
     return score;
@@ -2272,23 +2464,63 @@ export function createGame(options = {}) {
     return true;
   }
 
+  function applyMonsterHitTrait(source, h) {
+    const k = source && source.kind ? (KINDS[source.kind] || {}) : {};
+    if (k.weakenMs) {
+      h.weakenMs = Math.max(h.weakenMs || 0, k.weakenMs);
+      h.weakenMul = Math.min(h.weakenMul || 1, k.weakenMul || 0.9);
+      popDmg(h.px, h.py - 10, "攻↓", "#9effc3");
+    }
+    if (k.hitSlowMs) {
+      h.itemMoveLag = Math.max(h.itemMoveLag || 0, k.hitSlowMs);
+      popDmg(h.px, h.py - 4, "鈍", "#b6a6ff");
+    }
+  }
+
   function damageHero(h, raw, source = null, color = "#ff8a8a") {
     if (!heroes.includes(h)) return false;
     if (tryHeroDodge(h, source)) return false;
     const dmg = heroDamageTaken(raw, h);
     h.hp -= dmg;
     popDmg(h.px, h.py, `-${dmg}`, color);
+    if (source && source.kind) applyMonsterHitTrait(source, h);
     if (h.hp <= 0) killHero(h);
     return true;
   }
 
-  function damageMonster(m, amount, color = "#fff") {
+  function frontGuardApplies(m, source) {
+    if (!source || !source.cls) return false;
+    const v = DIR_VECTORS[m.faceDir] || [0, 1];
+    const dx = Math.sign(source.col - m.col);
+    const dy = Math.sign(source.row - m.row);
+    return dx === v[0] && dy === v[1];
+  }
+
+  function guardAuraReduction(m) {
+    let reduction = 0;
+    for (const o of monsters) {
+      if (o === m || cheb(o, m) > 2) continue;
+      const k = KINDS[o.kind] || {};
+      reduction = Math.max(reduction, k.guardAura || 0);
+    }
+    return reduction;
+  }
+
+  function damageMonster(m, amount, color = "#fff", source = null) {
     if (!monsters.includes(m)) return false;
     m.nonCombatMs = 0;
+    const k = KINDS[m.kind] || {};
     let dmg = amount;
     if ((m.obsidianLidMs || 0) > 0) dmg = Math.max(1, Math.round(dmg * 0.85));
+    if (source && source.cls && k.frontGuard && frontGuardApplies(m, source)) dmg = Math.max(1, Math.round(dmg * (1 - k.frontGuard)));
+    const aura = guardAuraReduction(m);
+    if (aura > 0) dmg = Math.max(1, Math.round(dmg * (1 - aura)));
     m.hp -= dmg;
     popDmg(m.px, m.py, `-${dmg}`, color);
+    if (source && source.cls && k.thorns && cheb(m, source) <= 1 && heroes.includes(source)) {
+      damageHero(source, k.thorns, m, "#d0ff8a");
+      effects.push({ type: "bite", sx: m.px, sy: m.py - 5, tx: source.px, ty: source.py, x: source.px, y: source.py, color: k.col, life: 220, max: 220 });
+    }
     if (m.hp <= 0) killMonster(m);
     return true;
   }
@@ -2429,9 +2661,12 @@ export function createGame(options = {}) {
 
   function actorMoveInterval(e) {
     const base = e.moveCd || (e.kind && KINDS[e.kind] && KINDS[e.kind].moveCd) || MOVEMENT_TICK;
+    const k = e.kind ? (KINDS[e.kind] || {}) : {};
     let mul = 1;
     if (e.kind && hasItem("crackedMap") && heroes.length === 0 && spawnQueue.length === 0) mul *= 0.85;
     if (e.kind && hasItem("blackRaindrop") && waveIsActive()) mul *= 1.12;
+    if (e.kind && k.skitter) mul *= k.skitter;
+    if (e.kind && k.packBoost && sameFamilyNear(e, 2) > 0) mul *= Math.max(0.72, 1 - sameFamilyNear(e, 2) * k.packBoost);
     if (e.cls && hasItem("sleepSand") && waveOpeningActive()) mul *= 1.15;
     if (e.cls && hasItem("gapStake") && grid[e.row][e.col].t === "tunnel") mul *= 1.08;
     if (e.cls && hasItem("blackRaindrop") && waveIsActive()) mul *= 1.12;
@@ -2614,7 +2849,13 @@ export function createGame(options = {}) {
         e.itemMoveLag = Math.max(e.itemMoveLag || 0, 350);
         triggerItem("stickyMud");
       }
-      if (e.cls && slowFields.some((f) => f.col === e.col && f.row === e.row)) e.itemMoveLag = Math.max(e.itemMoveLag || 0, 450);
+      if (e.cls) {
+        const field = slowFields.find((f) => f.col === e.col && f.row === e.row);
+        if (field) {
+          e.itemMoveLag = Math.max(e.itemMoveLag || 0, 450);
+          if (field.damage) damageHero(e, field.damage, null, field.color || "#ff8a3a");
+        }
+      }
     }
 
     for (const e of ready) {
@@ -2759,7 +3000,7 @@ export function createGame(options = {}) {
     setAction(h, action, monsterTarget.px, monsterTarget.py, ATK_ANIM);
     if (ranged) shoot(h.px, h.py - 6, monsterTarget.px, monsterTarget.py, shotColor);
     else slash(monsterTarget.px, monsterTarget.py, slashColor);
-    damageMonster(monsterTarget, damage, "#fff");
+    damageMonster(monsterTarget, damage, "#fff", h);
     if (c.areaAttack) {
       let extra = 0;
       const areaDmg = Math.max(1, Math.round(damage * (c.areaScale || 0.65)));
@@ -2768,7 +3009,7 @@ export function createGame(options = {}) {
         if (!sameHeroAttackLane(h, monsterTarget, m)) continue;
         if (!hasLOS(h.col, h.row, m.col, m.row)) continue;
         shoot(h.px, h.py - 8, m.px, m.py, "#ffe680");
-        damageMonster(m, areaDmg, "#fff0a6");
+        damageMonster(m, areaDmg, "#fff0a6", h);
         extra++;
         if (extra >= (c.areaMax || 3)) break;
       }
@@ -2910,10 +3151,27 @@ export function createGame(options = {}) {
 
   function updateItemPassives(dt) {
     for (const m of monsters) {
+      const k = KINDS[m.kind] || {};
       m.nonCombatMs = (m.nonCombatMs || 0) + dt;
       m.bloodyPlateMs = Math.max(0, (m.bloodyPlateMs || 0) - dt);
       m.crybabyBellMs = Math.max(0, (m.crybabyBellMs || 0) - dt);
       m.obsidianLidMs = Math.max(0, (m.obsidianLidMs || 0) - dt);
+      m.chargeMs = Math.max(0, (m.chargeMs || 0) - dt);
+      if (k.idleRegen && !isMoving(m) && m.hp < m.maxHp && (m.nonCombatMs || 0) >= 1800) {
+        m.regenTick = (m.regenTick || 0) + dt;
+        while (m.regenTick >= 1000 && m.hp < m.maxHp) {
+          m.regenTick -= 1000;
+          const amount = Math.max(1, Math.round(m.maxHp * k.idleRegen));
+          m.hp = Math.min(m.maxHp, m.hp + amount);
+          popDmg(m.px, m.py - 8, `+${amount}`, "#9effa0");
+        }
+      } else {
+        m.regenTick = 0;
+      }
+    }
+    for (const h of heroes) {
+      h.weakenMs = Math.max(0, (h.weakenMs || 0) - dt);
+      if (h.weakenMs <= 0) h.weakenMul = 1;
     }
     for (let i = slowFields.length - 1; i >= 0; i--) {
       slowFields[i].life -= dt;
@@ -3149,6 +3407,7 @@ export function createGame(options = {}) {
     get usedItems() { return [...usedItems]; },
     get canRerollItemOffer() { return !!itemOffer && hasItem("wildCard") && !usedItems.has("wildCard"); },
     get unlocked() { return unlocked; },
+    get monsterDeck() { return { ...monsterDeck }; },
     get wave() { return wave; },
     set wave(v) { wave = v; },
     get waveElapsed() { return waveElapsed; },
@@ -3179,26 +3438,26 @@ export function createGame(options = {}) {
     get ruleConfig() { return clonePlain(ruleConfig); },
     setRandom(fn) { random = fn; },
     update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, buyShopItem, closeShopOffer, chooseTrapDebuff, acknowledgeDebuffNotice, advanceDialogue, clearCoreHitEffects, drainEvents,
-    hasItem, applyItem, hasDebuff, applyDebuff,
+    hasItem, applyItem, hasDebuff, applyDebuff, itemUnlocked, availableItemIds,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
     isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemHighlights, itemRarity, itemShopPrice,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
+    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, ITEM_UNLOCKS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, ITEM_CAP, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, get ITEM_CAP() { return effectiveItemCap(); }, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
     PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameIndex, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
 export const Core = {
-  DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig,
-  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
+  DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig, resolveMonsterDeck,
+  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, ITEM_UNLOCKS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,

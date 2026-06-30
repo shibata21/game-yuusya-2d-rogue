@@ -15,6 +15,21 @@ const eliteBase = {
   tarantula: "spitter", goldweaver: "spitter",
   titan: "golem", goldcore: "golem",
   infernal: "flame", whiteflame: "flame",
+  moss_shroom: "slime", moss_mycelia: "slime", moss_myceliaKing: "slime",
+  moss_virus: "virus", moss_crystalVirus: "virus", moss_crownVirus: "virus",
+  moss_root: "slime", moss_tangleRoot: "slime", moss_ancientRoot: "slime",
+  meat_wolf: "carniv", meat_shadowWolf: "carniv", meat_nightfangKing: "carniv",
+  meat_boar: "carniv", meat_fangBoar: "carniv", meat_ironBoar: "carniv",
+  meat_hedgehog: "carniv", meat_steelHedgehog: "carniv", meat_spineKing: "carniv",
+  bug_centipede: "spitter", bug_steelCentipede: "spitter", bug_goldCentipede: "spitter",
+  bug_beetle: "spitter", bug_shieldBeetle: "spitter", bug_fortressBeetle: "spitter",
+  bug_needler: "spitter", bug_flyingNeedler: "spitter", bug_bowNeedler: "spitter",
+  stone_turtle: "golem", stone_ironTurtle: "golem", stone_goldTurtle: "golem",
+  stone_magnetCrab: "golem", stone_ironCrab: "golem", stone_blackCrab: "golem",
+  stone_crystalEye: "virus", stone_quartzEye: "virus", stone_rainbowEye: "virus",
+  dragon_serpent: "flame", dragon_flameSerpent: "flame", dragon_whiteSerpent: "flame",
+  dragon_salamander: "flame", dragon_lavaSalamander: "flame", dragon_mirageSalamander: "flame",
+  dragon_wyvern: "flame", dragon_stormWyvern: "flame", dragon_skyWyvern: "flame",
 };
 
 const monsterPalettes = {
@@ -35,6 +50,51 @@ const monsterPalettes = {
   whiteflame: { dark: "#154b56", mid: "#f3f7ff", light: "#fff6b7", eye: "#65f4ff" },
   reaper: { dark: "#121520", mid: "#3b4252", light: "#c9d8e8", eye: "#b7f5ff" },
   chimera: { dark: "#52251c", mid: "#b65a3b", light: "#ffd08a", eye: "#d8ff68" },
+  moss_shroom: { dark: "#315b2d", mid: "#8fcf6a", light: "#e5ffc0", eye: "#203018" },
+  moss_mycelia: { dark: "#49682f", mid: "#b7df7a", light: "#fbffd0", eye: "#243018" },
+  moss_myceliaKing: { dark: "#5c6330", mid: "#e0ef9a", light: "#fffbd0", eye: "#2a2e12" },
+  moss_virus: { dark: "#164b3d", mid: "#6fe0a8", light: "#d8ffe8", eye: "#101926" },
+  moss_crystalVirus: { dark: "#17605d", mid: "#7cf0d0", light: "#e8fff8", eye: "#101926" },
+  moss_crownVirus: { dark: "#2d6c63", mid: "#b4fff0", light: "#fff6a6", eye: "#10202a" },
+  moss_root: { dark: "#3c4a24", mid: "#7aa65a", light: "#d9e69a", eye: "#1a2410" },
+  moss_tangleRoot: { dark: "#4b5528", mid: "#9fbd63", light: "#e5ed9a", eye: "#1a2410" },
+  moss_ancientRoot: { dark: "#5d522c", mid: "#c5c96a", light: "#fff0a6", eye: "#23180c" },
+  meat_wolf: { dark: "#131820", mid: "#343a4a", light: "#9fa8ba", eye: "#ffdf6b" },
+  meat_shadowWolf: { dark: "#0d1018", mid: "#25283a", light: "#8290b8", eye: "#c6d8ff" },
+  meat_nightfangKing: { dark: "#080b12", mid: "#1a1d2b", light: "#6f78a0", eye: "#ffe08a" },
+  meat_boar: { dark: "#442518", mid: "#8a4a32", light: "#d49668", eye: "#fff0c8" },
+  meat_fangBoar: { dark: "#562817", mid: "#ad5b37", light: "#edb07a", eye: "#fff0c8" },
+  meat_ironBoar: { dark: "#67351e", mid: "#c06d43", light: "#f0c08a", eye: "#fff0c8" },
+  meat_hedgehog: { dark: "#3c342b", mid: "#7d6750", light: "#d8c6a0", eye: "#fff0c8" },
+  meat_steelHedgehog: { dark: "#4a463e", mid: "#9a8a74", light: "#e0d8c0", eye: "#fff0c8" },
+  meat_spineKing: { dark: "#5f5638", mid: "#c3b180", light: "#fff0b0", eye: "#fff0c8" },
+  bug_centipede: { dark: "#351f5f", mid: "#844bd6", light: "#d8b8ff", eye: "#adff8e" },
+  bug_steelCentipede: { dark: "#4a2f6a", mid: "#b064e8", light: "#e7c8ff", eye: "#adff8e" },
+  bug_goldCentipede: { dark: "#4f3618", mid: "#d2a744", light: "#ffe8a0", eye: "#c9ff9a" },
+  bug_beetle: { dark: "#263524", mid: "#52664a", light: "#b8c8a0", eye: "#eaffd8" },
+  bug_shieldBeetle: { dark: "#34422a", mid: "#71865c", light: "#d0d8a8", eye: "#eaffd8" },
+  bug_fortressBeetle: { dark: "#4c4c2a", mid: "#9da45f", light: "#f0e8a6", eye: "#eaffd8" },
+  bug_needler: { dark: "#2b1a52", mid: "#7c45d6", light: "#caa6ff", eye: "#adff8e" },
+  bug_flyingNeedler: { dark: "#50255a", mid: "#b85fcf", light: "#f0b8ff", eye: "#c9ff9a" },
+  bug_bowNeedler: { dark: "#5b371f", mid: "#cf8a3f", light: "#ffd08a", eye: "#fff0c8" },
+  stone_turtle: { dark: "#2d3a4d", mid: "#647a96", light: "#c8d8ea", eye: "#d9ecff" },
+  stone_ironTurtle: { dark: "#414a54", mid: "#8d9aa5", light: "#edf3ff", eye: "#d9ecff" },
+  stone_goldTurtle: { dark: "#5f4f22", mid: "#d1b45f", light: "#fff0a6", eye: "#fff6d8" },
+  stone_magnetCrab: { dark: "#243747", mid: "#516f86", light: "#b8d8e8", eye: "#d9ecff" },
+  stone_ironCrab: { dark: "#314c60", mid: "#6b8ca2", light: "#d0e8f0", eye: "#d9ecff" },
+  stone_blackCrab: { dark: "#142433", mid: "#334a5a", light: "#9fb0bd", eye: "#d9ecff" },
+  stone_crystalEye: { dark: "#23506a", mid: "#8bc7e6", light: "#e8fbff", eye: "#fff6d8" },
+  stone_quartzEye: { dark: "#566c78", mid: "#c8e2f0", light: "#ffffff", eye: "#fff6d8" },
+  stone_rainbowEye: { dark: "#5a426a", mid: "#f0d8ff", light: "#fff8ff", eye: "#fff6d8" },
+  dragon_serpent: { dark: "#244d32", mid: "#5fa36d", light: "#c0f0b0", eye: "#fff7c2" },
+  dragon_flameSerpent: { dark: "#6a2818", mid: "#d06a3a", light: "#ffd090", eye: "#fff7c2" },
+  dragon_whiteSerpent: { dark: "#6a6040", mid: "#f4f1cf", light: "#ffffff", eye: "#65f4ff" },
+  dragon_salamander: { dark: "#6a1f18", mid: "#e6502f", light: "#ffd06a", eye: "#fff7c2" },
+  dragon_lavaSalamander: { dark: "#7a1e08", mid: "#ff7a24", light: "#ffe06a", eye: "#fff7c2" },
+  dragon_mirageSalamander: { dark: "#7a4a08", mid: "#ffd06a", light: "#fff6b7", eye: "#fff7c2" },
+  dragon_wyvern: { dark: "#24465a", mid: "#7eb8d8", light: "#d8f5ff", eye: "#fff7c2" },
+  dragon_stormWyvern: { dark: "#1d346a", mid: "#6ca0f0", light: "#c8e8ff", eye: "#fff7c2" },
+  dragon_skyWyvern: { dark: "#42606a", mid: "#d9f2ff", light: "#ffffff", eye: "#65f4ff" },
 };
 
 const heroPalettes = {
@@ -576,6 +636,40 @@ function drawChimera(img, pal, cx, cy, dx, dy, action, frame) {
   }
 }
 
+function drawVirus(img, pal, cx, cy, dx, dy, action, frame) {
+  const faceX = dx === 0 ? 1 : Math.sign(dx);
+  const aimX = dx === 0 ? 0 : Math.sign(dx);
+  const aimY = dy === 0 ? 0 : Math.sign(dy);
+  const pulse = action === "idle" ? [0, 1, 0, -1][frame] : [0, -1, 2, -1][frame];
+  oval(img, cx, cy + 12, 13, 4, "#0c0812", 70);
+  for (let i = 0; i < 8; i++) {
+    const a = (Math.PI * 2 * i) / 8 + (frame % 2) * 0.12;
+    const x0 = cx + Math.cos(a) * 12;
+    const y0 = cy + Math.sin(a) * 8 + 4;
+    const x1 = cx + Math.cos(a) * 18;
+    const y1 = cy + Math.sin(a) * 13 + 8 + Math.abs(Math.sin(a)) * 2;
+    line(img, x0, y0, x1, y1, pal.dark, 2, 230);
+    diamond(img, x1, y1, 2, pal.mid, 210);
+  }
+  diamond(img, cx, cy + pulse, 15, pal.dark, 230);
+  tri(img, cx, cy - 15 + pulse, cx + 15, cy + pulse, cx, cy + 15 + pulse, pal.mid, 245);
+  tri(img, cx, cy - 15 + pulse, cx - 15, cy + pulse, cx, cy + 15 + pulse, pal.light, 150);
+  line(img, cx, cy + pulse, cx + aimX * 13, cy + aimY * 12 + pulse, pal.eye, 3, 210);
+  diamond(img, cx + aimX * 14, cy + aimY * 13 + pulse, 3, pal.light, 220);
+  diamond(img, cx - faceX * 4, cy - 3 + pulse, 2, pal.eye, 245);
+  diamond(img, cx + faceX * 4, cy - 2 + pulse, 2, pal.eye, 230);
+  if (dy < 0) line(img, cx - 10, cy + 7 + pulse, cx + 10, cy + 7 + pulse, pal.dark, 3, 220);
+  if (dy > 0) line(img, cx - 11, cy - 8 + pulse, cx + 11, cy - 8 + pulse, pal.light, 2, 190);
+  if (nameHasCrown(pal)) {
+    rect(img, cx - 7, cy - 19 + pulse, 14, 3, "#ffcf4d", 220);
+    for (let i = -1; i <= 1; i++) tri(img, cx + i * 5 - 3, cy - 17 + pulse, cx + i * 5, cy - 24 + pulse, cx + i * 5 + 3, cy - 17 + pulse, "#ffcf4d", 210);
+  }
+}
+
+function nameHasCrown(pal) {
+  return pal.mid === "#b4fff0";
+}
+
 function drawMonster(img, name, action, dir, frame) {
   const base = eliteBase[name] || name;
   const pal = bodyPalette(name);
@@ -585,6 +679,7 @@ function drawMonster(img, name, action, dir, frame) {
   const cx = 24 + dx * lunge;
   const cy = 23 + bob + dy * Math.min(2, lunge);
   if (base === "slime") drawSlime(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "virus") drawVirus(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "carniv") drawDogBeast(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "spitter") drawSpider(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "golem") drawGolem(img, pal, cx, cy, dx, dy, action, frame);
@@ -1039,6 +1134,7 @@ const ITEM_ICON_SHAPES = {
   thiefBag: "bagMask", dryBread: "bread", blackSeed: "seed", reversedHourglass: "hourglass", earlyDrum: "drum", breathingFlute: "fluteWind", gapStake: "stake", moleClaw: "claw", obsidianLid: "lid",
   wanderingPowder: "swirlPowder", trailMark: "trail", charmRope: "rope", angerMask: "mask", nestFlag: "flag", oldEggshell: "oldEgg", crackedEgg: "crackedEgg", royalEggshell: "royalEgg", rottenCrown: "crown",
   rebelCharm: "charm", crowdMark: "crowd", lowestCandle: "candle", blackRaindrop: "raindrop", redMoonShard: "moon", boneContract: "contract",
+  undergroundStore: "bag", veinBrush: "paint", denLedger: "book", homeChime: "bell", shopStamp: "stamp", corePiggyBank: "piggyBank",
 };
 
 const ITEM_ICON_PALETTES = [
@@ -1123,6 +1219,20 @@ function drawItemIcon(name) {
     oval(img, 24, 24, 13, 13, "#ffcf4d", 245); oval(img, 24, 24, 8, 8, shape === "fakeCoin" ? "#8a8a7a" : "#d9a53d", 245); diamond(img, 24, 24, 4, pal.light, 210); if (shape === "fakeCoin") line(img, 16, 32, 33, 15, "#5c4d2b", 2, 220);
   } else if (shape === "card") {
     rect(img, 14, 12, 20, 26, "#ffffff", 245); diamond(img, 24, 25, 6, "#d6543f", 235); rect(img, 18, 16, 3, 3, pal.dark, 210); rect(img, 28, 32, 3, 3, pal.dark, 210);
+  } else if (shape === "stamp") {
+    rect(img, 17, 12, 14, 10, pal.dark, 245);
+    rect(img, 14, 21, 20, 6, pal.mid, 245);
+    rect(img, 12, 28, 24, 9, "#d8c9a0", 245);
+    diamond(img, 24, 32, 4, "#d6543f", 230);
+    line(img, 16, 36, 32, 36, pal.dark, 1, 190);
+  } else if (shape === "piggyBank") {
+    oval(img, 24, 27, 15, 10, "#d45f86", 245);
+    oval(img, 36, 25, 4, 4, "#f09ab8", 240);
+    tri(img, 14, 18, 19, 13, 21, 21, "#f09ab8", 235);
+    rect(img, 18, 18, 12, 2, "#702040", 230);
+    rect(img, 17, 35, 4, 5, "#8a3550", 230);
+    rect(img, 29, 35, 4, 5, "#8a3550", 230);
+    diamond(img, 30, 24, 2, pal.light, 210);
   } else if (shape === "hourglass") {
     line(img, 16, 12, 32, 12, pal.light, 2, 235); line(img, 16, 36, 32, 36, pal.light, 2, 235); tri(img, 18, 14, 30, 14, 24, 24, pal.mid, 180); tri(img, 18, 34, 30, 34, 24, 24, pal.mid, 230); line(img, 17, 13, 31, 35, pal.dark, 1, 190); line(img, 31, 13, 17, 35, pal.dark, 1, 190);
   } else if (shape === "drum") {

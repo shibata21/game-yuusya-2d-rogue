@@ -5,7 +5,11 @@ import {
   createGame,
   createRuleConfig,
   DEFAULT_RULE_CONFIG,
+  DEFAULT_MONSTER_DECK,
   exposeGameNamespace,
+  ITEM_UNLOCKS,
+  MONSTER_FAMILIES,
+  resolveMonsterDeck,
   pixelAssetUrl,
   pixelActorX,
   pixelActorFrameIndex,
@@ -32,8 +36,11 @@ import {
 import { DEV_GROUPS } from "./devTuning.js";
 import {
   applyProgressEvents,
+  awardRunCoins,
   clearProgress,
   clearStoredRuleConfig,
+  coinRewardForRun,
+  initStorage,
   loadProgress,
   loadStoredRuleConfig,
   saveProgress,
@@ -42,16 +49,25 @@ import {
 import "./style.css";
 
 function createConfiguredGame(loop = 1, resetPenaltyActive = false) {
-  const next = createGame({ ruleConfig: loadStoredRuleConfig(), loop, resetPenaltyActive });
+  const sourceProgress = typeof progress === "undefined" ? null : progress;
+  const next = createGame({
+    ruleConfig: loadStoredRuleConfig(),
+    loop,
+    resetPenaltyActive,
+    unlockedItems: sourceProgress ? sourceProgress.unlockedItems : [],
+    monsterDeck: sourceProgress ? sourceProgress.monsterDeck : DEFAULT_MONSTER_DECK,
+  });
   exposeGameNamespace(next);
   return next;
 }
 
-let progress = resolveInterruptedRunOnBoot(loadProgress());
+let progress = loadProgress();
 let selectedLoop = defaultLoop();
 let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
 let codexOpen = false;
 let codexTab = "monster";
+let homeTab = "defense";
+let homeMessage = "";
 let lastItemOfferKey = "";
 let lastShopOfferKey = "";
 let lastItemBarKey = "";
@@ -62,7 +78,7 @@ let bgmSound = null;
 let audioSaveTimer = null;
 let lastCoreHitSoundAt = 0;
 
-const MONSTER_CODEX_ORDER = ["slime", "superslime", "crownslime", "carniv", "evolved", "direfang", "spitter", "tarantula", "goldweaver", "golem", "titan", "goldcore", "flame", "infernal", "whiteflame", "reaper", "chimera"];
+const MONSTER_CODEX_ORDER = Object.keys(gameApi.KINDS);
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage"];
 const ITEM_CODEX_ORDER = PIXEL_ITEMS;
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
@@ -645,9 +661,10 @@ class MainScene extends Phaser.Scene {
       const alpha = Math.max(0, Math.min(1, f.life / f.max));
       const x = gameApi.cx(f.col);
       const y = gameApi.cy(f.row);
-      this.flameGraphics.fillStyle(0x5a6dff, 0.08 + alpha * 0.10);
+      const color = tintFromColor(f.color) || 0x5a6dff;
+      this.flameGraphics.fillStyle(color, 0.08 + alpha * 0.10);
       this.flameGraphics.fillRect(x - TILE / 2 + 6, y - TILE / 2 + 6, TILE - 12, TILE - 12);
-      this.flameGraphics.lineStyle(1, 0xb6a6ff, 0.20 + alpha * 0.20);
+      this.flameGraphics.lineStyle(1, color, 0.20 + alpha * 0.20);
       this.flameGraphics.strokeRect(x - TILE / 2 + 9, y - TILE / 2 + 9, TILE - 18, TILE - 18);
     }
     for (const p of gameApi.pickups) {
@@ -714,21 +731,228 @@ function progressSets() {
   };
 }
 
+function unlockedFamilySet() {
+  const ids = new Set(progress.unlockedMonsterFamilies || []);
+  for (const id in MONSTER_FAMILIES) if (MONSTER_FAMILIES[id].default) ids.add(id);
+  return ids;
+}
+
+function normalizeProgressDeck() {
+  progress = { ...progress, monsterDeck: resolveMonsterDeck(progress.monsterDeck) };
+}
+
+function saveProgressAndRefresh(message = "") {
+  normalizeProgressDeck();
+  saveProgress(progress);
+  homeMessage = message;
+  updateProgressStatus();
+  renderHome();
+  if (codexOpen) renderCodex();
+}
+
+function canAffordUnlock(row) {
+  return progress.coins >= (row.price || 0);
+}
+
+function clearGateMet(row) {
+  return (progress.highestClearedLoop || 0) >= (row.unlockClears || 0);
+}
+
+function buyMonsterFamily(id) {
+  const row = MONSTER_FAMILIES[id];
+  if (!row || row.default || unlockedFamilySet().has(id)) return false;
+  if (!clearGateMet(row)) {
+    homeMessage = `${row.name}は${row.unlockClears}周クリアで解放候補になる`;
+    renderHome();
+    return false;
+  }
+  if (!canAffordUnlock(row)) {
+    homeMessage = "コインが足りない";
+    renderHome();
+    return false;
+  }
+  progress = {
+    ...progress,
+    coins: progress.coins - row.price,
+    unlockedMonsterFamilies: [...new Set([...(progress.unlockedMonsterFamilies || []), id])],
+  };
+  saveProgressAndRefresh(`${row.name}を解放した`);
+  return true;
+}
+
+function buyUnlockItem(id) {
+  const row = ITEM_UNLOCKS[id];
+  const item = gameApi.ITEMS[id];
+  if (!row || !item || (progress.unlockedItems || []).includes(id)) return false;
+  if (!clearGateMet(row)) {
+    homeMessage = `${item.name}は${row.unlockClears}周クリアで解放候補になる`;
+    renderHome();
+    return false;
+  }
+  if (!canAffordUnlock(row)) {
+    homeMessage = "コインが足りない";
+    renderHome();
+    return false;
+  }
+  progress = {
+    ...progress,
+    coins: progress.coins - row.price,
+    unlockedItems: [...new Set([...(progress.unlockedItems || []), id])],
+  };
+  saveProgressAndRefresh(`${item.name}を解放した`);
+  return true;
+}
+
+function selectMonsterFamily(id) {
+  const row = MONSTER_FAMILIES[id];
+  if (!row || !unlockedFamilySet().has(id)) return false;
+  const deck = resolveMonsterDeck(progress.monsterDeck);
+  deck[row.vein] = id;
+  progress = { ...progress, monsterDeck: deck };
+  saveProgressAndRefresh(`${row.name}をデッキに入れた`);
+  gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
+  gameApi.gameState = "title";
+  return true;
+}
+
+function loopOptionsHtml() {
+  const max = selectableMaxLoop();
+  return Array.from({ length: max }, (_, i) => {
+    const loop = i + 1;
+    return `<option value="${loop}"${loop === selectedLoop ? " selected" : ""}>${loop}周目</option>`;
+  }).join("");
+}
+
+function familySpriteHtml(id) {
+  const row = MONSTER_FAMILIES[id];
+  const kind = row && row.kinds[0];
+  return kind ? `<span class="home-monster-sprite" style='${codexSpriteStyle(kind)}'></span>` : "";
+}
+
+function familyStagesText(id) {
+  const row = MONSTER_FAMILIES[id];
+  if (!row) return "";
+  return row.kinds.map((kind) => (gameApi.KINDS[kind] && gameApi.KINDS[kind].name) || kind).join(" / ");
+}
+
+function familyCard(id, mode = "deck") {
+  const row = MONSTER_FAMILIES[id];
+  if (!row) return "";
+  const deck = resolveMonsterDeck(progress.monsterDeck);
+  const unlocked = unlockedFamilySet().has(id);
+  const selected = deck[row.vein] === id;
+  const locked = !unlocked;
+  const canBuy = !row.default && !unlocked && clearGateMet(row) && canAffordUnlock(row);
+  const gate = row.unlockClears ? `${row.unlockClears}周クリア` : "初期候補";
+  const action = mode === "unlock"
+    ? (unlocked || row.default ? "解放済み" : `解放 ${row.price}`)
+    : (selected ? "選択中" : "入れる");
+  const attr = mode === "unlock" ? `data-buy-family="${escapeHtml(id)}"` : `data-select-family="${escapeHtml(id)}"`;
+  const disabled = mode === "unlock" ? (!canBuy) : (locked || selected);
+  const classes = ["home-card", selected ? "selected" : "", locked ? "locked" : ""].filter(Boolean).join(" ");
+  return `
+    <article class="${classes}">
+      ${familySpriteHtml(id)}
+      <span class="home-card-body">
+        <b>${escapeHtml(row.name)}</b>
+        <em>${escapeHtml(familyStagesText(id))}</em>
+        <small>${escapeHtml(row.trait)} / ${escapeHtml(gate)}</small>
+      </span>
+      <button type="button" ${attr}${disabled ? " disabled" : ""}>${escapeHtml(action)}</button>
+    </article>`;
+}
+
+function renderDeckHome() {
+  const veins = ["moss", "meat", "venom", "stone", "ember"];
+  return veins.map((vein) => {
+    const veinName = (gameApi.VEIN[vein] && gameApi.VEIN[vein].legend.split("→")[0]) || vein;
+    const cards = Object.keys(MONSTER_FAMILIES)
+      .filter((id) => MONSTER_FAMILIES[id].vein === vein)
+      .map((id) => familyCard(id, "deck"))
+      .join("");
+    return `<section class="home-group"><h3>${escapeHtml(veinName)}</h3><div class="home-card-list">${cards}</div></section>`;
+  }).join("");
+}
+
+function renderUnlockHome() {
+  const familyHtml = Object.keys(MONSTER_FAMILIES)
+    .filter((id) => !MONSTER_FAMILIES[id].default)
+    .map((id) => familyCard(id, "unlock"))
+    .join("");
+  const itemHtml = Object.keys(ITEM_UNLOCKS).map((id) => {
+    const row = ITEM_UNLOCKS[id];
+    const item = gameApi.ITEMS[id];
+    const unlocked = (progress.unlockedItems || []).includes(id);
+    const canBuy = !unlocked && clearGateMet(row) && canAffordUnlock(row);
+    const gate = row.unlockClears ? `${row.unlockClears}周クリア` : "初期候補";
+    return `
+      <article class="home-card ${unlocked ? "selected" : ""}">
+        ${itemIconHtml(id, "home-item-icon", 34)}
+        <span class="home-card-body">
+          <b>${escapeHtml(item.name)}</b>
+          <em>${escapeHtml(item.profile)}</em>
+          <small>${escapeHtml(gate)}</small>
+        </span>
+        <button type="button" data-buy-item="${escapeHtml(id)}"${canBuy ? "" : " disabled"}>${unlocked ? "解放済み" : `解放 ${row.price}`}</button>
+      </article>`;
+  }).join("");
+  return `
+    <section class="home-group"><h3>モンスター</h3><div class="home-card-list">${familyHtml}</div></section>
+    <section class="home-group"><h3>アイテム</h3><div class="home-card-list">${itemHtml}</div></section>`;
+}
+
+function renderHome() {
+  const body = document.getElementById("homeBody");
+  const coin = document.getElementById("homeCoinNum");
+  const message = document.getElementById("homeMessage");
+  const start = document.getElementById("startBtn");
+  if (!body) return;
+  if (coin) coin.textContent = String(progress.coins || 0);
+  if (message) message.textContent = homeMessage || (progress.lastCoinReward ? `前回 +${progress.lastCoinReward}` : "");
+  for (const btn of document.querySelectorAll("[data-home-tab]")) btn.classList.toggle("active", btn.dataset.homeTab === homeTab);
+  if (start) start.classList.toggle("hidden", homeTab !== "defense");
+  if (homeTab === "deck") {
+    body.innerHTML = renderDeckHome();
+  } else if (homeTab === "unlock") {
+    body.innerHTML = renderUnlockHome();
+  } else if (homeTab === "codex") {
+    body.innerHTML = `<button type="button" class="home-wide-button" id="homeOpenCodexBtn">図鑑を開く</button>`;
+  } else if (homeTab === "settings") {
+    body.innerHTML = `
+      <button type="button" class="home-wide-button" id="homeOpenSoundBtn">音量設定を開く</button>
+      <button type="button" class="home-wide-button" id="homeOpenDevBtn">開発設定を開く</button>`;
+  } else {
+    body.innerHTML = `
+      <label class="home-loop"><span>挑戦する周回</span><select id="homeLoopSelect" aria-label="挑戦する周回">${loopOptionsHtml()}</select></label>
+      <div class="home-defense-stats">
+        <span>最高到達 W${progress.highestWave}</span>
+        <span>最高周回 ${progress.highestClearedLoop || 0}</span>
+        <span>次の獲得 ${coinRewardForRun(gameApi.score, selectedLoop, false)}+</span>
+      </div>`;
+  }
+}
+
 function renderLoopSelector() {
   const select = document.getElementById("loopSelect");
+  const homeSelect = document.getElementById("homeLoopSelect");
   const info = document.getElementById("loopInfo");
-  if (!select) return;
+  if (!select && !homeSelect) return;
   const max = selectableMaxLoop();
   const selectable = ["title", "dead", "clear"].includes(gameApi.gameState);
   if (selectable) selectedLoop = Math.max(1, Math.min(max, selectedLoop || defaultLoop()));
   else selectedLoop = gameApi.loop;
   const current = String(selectedLoop);
-  select.innerHTML = Array.from({ length: max }, (_, i) => {
-    const loop = i + 1;
-    return `<option value="${loop}"${String(loop) === current ? " selected" : ""}>${loop}周目</option>`;
-  }).join("");
-  select.value = current;
-  select.disabled = !selectable;
+  const options = loopOptionsHtml();
+  if (select) {
+    select.innerHTML = options;
+    select.value = current;
+    select.disabled = !selectable;
+  }
+  if (homeSelect) {
+    homeSelect.innerHTML = options;
+    homeSelect.value = current;
+    homeSelect.disabled = !selectable;
+  }
   if (info) {
     const parts = [`解放${max}`, `x${(1 + (selectedLoop - 1) * 0.15).toFixed(2)}`];
     if (progress.resetPenaltyActive && selectedLoop >= 10) parts.push("罰");
@@ -750,23 +974,26 @@ function markRunStarted(loop) {
   saveProgress(progress);
 }
 
-function markRunEnded(kind) {
+function markRunEnded(kind, result = {}) {
   if (!progress.activeRun) return;
-  const next = { ...progress, activeRun: null };
+  const awarded = awardRunCoins(progress, { score: result.score || 0, loop: result.loop || gameApi.loop, cleared: !!result.cleared });
+  const next = { ...awarded.progress, activeRun: null };
   if (kind === "earlyDead" && gameApi.loop >= 10) next.resetPenaltyActive = true;
   progress = next;
   saveProgress(progress);
+  homeMessage = awarded.reward ? `コイン +${awarded.reward}` : "";
   renderLoopSelector();
 }
 
 function syncRunOutcome() {
   if (!progress.activeRun) return;
   if (gameApi.gameState === "dead") {
-    markRunEnded(gameApi.wave <= 3 ? "earlyDead" : "dead");
+    markRunEnded(gameApi.wave <= 3 ? "earlyDead" : "dead", { score: gameApi.score, loop: gameApi.loop, cleared: false });
     updateProgressStatus();
   } else if (gameApi.gameState === "clear") {
     const result = applyProgressEvents(progress, [{ type: "loopCleared", loop: gameApi.loop, wave: gameApi.wave, score: gameApi.score }]);
     progress = result.progress;
+    if (progress.lastCoinReward) homeMessage = `コイン +${progress.lastCoinReward}`;
     saveProgress(progress);
     renderLoopSelector();
     updateProgressStatus();
@@ -780,6 +1007,7 @@ function syncProgressEvents() {
   const result = applyProgressEvents(progress, events);
   if (!result.changed) return;
   progress = result.progress;
+  if (events.some((event) => event.type === "loopCleared") && progress.lastCoinReward) homeMessage = `コイン +${progress.lastCoinReward}`;
   saveProgress(progress);
   updateProgressStatus();
   renderLoopSelector();
@@ -1148,7 +1376,7 @@ function updateProgressStatus() {
   const status = document.getElementById("progressStatus");
   if (!status) return;
   const penalty = progress.resetPenaltyActive ? " / リセット罰あり" : "";
-  status.textContent = `最高到達 W${progress.highestWave} / 最高周回 ${progress.highestClearedLoop || 0} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}${penalty}`;
+  status.textContent = `コイン ${progress.coins || 0} / 最高到達 W${progress.highestWave} / 最高周回 ${progress.highestClearedLoop || 0} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}${penalty}`;
 }
 
 function saveDevPanel() {
@@ -1208,8 +1436,11 @@ function bindDevPanel() {
   if (resetProgress) resetProgress.addEventListener("click", () => {
     clearProgress();
     progress = loadProgress();
+    normalizeProgressDeck();
+    homeMessage = "";
     selectedLoop = defaultLoop();
     renderLoopSelector();
+    renderHome();
     updateProgressStatus();
     if (codexOpen) renderCodex();
   });
@@ -1555,6 +1786,7 @@ function updateHud() {
   document.getElementById("clearScore").textContent = gameApi.score;
   document.getElementById("tauntBtn").disabled = gameApi.gameState !== "playing" || activeHeroes > 0 || gameApi.waveSettleDelay > 0 || gameApi.waveCountdown <= 3000;
   updateProgressStatus();
+  renderHome();
   renderHudMessage();
   syncAudioState();
 }
@@ -1577,6 +1809,7 @@ function openStartFlow() {
   hideItemPopup();
   lastItemBarKey = "";
   lastShopOfferKey = "";
+  homeTab = "defense";
   selectedLoop = defaultLoop();
   gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
   gameApi.gameState = "title";
@@ -1600,6 +1833,55 @@ function boot() {
   document.getElementById("startBtn").addEventListener("click", startGame);
   document.getElementById("restartBtn").addEventListener("click", openStartFlow);
   document.getElementById("clearRestartBtn").addEventListener("click", openStartFlow);
+  const startOverlay = document.getElementById("startOverlay");
+  if (startOverlay) {
+    startOverlay.addEventListener("click", (event) => {
+      const target = event.target && typeof event.target.closest === "function" ? event.target : null;
+      const tab = target ? target.closest("[data-home-tab]") : null;
+      if (tab) {
+        homeTab = tab.dataset.homeTab || "defense";
+        homeMessage = "";
+        renderHome();
+        return;
+      }
+      const familyBuy = target ? target.closest("[data-buy-family]") : null;
+      if (familyBuy) {
+        buyMonsterFamily(familyBuy.dataset.buyFamily);
+        return;
+      }
+      const itemBuy = target ? target.closest("[data-buy-item]") : null;
+      if (itemBuy) {
+        buyUnlockItem(itemBuy.dataset.buyItem);
+        return;
+      }
+      const familySelect = target ? target.closest("[data-select-family]") : null;
+      if (familySelect) {
+        selectMonsterFamily(familySelect.dataset.selectFamily);
+        updateHud();
+        return;
+      }
+      if (target && target.closest("#homeOpenCodexBtn")) {
+        showCodex();
+        return;
+      }
+      if (target && target.closest("#homeOpenSoundBtn")) {
+        const panel = document.getElementById("soundPanel");
+        if (panel) panel.open = true;
+        return;
+      }
+      if (target && target.closest("#homeOpenDevBtn")) {
+        const panel = document.getElementById("devPanel");
+        if (panel) panel.open = true;
+      }
+    });
+    startOverlay.addEventListener("change", (event) => {
+      const target = event.target;
+      if (!target || target.id !== "homeLoopSelect") return;
+      selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(target.value) || defaultLoop())));
+      renderLoopSelector();
+      renderHome();
+    });
+  }
   const loopSelect = document.getElementById("loopSelect");
   if (loopSelect) loopSelect.addEventListener("change", () => {
     if (loopSelect.disabled) return;
@@ -1698,5 +1980,11 @@ function boot() {
 export { MainScene, boot, gameApi, tileKey, pixelActorFrameIndex, effectFrameIndex };
 
 if (typeof document !== "undefined") {
-  boot();
+  initStorage().then(() => {
+    progress = resolveInterruptedRunOnBoot(loadProgress());
+    normalizeProgressDeck();
+    selectedLoop = defaultLoop();
+    gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
+    boot();
+  });
 }

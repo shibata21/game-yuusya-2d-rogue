@@ -6,6 +6,7 @@ import {
   createRuleConfig,
   KINDS,
   HERO_CLASSES,
+  ITEM_UNLOCKS,
   VEIN,
   PIXEL_ITEMS,
   PIXEL_DEBUFFS,
@@ -141,6 +142,44 @@ describe("ゲームルール", () => {
     G.grid[2][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
     G.tryDig(G.ENTRANCE_COL, 3);
     expect(G.monsters[0].kind).toBe("crownslime");
+  });
+
+  it("モンスターデッキは通常・進化・第二進化をファミリー単位で差し替える", () => {
+    for (const [stage, expected] of [[0, "moss_shroom"], [1, "moss_mycelia"], [2, "moss_myceliaKing"]]) {
+      const decked = createGame({ seed: 8, monsterDeck: { moss: "moss_shroom" } });
+      decked.resetGame(1);
+      decked.grid[2][decked.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+      decked.grid[3][decked.ENTRANCE_COL] = { t: "earth", sub: "moss", shade: 0, evoStage: stage, evo: stage > 0 };
+      decked.tryDig(decked.ENTRANCE_COL, 3);
+      expect(decked.monsters[0].kind).toBe(expected);
+    }
+  });
+
+  it("追加モンスターの代表特性が発火する", () => {
+    carveAll();
+    G.grid[5][7] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
+    G.spawnMonster("moss_shroom", 5, 5);
+    G.beginMove(G.monsters[0], 6, 5);
+    expect(G.grid[5][7].soilMana).toBeGreaterThan(0);
+
+    G.monsters.length = 0;
+    G.heroes.length = 0;
+    G.spawnMonster("moss_virus", 5, 5);
+    G.spawnHero("warrior", 6, 5);
+    const h = G.heroes[0];
+    h.atk = 20;
+    const beforeAtk = G.heroAttackPower(h);
+    G.damageHero(h, 1, G.monsters[0]);
+    expect(h.weakenMs).toBeGreaterThan(0);
+    expect(G.heroAttackPower(h)).toBeLessThan(beforeAtk);
+
+    G.monsters.length = 0;
+    G.heroes.length = 0;
+    G.spawnMonster("meat_hedgehog", 5, 5);
+    G.spawnHero("warrior", 6, 5);
+    const heroHp = G.heroes[0].hp;
+    G.damageMonster(G.monsters[0], 1, "#fff", G.heroes[0]);
+    expect(G.heroes[0].hp).toBeLessThan(heroHp);
   });
 
   it("鉱脈は時間ではなく魔物接触で進化する", () => {
@@ -1738,14 +1777,24 @@ describe("ゲームルール", () => {
     expect(G.items).toHaveLength(0);
   });
 
-  it("58種のアイテムはすべて取得でき、発見イベントを出す", () => {
+  it("既存アイテムは初期取得でき、新規アイテムは解放後に取得できる", () => {
     carveAll();
-    for (const id of PIXEL_ITEMS) {
+    const unlockIds = Object.keys(ITEM_UNLOCKS);
+    const baseIds = PIXEL_ITEMS.filter((id) => !unlockIds.includes(id));
+    for (const id of baseIds) {
       expect(G.applyItem(id, { ignoreCap: true }), id).toBe(true);
     }
-    expect(G.items).toEqual(PIXEL_ITEMS);
+    for (const id of unlockIds) expect(G.applyItem(id, { ignoreCap: true }), id).toBe(false);
+    expect(G.items).toEqual(baseIds);
     const events = G.drainEvents().filter((e) => e.type === "discoverItem").map((e) => e.id);
-    expect(events).toEqual(PIXEL_ITEMS);
+    expect(events).toEqual(baseIds);
+
+    const unlocked = createGame({ seed: 2, unlockedItems: unlockIds });
+    for (let r = 0; r < unlocked.ROWS; r++) {
+      for (let c = 0; c < unlocked.COLS; c++) unlocked.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
+    }
+    for (const id of unlockIds) expect(unlocked.applyItem(id, { ignoreCap: true }), id).toBe(true);
+    expect(unlocked.items).toEqual(unlockIds);
   });
 
   it("刷新したアイテム効果は索敵、魔物強化、魔物回復、採掘反撃へ反映される", () => {

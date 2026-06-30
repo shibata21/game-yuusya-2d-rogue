@@ -155,6 +155,29 @@ async function waitFor(client, expression, label) {
   throw new Error(`${label}を確認できません。`);
 }
 
+function progressIncludesItemExpression(id) {
+  return `new Promise((resolve) => {
+    const request = indexedDB.open("makaiDefense.storage.v1", 1);
+    request.onerror = () => resolve(false);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction("entries", "readonly");
+      const get = tx.objectStore("entries").get("makaiDefense.progress.v1");
+      get.onerror = () => resolve(false);
+      get.onsuccess = () => {
+        try {
+          const value = JSON.parse(get.result || "{}");
+          resolve(Array.isArray(value.discoveredItems) && value.discoveredItems.includes(${JSON.stringify(id)}));
+        } catch {
+          resolve(false);
+        }
+      };
+      tx.oncomplete = () => db.close();
+      tx.onerror = () => db.close();
+    };
+  })`;
+}
+
 async function advanceDialogueTo(client, expectedState, label) {
   for (let i = 0; i < 20; i++) {
     const state = await evaluate(client, `globalThis.MakaiDefense.current.gameState`);
@@ -479,7 +502,7 @@ async function run() {
       throw new Error(`アイテム長押しポップアップが不正です: ${JSON.stringify(popupResult)}`);
     }
 
-    await waitFor(client, `JSON.parse(localStorage.getItem("makaiDefense.progress.v1") || "{}").discoveredItems?.includes("rustyPickaxe")`, "アイテム発見の保存");
+    await waitFor(client, progressIncludesItemExpression("rustyPickaxe"), "アイテム発見の保存");
     await evaluate(client, `document.getElementById("codexBtn").click()`);
     await waitFor(client, `!document.getElementById("codexPanel").classList.contains("hidden")`, "キャラクター紹介表示");
     await evaluate(client, `document.querySelector('[data-codex-tab="item"]').click()`);
@@ -497,7 +520,7 @@ async function run() {
         progressText: document.getElementById("progressStatus").textContent,
       };
     })()`);
-    if (!codex.active || codex.cards !== 58 || !codex.itemText.includes("採掘成功時") || codex.itemLocked || codex.lockedCount < 1 || !codex.lockedText.includes("???") || !codex.progressText.includes("アイテム 1/58")) {
+    if (!codex.active || codex.cards !== 64 || !codex.itemText.includes("採掘成功時") || codex.itemLocked || codex.lockedCount < 1 || !codex.lockedText.includes("???") || !codex.progressText.includes("アイテム 1/64")) {
       throw new Error(`アイテム図鑑表示が不正です: ${JSON.stringify(codex)}`);
     }
 

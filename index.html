@@ -47,13 +47,22 @@
             </button>
           </div>
           <div class="overlay" id="startOverlay">
-            <div class="start-panel" id="startTitlePanel">
-              <h2>迷宮を守り抜け</h2>
-              <div class="scroll">
-                <span class="key gold">▸</span> 土を掘って鉱脈を開き、魔物を呼び出す。<br>
-                <span class="key">▸</span> 迫る冒険者から最下層の迷宮コアを守る。<br>
-                <span class="key pur">▸</span> ウェーブ撃退後に見つかるアイテムは、迷宮の戦況を大きく変える。
+            <div class="start-panel home-panel" id="startTitlePanel">
+              <div class="home-head">
+                <div>
+                  <h2>迷宮ホーム</h2>
+                  <div class="home-coin">コイン <b id="homeCoinNum">0</b></div>
+                </div>
+                <div class="home-message" id="homeMessage"></div>
               </div>
+              <div class="home-tabs" role="tablist" aria-label="ホームメニュー">
+                <button type="button" class="active" data-home-tab="defense">防衛</button>
+                <button type="button" data-home-tab="deck">モンスターデッキ</button>
+                <button type="button" data-home-tab="unlock">解放</button>
+                <button type="button" data-home-tab="codex">図鑑</button>
+                <button type="button" data-home-tab="settings">設定</button>
+              </div>
+              <div class="home-body" id="homeBody"></div>
               <button class="btn-start" id="startBtn">防衛を開始する</button>
             </div>
           </div>

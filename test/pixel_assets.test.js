@@ -222,11 +222,11 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v24-dialogue");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v24-dialogue");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v24-dialogue");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v24-dialogue");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v24-dialogue");
+    expect(PIXEL_ASSET_VERSION).toBe("v25-coins");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v25-coins");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v25-coins");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v25-coins");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v25-coins");
     expect(pixelItemFrameIndex("rustyPickaxe")).toBe(PIXEL_ITEMS.indexOf("rustyPickaxe"));
     expect(pixelDebuffFrameIndex("crackedCore")).toBe(PIXEL_DEBUFFS.indexOf("crackedCore"));
     expect(pixelDialoguePortraitFrameIndex("gorilla")).toBe(PIXEL_DIALOGUE_PORTRAITS.indexOf("gorilla"));
