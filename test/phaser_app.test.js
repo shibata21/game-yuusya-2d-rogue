@@ -31,6 +31,10 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="skipItemBtn"');
     expect(html).toContain('id="loopSelect"');
     expect(html).toContain('id="loopInfo"');
+    expect(html).toContain('<div class="controls">');
+    expect(html).toContain('<span>周回</span>');
+    expect(html).not.toContain('id="loopNum"');
+    expect(html).not.toContain("挑戦する周回</span>");
     expect(html).toContain('id="debuffBar"');
     expect(html).toContain('id="debuffNoticeOverlay"');
     expect(html).toContain('id="trapChoiceOverlay"');
@@ -99,6 +103,8 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("renderTrapOffer");
     expect(src).toContain("renderDebuffNotice");
     expect(src).toContain("renderLoopSelector");
+    expect(src).toContain("select.disabled = !selectable");
+    expect(src).not.toContain('getElementById("loopNum")');
     expect(src).toContain("chooseItemOffer");
     expect(src).toContain("buyShopItem");
     expect(src).toContain("closeShopOffer");
@@ -138,6 +144,8 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".item-shop-card");
     expect(css).toContain(".item-rarity-gold");
     expect(css).toContain(".loop-select");
+    expect(css).toContain("grid-template-columns: minmax(0, 1fr) 92px 116px");
+    expect(css).toContain(".loop-select select:disabled");
     expect(css).toContain(".debuffs");
     expect(css).toContain(".trap-choice-grid");
     expect(css).toContain(".debuff-notice-body");

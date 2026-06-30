@@ -22,7 +22,6 @@
           <div class="stats">
             <div class="stat gold"><b id="nutNum">25</b><span class="k">栄養</span></div>
             <div class="stat"><b id="waveNum">0</b><span class="k">ウェーブ</span></div>
-            <div class="stat"><b id="loopNum">1</b><span class="k">周回</span></div>
             <div class="stat"><b id="monNum">0</b><span class="k">魔物</span></div>
           </div>
           <div class="stat"><b id="scoreNum">0</b><span class="k">スコア</span></div>
@@ -41,11 +40,6 @@
                 <span class="key">▸</span> 迫る冒険者から最下層の迷宮コアを守る。<br>
                 <span class="key pur">▸</span> ウェーブ撃退後に見つかるアイテムは、迷宮の戦況を大きく変える。
               </div>
-              <label class="loop-select">
-                <span>挑戦する周回</span>
-                <select id="loopSelect" aria-label="挑戦する周回"></select>
-                <em id="loopInfo">1周目から開始</em>
-              </label>
               <button class="btn-start" id="startBtn">防衛を開始する</button>
             </div>
           </div>
@@ -92,6 +86,11 @@
             <span class="t" id="waveLabel">次の襲来まで</span>
             <span class="v" id="waveTimer">--</span>
           </div>
+          <label class="loop-select">
+            <span>周回</span>
+            <select id="loopSelect" aria-label="挑戦する周回"></select>
+            <em id="loopInfo">1周目</em>
+          </label>
           <button class="btn-taunt" id="tauntBtn">すぐ襲来<br>待ち時間を短縮</button>
         </div>
 

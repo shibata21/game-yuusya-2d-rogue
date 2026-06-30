@@ -63,6 +63,7 @@ export const TRAP_EVENT_START_LOOP = 5;
 export const DEBUFF_START_LOOP = 10;
 export const TERMINATOR_LOOP = 20;
 export const REAPER_SPAWN_CHANCE = 0.002;
+export const POST_WAVE_EVENT_CHANCE = 0.65;
 
 export const POST_WAVE_EVENT_WEIGHTS = {
   item: 60,
@@ -139,7 +140,7 @@ export const ITEMS = {
   undergroundLantern: { name: "地底ランタン", passive: true, profile: "鉱脈を含む未掘削マスが淡く光る。" },
   crackedMap: { name: "ひび割れ地図", passive: true, profile: "冒険者がいない間、魔物の移動が少し速くなる。" },
   masonGloves: { name: "石工の手袋", passive: true, profile: "冒険者が土を掘る力を少し下げる。" },
-  deepCompass: { name: "深層コンパス", passive: true, profile: "迷宮コアの近くにいる魔物の攻撃力が上がる。" },
+  deepCompass: { name: "深層コンパス", passive: true, profile: "魔物の索敵範囲が少し広がる。" },
   oldIncense: { name: "古い香炉", passive: true, profile: "鉱脈の接触進化に必要な回数が少し減る。" },
   herdFlute: { name: "群れ笛", passive: true, profile: "直接増殖する魔物の繁殖が少し早くなる。" },
   warmNest: { name: "温かな巣材", passive: true, profile: "卵が孵化するまでの時間が短くなる。" },
@@ -148,13 +149,13 @@ export const ITEMS = {
   redCollar: { name: "赤い首輪", passive: true, profile: "魔物が発生地点へ戻りやすくなる。" },
   warPaint: { name: "戦化粧", passive: true, profile: "ウェーブ開始直後、魔物の攻撃力が上がる。" },
   sleepSand: { name: "眠り砂", passive: true, profile: "ウェーブ開始直後、冒険者の移動が少し遅くなる。" },
-  curseNail: { name: "呪い釘", passive: true, profile: "迷宮コアの近くにいる冒険者の攻撃力が下がる。" },
+  curseNail: { name: "呪い釘", passive: true, profile: "冒険者の攻撃力を常時少し下げる。" },
   blackBell: { name: "黒い鐘", passive: true, profile: "同じウェーブ内の冒険者出現間隔が長くなる。" },
   stickyMud: { name: "こびりつく泥", passive: true, profile: "冒険者が通路で時々足を取られる。" },
-  coreShard: { name: "迷宮コア片", passive: false, profile: "取得時、迷宮コアの最大HPと現在HPが増える。" },
-  coreBandage: { name: "コア包帯", passive: true, profile: "ウェーブ撃退後、迷宮コアが少し回復する。" },
+  coreShard: { name: "迷宮コア片", passive: false, profile: "取得時、現存魔物の最大HPが増え、以後に出る魔物も少し頑丈になる。" },
+  coreBandage: { name: "コア包帯", passive: true, profile: "ウェーブ撃退後、傷ついた魔物を数体回復する。" },
   redSealingWax: { name: "赤い封蝋", passive: true, profile: "最初のコア被弾を一度だけ無効化する。" },
-  quakeStone: { name: "地鳴り石", passive: true, profile: "コアを攻撃できる位置の冒険者へ継続ダメージを与える。" },
+  quakeStone: { name: "地鳴り石", passive: true, profile: "冒険者が土を掘るたび、地鳴りで小ダメージを与える。" },
   leftoverMeat: { name: "食べかけ肉", passive: true, profile: "捕食した魔物の回復量が増える。" },
   silverMuzzle: { name: "銀の口輪", passive: true, profile: "味方同士の捕食が起きにくくなる。" },
   bloodyPlate: { name: "血染めの皿", passive: true, profile: "捕食した魔物の攻撃力がしばらく上がる。" },
@@ -174,7 +175,7 @@ export const ITEMS = {
   reversedHourglass: { name: "逆巻き砂時計", passive: true, profile: "次の襲来までの待ち時間が長くなる。" },
   earlyDrum: { name: "早鳴り太鼓", passive: true, profile: "襲来は早まるが、冒険者撃破報酬が増える。" },
   breathingFlute: { name: "深呼吸の笛", passive: true, profile: "しばらく戦っていない魔物の攻撃間隔が短くなる。" },
-  gapStake: { name: "狭間の杭", passive: true, profile: "コア周辺の冒険者の移動が遅くなる。" },
+  gapStake: { name: "狭間の杭", passive: true, profile: "通路上の冒険者の移動が少し遅くなる。" },
   moleClaw: { name: "土竜の爪", passive: true, profile: "採掘時、隣接する土にもひびを入れる。" },
   obsidianLid: { name: "黒曜の蓋", passive: true, profile: "掘った直後の通路で生まれた魔物の被ダメージが短時間下がる。" },
   wanderingPowder: { name: "迷い粉", passive: true, profile: "冒険者が時々遠回りを選ぶ。" },
@@ -188,7 +189,7 @@ export const ITEMS = {
   rottenCrown: { name: "朽ちた冠", passive: true, profile: "第二進化魔物の出現時HPが増える。" },
   rebelCharm: { name: "反骨の札", passive: true, profile: "魔物が少ないほど魔物の攻撃力が上がる。" },
   crowdMark: { name: "大所帯の印", passive: true, profile: "魔物が多い時、魔物の最大HPが上がる。" },
-  lowestCandle: { name: "最下層の蝋燭", passive: true, profile: "コアHPが低い時、魔物が強くなる。" },
+  lowestCandle: { name: "最下層の蝋燭", passive: true, profile: "ウェーブ後半、魔物の攻撃力が上がる。" },
   blackRaindrop: { name: "黒い雨粒", passive: true, profile: "ウェーブ中、敵味方全員の移動が遅くなる。" },
   redMoonShard: { name: "赤月の破片", passive: true, profile: "ウェーブ後半ほど魔物の攻撃力が上がる。" },
   boneContract: { name: "白骨の契約書", passive: false, profile: "取得時にコアHPを消費し、現存魔物を強化する。" },
@@ -215,7 +216,7 @@ const ITEM_RARITY_BY_ID = {
   coreShard: "gold",
   coreBandage: "rare",
   redSealingWax: "rare",
-  quakeStone: "gold",
+  quakeStone: "rare",
   leftoverMeat: "normal",
   silverMuzzle: "normal",
   bloodyPlate: "rare",
@@ -249,7 +250,7 @@ const ITEM_RARITY_BY_ID = {
   rottenCrown: "gold",
   rebelCharm: "rare",
   crowdMark: "rare",
-  lowestCandle: "gold",
+  lowestCandle: "rare",
   blackRaindrop: "rare",
   redMoonShard: "gold",
   boneContract: "gold",
@@ -713,10 +714,9 @@ export function createGame(options = {}) {
   function monsterAttackPower(m) {
     if (!m) return 1;
     let power = m.atk || 1;
-    if (hasItem("deepCompass") && distToCore(m) <= 3) power *= 1.15;
     if (hasItem("warPaint") && waveOpeningActive()) power *= 1.15;
     if (hasItem("rebelCharm") && monsters.length <= 3) power *= 1.2;
-    if (hasItem("lowestCandle") && coreHP <= coreMax * 0.35) power *= 1.2;
+    if (hasItem("lowestCandle") && waveIsActive() && waveElapsed >= 30000) power *= 1.1;
     if (hasItem("redMoonShard") && waveIsActive()) power *= 1 + Math.min(0.3, Math.max(0, waveElapsed - 15000) / 45000 * 0.3);
     if ((m.bloodyPlateMs || 0) > 0) power *= 1.2;
     if ((m.crybabyBellMs || 0) > 0) power *= 1.15;
@@ -725,7 +725,7 @@ export function createGame(options = {}) {
 
   function heroAttackPower(h) {
     let power = h.atk || 1;
-    if (hasItem("curseNail") && distToCore(h) <= 3) power *= 0.85;
+    if (hasItem("curseNail")) power *= 0.92;
     if (hasDebuff("sharpenedBlade")) power *= 1.12;
     return Math.max(1, Math.round(power));
   }
@@ -1168,8 +1168,10 @@ export function createGame(options = {}) {
     emitEvent("discoverItem", { id });
     triggerItem(id);
     if (id === "coreShard") {
-      coreMax += 25;
-      coreHP = Math.min(coreMax, coreHP + 25);
+      for (const m of monsters) {
+        strengthenMonsterHp(m, 1.1);
+        popDmg(m.px, m.py, "体↑", "#ffcf4d");
+      }
       triggerItem(id, 1500);
     } else if (id === "dryBread") {
       nutrients += 12;
@@ -1281,13 +1283,23 @@ export function createGame(options = {}) {
       emitEvent("loopCleared", { loop, score, wave });
       return;
     }
-    if (hasItem("coreBandage") && coreHP < coreMax) {
-      const amount = Math.max(1, Math.round(coreMax * 0.12));
-      coreHP = Math.min(coreMax, coreHP + amount);
-      triggerItem("coreBandage");
-      popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `+${amount}`, "#9effa0");
+    if (hasItem("coreBandage")) {
+      const wounded = monsters
+        .filter((m) => m.hp < m.maxHp)
+        .sort((a, b) => hpRatio(a) - hpRatio(b) || a.id - b.id)
+        .slice(0, 3);
+      for (const m of wounded) {
+        const amount = Math.max(1, Math.round(m.maxHp * 0.18));
+        m.hp = Math.min(m.maxHp, m.hp + amount);
+        popDmg(m.px, m.py - 10, `+${amount}`, "#9effa0");
+      }
+      if (wounded.length) {
+        banner(`コア包帯 ─ 魔物${wounded.length}体を回復`);
+        triggerItem("coreBandage");
+      }
     }
     waveCountdown = nextWaveInterval();
+    if (random() >= POST_WAVE_EVENT_CHANCE) return;
     const eventKind = choosePostWaveEventKind();
     if (eventKind === "item") {
       const choices = chooseItemOfferChoices();
@@ -1423,6 +1435,7 @@ export function createGame(options = {}) {
       prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
       nonCombatMs: 0,
     };
+    if (hasItem("coreShard")) strengthenMonsterHp(monster, 1.06);
     if (hasDebuff("dullFeed")) strengthenMonsterHp(monster, 0.92);
     if (opts.fromEgg) {
       if (hasItem("boneMeal")) strengthenMonsterHp(monster, 1.25);
@@ -2300,7 +2313,7 @@ export function createGame(options = {}) {
     if (e.kind && hasItem("crackedMap") && heroes.length === 0 && spawnQueue.length === 0) mul *= 0.85;
     if (e.kind && hasItem("blackRaindrop") && waveIsActive()) mul *= 1.12;
     if (e.cls && hasItem("sleepSand") && waveOpeningActive()) mul *= 1.15;
-    if (e.cls && hasItem("gapStake") && distToCore(e) <= 3) mul *= 1.18;
+    if (e.cls && hasItem("gapStake") && grid[e.row][e.col].t === "tunnel") mul *= 1.08;
     if (e.cls && hasItem("blackRaindrop") && waveIsActive()) mul *= 1.12;
     if (e.cls && hasDebuff("informantMap")) mul *= 0.9;
     return Math.max(MOVEMENT_TICK, Math.round(base * mul));
@@ -2539,7 +2552,6 @@ export function createGame(options = {}) {
   function monsterAttackInterval(m, k) {
     let cd = k.atkCd;
     if (hasItem("breathingFlute") && (m.nonCombatMs || 0) >= 8000) cd *= 0.85;
-    if (hasItem("lowestCandle") && coreHP <= coreMax * 0.35) cd *= 0.9;
     return Math.max(120, Math.round(cd));
   }
 
@@ -2574,7 +2586,7 @@ export function createGame(options = {}) {
         }
         continue;
       }
-      const aggroRange = k.aggro + (hasItem("angerMask") && hpRatio(m) >= 0.7 ? 2 : 0);
+      const aggroRange = k.aggro + (hasItem("angerMask") && hpRatio(m) >= 0.7 ? 2 : 0) + (hasItem("deepCompass") ? 1 : 0);
       const aggroHero = bestHeroWithin(m, aggroRange);
       if (aggroHero) faceToward(m, aggroHero.px, aggroHero.py);
       if (!aggroHero && m.eatCd <= 0) {
@@ -2654,6 +2666,11 @@ export function createGame(options = {}) {
       effects.push({ type: "dig", x: cx(step.col), y: cy(step.row), life: 300, max: 300, hero: true });
       h.actCd = DIG_CD;
       setAction(h, "dig", cx(step.col), cy(step.row), ATK_ANIM);
+      if (hasItem("quakeStone")) {
+        damageHero(h, 2, null, "#bff7ea");
+        triggerItem("quakeStone");
+        if (!heroes.includes(h)) return;
+      }
       if (step.tile.dig >= DIG_BREAK) {
         step.tile.t = "tunnel";
         clearVein(step.tile, true);
@@ -2729,15 +2746,6 @@ export function createGame(options = {}) {
       }
       h.blockedMs = 0;
       if (canCoreAttackFrom(h.col, h.row)) {
-        if (hasItem("quakeStone")) {
-          h.quakeCd = (h.quakeCd || 0) - dt;
-          if (h.quakeCd <= 0) {
-            h.quakeCd = 1000;
-            damageHero(h, 2, null, "#bff7ea");
-            triggerItem("quakeStone");
-            if (!heroes.includes(h)) continue;
-          }
-        }
         if (h.coreCd <= 0) {
           const dmg = heroAttackPower(h);
           if (hasItem("redSealingWax") && !usedItems.has("redSealingWax")) {
@@ -3052,7 +3060,7 @@ export function createGame(options = {}) {
     isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemHighlights, itemRarity, itemShopPrice,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
+    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
@@ -3064,7 +3072,7 @@ export function createGame(options = {}) {
 
 export const Core = {
   DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig,
-  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
+  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,

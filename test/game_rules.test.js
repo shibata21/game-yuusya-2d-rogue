@@ -9,6 +9,7 @@ import {
   VEIN,
   PIXEL_ITEMS,
   PIXEL_DEBUFFS,
+  POST_WAVE_EVENT_CHANCE,
   loopHpMultiplier,
   loopAtkMultiplier,
   loopScoreMultiplier,
@@ -1439,6 +1440,22 @@ describe("ゲームルール", () => {
     expect(G.shopOffer).toBe(null);
   });
 
+  it("撃退後イベントは65%で発生し、外れた場合はそのまま再開する", () => {
+    carveAll();
+    expect(POST_WAVE_EVENT_CHANCE).toBe(0.65);
+    G.setRandom(() => 0.99);
+    G.wave = 5;
+    G.waveCountdown = 5000;
+    G.gameState = "playing";
+    G.settleWave();
+    expect(G.gameState).toBe("playing");
+    expect(G.postWaveEvent).toBe(null);
+    expect(G.itemOffer).toBe(null);
+    expect(G.shopOffer).toBe(null);
+    expect(G.trapOffer).toBe(null);
+    expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
+  });
+
   it("update経由のウェーブ終了は最後の冒険者死亡後に余韻を挟む", () => {
     carveAll();
     G.setRandom(() => 0);
@@ -1507,11 +1524,15 @@ describe("ゲームルール", () => {
     expect(G.itemShopPrice("rustyPickaxe", 5)).toBe(17);
     expect(G.itemShopPrice("blackSoilBag", 5)).toBe(34);
     expect(G.itemShopPrice("oldIncense", 5)).toBe(57);
+    expect(G.ITEMS.coreShard.rarity).toBe("gold");
+    expect(G.ITEMS.coreBandage.rarity).toBe("rare");
+    expect(G.ITEMS.quakeStone.rarity).toBe("rare");
+    expect(G.ITEMS.lowestCandle.rarity).toBe("rare");
   });
 
   it("ショップでは栄養を払って複数アイテムを購入でき、足りない商品は買えない", () => {
     carveAll();
-    const rolls = [0.7, 0, 0, 0, 0, 0];
+    const rolls = [0, 0.7, 0, 0, 0, 0, 0];
     G.setRandom(() => rolls.length ? rolls.shift() : 0);
     G.wave = 5;
     G.nutrients = 100;
@@ -1546,7 +1567,7 @@ describe("ゲームルール", () => {
 
   it("ショップ中はupdateでゲーム時間が進まない", () => {
     carveAll();
-    const rolls = [0.7, 0, 0, 0, 0, 0];
+    const rolls = [0, 0.7, 0, 0, 0, 0, 0];
     G.setRandom(() => rolls.length ? rolls.shift() : 0);
     G.wave = 4;
     G.waveCountdown = 5000;
@@ -1565,7 +1586,7 @@ describe("ゲームルール", () => {
   });
 
   it("5周目以降は撃退後に罠イベントが出ることがあり、デバフを1つ選ぶ", () => {
-    const trapGame = createGame({ random: () => 0.99 });
+    const trapGame = createGame({ seed: 1 });
     trapGame.startGame(5);
     for (let r = 0; r < trapGame.ROWS; r++) {
       for (let c = 0; c < trapGame.COLS; c++) trapGame.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
@@ -1574,6 +1595,8 @@ describe("ゲームルール", () => {
     trapGame.grid[trapGame.CORE_ROW][trapGame.CORE_COL].t = "core";
     trapGame.wave = 5;
     trapGame.gameState = "playing";
+    const rolls = [0, 0.99, 0, 0, 0];
+    trapGame.setRandom(() => rolls.length ? rolls.shift() : 0);
     trapGame.settleWave();
 
     expect(trapGame.gameState).toBe("trap");
@@ -1655,24 +1678,50 @@ describe("ゲームルール", () => {
     expect(events).toEqual(PIXEL_ITEMS);
   });
 
-  it("代表的なアイテム効果は攻撃、栄養、コア、死亡時処理へ反映される", () => {
+  it("刷新したアイテム効果は索敵、魔物強化、魔物回復、採掘反撃へ反映される", () => {
     carveAll();
-    G.spawnMonster("flame", G.CORE_COL, G.CORE_ROW - 1);
-    G.spawnMonster("slime", 6, 5);
-    const a = G.monsters[0];
-    const b = G.monsters[1];
+    G.spawnMonster("slime", 5, 5);
+    G.heroes.push(hero("warrior", 9, 5, { actCd: 999999, atkCd: 999999 }));
+    const scout = G.monsters[0];
+    scout.moveCd = 999999;
+    scout.moveCharge = 0;
     expect(G.applyItem("deepCompass")).toBe(true);
-    expect(G.monsterAttackPower(a)).toBeGreaterThan(a.atk);
+    G.update(100);
+    expect(scout.moveIntent?.kind).toBe("chase");
     expect(G.itemEvents.some((e) => e.id === "deepCompass")).toBe(true);
 
     const beforeMax = G.CORE_MAX;
     const beforeCore = G.coreHP;
+    const beforeMonsterMax = scout.maxHp;
     expect(G.applyItem("coreShard")).toBe(true);
-    expect(G.CORE_MAX).toBe(beforeMax + 25);
-    expect(G.coreHP).toBe(beforeCore + 25);
+    expect(G.CORE_MAX).toBe(beforeMax);
+    expect(G.coreHP).toBe(beforeCore);
+    expect(scout.maxHp).toBeGreaterThan(beforeMonsterMax);
+    G.spawnMonster("slime", 6, 5);
+    expect(G.monsters[G.monsters.length - 1].maxHp).toBe(11);
 
+    expect(G.applyItem("coreBandage")).toBe(true);
+    scout.hp = 1;
+    G.wave = 4;
+    G.gameState = "playing";
+    G.setRandom(() => 0.99);
+    G.settleWave();
+    expect(scout.hp).toBeGreaterThan(1);
+
+    G.heroes.length = 0;
+    G.monsters.length = 0;
+    expect(G.applyItem("quakeStone")).toBe(true);
+    const digger = hero("warrior", 5, 5, { actCd: 0, atkCd: 999999, hp: 20, maxHp: 20 });
+    G.heroes.push(digger);
+    G.grid[6][5] = { t: "earth", sub: null, shade: 0, dig: 0 };
+    G.wave = 0;
+    G.gameState = "playing";
+    G.update(100);
+    expect(digger.hp).toBeLessThan(20);
+
+    const breadBefore = G.nutrients;
     expect(G.applyItem("dryBread")).toBe(true);
-    expect(G.nutrients).toBe(G.START_NUT + 12);
+    expect(G.nutrients).toBeCloseTo(breadBefore + 12);
 
     expect(G.applyItem("tornWallet")).toBe(true);
     G.nutrients = 4;
@@ -1683,6 +1732,8 @@ describe("ゲームルール", () => {
     expect(G.nutrients - beforeNut).toBe(Math.round((4 + 4) * 1.5));
 
     expect(G.applyItem("spareHeart")).toBe(true);
+    G.spawnMonster("slime", 6, 5);
+    const b = G.monsters[G.monsters.length - 1];
     b.hp = 1;
     G.killMonster(b);
     expect(G.monsters).toContain(b);
@@ -1693,10 +1744,10 @@ describe("ゲームルール", () => {
     expect(G.slowFields).toHaveLength(1);
   });
 
-  it("呪い釘はコア付近の冒険者攻撃力を下げ、死神は死亡冒険者からまれに出る", () => {
+  it("呪い釘は冒険者攻撃力を常時下げ、死神は死亡冒険者からまれに出る", () => {
     carveAll();
     expect(G.applyItem("curseNail")).toBe(true);
-    const h = hero("warrior", G.CORE_COL, G.CORE_ROW - 1, { atk: 10 });
+    const h = hero("warrior", 2, 2, { atk: 10 });
     expect(G.heroAttackPower(h)).toBe(9);
 
     G.setRandom(() => 0);

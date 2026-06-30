@@ -239,15 +239,31 @@ async function run() {
     await evaluate(client, `document.getElementById("codexBackBtn").click()`);
     await waitFor(client, `document.getElementById("codexPanel").classList.contains("hidden") && !document.getElementById("gameScreen").classList.contains("hidden")`, "キャラクター紹介を閉じる");
 
+    const loopUi = await evaluate(client, `(() => {
+      const select = document.getElementById("loopSelect");
+      const rect = select.getBoundingClientRect();
+      return {
+        inControls: !!select.closest(".controls"),
+        inStart: !!document.querySelector("#startTitlePanel #loopSelect"),
+        visible: rect.width > 0 && rect.height > 0,
+        disabled: select.disabled,
+        text: document.getElementById("loopInfo").textContent,
+      };
+    })()`);
+    if (!loopUi.inControls || loopUi.inStart || !loopUi.visible || loopUi.disabled || !loopUi.text.includes("解放")) {
+      throw new Error(`周回UIの配置が不正です: ${JSON.stringify(loopUi)}`);
+    }
+
     await evaluate(client, `document.getElementById("startBtn").click()`);
     await waitFor(client, `globalThis.MakaiDefense?.current?.gameState === "playing"`, "開始ボタン後のplaying状態");
     const playing = await evaluate(client, `({
       state: globalThis.MakaiDefense.current.gameState,
       coreHP: globalThis.MakaiDefense.current.coreHP,
       nutrients: globalThis.MakaiDefense.current.nutrients,
-      startHidden: document.getElementById("startOverlay").classList.contains("hidden")
+      startHidden: document.getElementById("startOverlay").classList.contains("hidden"),
+      loopDisabled: document.getElementById("loopSelect").disabled
     })`);
-    if (playing.state !== "playing" || !playing.startHidden || playing.coreHP <= 0 || playing.nutrients < 0) {
+    if (playing.state !== "playing" || !playing.startHidden || playing.coreHP <= 0 || playing.nutrients < 0 || !playing.loopDisabled) {
       throw new Error(`開始後状態が不正です: ${JSON.stringify(playing)}`);
     }
 
@@ -340,7 +356,7 @@ async function run() {
 
     await evaluate(client, `(() => {
       const game = globalThis.MakaiDefense.current;
-      const rolls = [0.7, 0, 0, 0, 0, 0];
+      const rolls = [0, 0.7, 0, 0, 0, 0, 0];
       game.setRandom(() => rolls.length ? rolls.shift() : 0);
       game.wave = 2;
       game.gameState = "playing";
@@ -362,6 +378,16 @@ async function run() {
     }
     await evaluate(client, `document.getElementById("closeShopBtn").click()`);
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemShopOverlay").classList.contains("hidden")`, "ショップ閉店後の再開");
+    await evaluate(client, `(() => {
+      const game = globalThis.MakaiDefense.current;
+      game.setRandom(() => 0.99);
+      game.wave = 3;
+      game.gameState = "playing";
+      game.heroes.length = 0;
+      game.spawnQueue.length = 0;
+      game.settleWave();
+    })()`);
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && globalThis.MakaiDefense.current.postWaveEvent === null`, "撃退後イベントなし");
     const popupResult = await evaluate(client, `new Promise((resolve) => {
       const button = document.querySelector('[data-item-id="rustyPickaxe"]');
       const rect = button.getBoundingClientRect();
@@ -407,7 +433,7 @@ async function run() {
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、開始、音量設定、開発JSON出力、アイテム3択、ショップ、長押しポップアップ、アイテム図鑑を検査しました");
+    console.log("OK: ブラウザ初回ロード、下部周回UI、開始、音量設定、開発JSON出力、アイテム3択、ショップ、イベントなし、長押しポップアップ、アイテム図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

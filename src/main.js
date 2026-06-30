@@ -717,17 +717,20 @@ function renderLoopSelector() {
   const info = document.getElementById("loopInfo");
   if (!select) return;
   const max = selectableMaxLoop();
-  selectedLoop = Math.max(1, Math.min(max, selectedLoop || defaultLoop()));
+  const selectable = ["title", "dead", "clear"].includes(gameApi.gameState);
+  if (selectable) selectedLoop = Math.max(1, Math.min(max, selectedLoop || defaultLoop()));
+  else selectedLoop = gameApi.loop;
   const current = String(selectedLoop);
   select.innerHTML = Array.from({ length: max }, (_, i) => {
     const loop = i + 1;
     return `<option value="${loop}"${String(loop) === current ? " selected" : ""}>${loop}周目</option>`;
   }).join("");
   select.value = current;
+  select.disabled = !selectable;
   if (info) {
-    const parts = [`${max}周目まで選択可能`, `スコアx${(1 + (selectedLoop - 1) * 0.15).toFixed(2)}`];
-    if (progress.resetPenaltyActive && selectedLoop >= 10) parts.push("リセット罰あり");
-    info.textContent = parts.join(" / ");
+    const parts = [`解放${max}`, `x${(1 + (selectedLoop - 1) * 0.15).toFixed(2)}`];
+    if (progress.resetPenaltyActive && selectedLoop >= 10) parts.push("罰");
+    info.textContent = parts.join(" ");
   }
 }
 
@@ -1443,9 +1446,9 @@ function updateHud() {
   if (coreLine) coreLine.classList.toggle("core-alert", gameApi.coreHP > 0 && gameApi.gameState === "playing" && (effectLevel("corehit") > 0 || effectLevel("coreShock") > 0));
   document.getElementById("nutNum").textContent = Math.floor(gameApi.nutrients);
   document.getElementById("waveNum").textContent = `${gameApi.wave}/${gameApi.MAX_WAVE}`;
-  document.getElementById("loopNum").textContent = `${gameApi.loop}/${MAX_LOOP}`;
   document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
   document.getElementById("scoreNum").textContent = gameApi.score;
+  renderLoopSelector();
   renderItems();
   renderDebuffs();
   renderItemOffer();
@@ -1542,6 +1545,7 @@ function boot() {
   document.getElementById("clearRestartBtn").addEventListener("click", openStartFlow);
   const loopSelect = document.getElementById("loopSelect");
   if (loopSelect) loopSelect.addEventListener("change", () => {
+    if (loopSelect.disabled) return;
     selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(loopSelect.value) || defaultLoop())));
     renderLoopSelector();
   });
