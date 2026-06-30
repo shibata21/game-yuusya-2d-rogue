@@ -49,21 +49,17 @@
           <div class="overlay" id="startOverlay">
             <div class="start-panel home-panel" id="startTitlePanel">
               <div class="home-head">
-                <div>
-                  <h2>迷宮ホーム</h2>
-                  <div class="home-coin">コイン <b id="homeCoinNum">0</b></div>
-                </div>
+                <div class="home-coin">コイン <b id="homeCoinNum">0</b></div>
                 <div class="home-message" id="homeMessage"></div>
               </div>
               <div class="home-tabs" role="tablist" aria-label="ホームメニュー">
                 <button type="button" class="active" data-home-tab="defense">防衛</button>
                 <button type="button" data-home-tab="deck">モンスターデッキ</button>
-                <button type="button" data-home-tab="unlock">解放</button>
                 <button type="button" data-home-tab="codex">図鑑</button>
                 <button type="button" data-home-tab="settings">設定</button>
               </div>
               <div class="home-body" id="homeBody"></div>
-              <button class="btn-start" id="startBtn">防衛を開始する</button>
+              <button class="btn-start" id="startBtn">防衛開始</button>
             </div>
           </div>
 
@@ -109,58 +105,9 @@
             <span class="t" id="waveLabel">次の襲来まで</span>
             <span class="v" id="waveTimer">--</span>
           </div>
-          <label class="loop-select">
-            <span>周回</span>
-            <select id="loopSelect" aria-label="挑戦する周回"></select>
-            <em id="loopInfo">1周目</em>
-          </label>
           <button class="btn-taunt" id="tauntBtn">すぐ襲来<br>待ち時間を短縮</button>
         </div>
-
-        <details class="sound-panel" id="soundPanel">
-          <summary>音量設定</summary>
-          <div class="sound-fields" id="soundFields">
-            <label><span><b>マスター</b><em id="masterVolumeValue">80%</em></span><input id="masterVolume" data-audio-volume="master" type="range" min="0" max="100" value="80" aria-label="マスター音量"></label>
-            <label><span><b>BGM</b><em id="bgmVolumeValue">45%</em></span><input id="bgmVolume" data-audio-volume="bgm" type="range" min="0" max="100" value="45" aria-label="BGM音量"></label>
-            <label><span><b>効果音</b><em id="seVolumeValue">75%</em></span><input id="seVolume" data-audio-volume="se" type="range" min="0" max="100" value="75" aria-label="効果音量"></label>
-            <label><span><b>音声</b><em id="voiceVolumeValue">85%</em></span><input id="voiceVolume" data-audio-volume="voice" type="range" min="0" max="100" value="85" aria-label="音声音量"></label>
-          </div>
-        </details>
-
-        <button class="btn-codex" id="codexBtn">キャラクター紹介</button>
-        <div class="legend" id="legend"></div>
-        <div class="hint">鉱脈を掘って魔物を出し、冒険者の進路に防衛線を作れ。</div>
-
-        <details class="dev-panel" id="devPanel">
-          <summary>開発設定</summary>
-          <div class="dev-actions">
-            <span id="devStatus">変更は次回開始時に反映</span>
-            <button type="button" id="exportDevJsonBtn">JSON出力</button>
-            <button type="button" id="copyDevJsonBtn">コピー</button>
-            <button type="button" id="resetDevBtn">設定初期化</button>
-            <button type="button" id="resetProgressBtn">図鑑初期化</button>
-          </div>
-          <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0 / アイテム 0</div>
-          <textarea id="devJsonOutput" class="dev-json-output" readonly spellcheck="false" aria-label="開発設定JSON"></textarea>
-          <div class="dev-fields" id="devFields"></div>
-        </details>
       </div>
-
-      <section class="codex hidden" id="codexPanel" aria-label="キャラクター紹介">
-        <div class="codex-head">
-          <div>
-            <div class="deco">迷宮資料</div>
-            <h2>キャラクター紹介</h2>
-          </div>
-          <button class="btn-back" id="codexBackBtn">戻る</button>
-        </div>
-        <div class="codex-tabs" role="tablist" aria-label="紹介切替">
-          <button class="codex-tab active" data-codex-tab="monster" role="tab" aria-selected="true">モンスター</button>
-          <button class="codex-tab" data-codex-tab="hero" role="tab" aria-selected="false">冒険者</button>
-          <button class="codex-tab" data-codex-tab="item" role="tab" aria-selected="false">アイテム</button>
-        </div>
-        <div class="codex-grid" id="codexGrid"></div>
-      </section>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

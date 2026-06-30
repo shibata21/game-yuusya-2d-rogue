@@ -39,7 +39,6 @@ import {
   awardRunCoins,
   clearProgress,
   clearStoredRuleConfig,
-  coinRewardForRun,
   initStorage,
   loadProgress,
   loadStoredRuleConfig,
@@ -64,10 +63,11 @@ function createConfiguredGame(loop = 1, resetPenaltyActive = false) {
 let progress = loadProgress();
 let selectedLoop = defaultLoop();
 let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
-let codexOpen = false;
 let codexTab = "monster";
 let homeTab = "defense";
+let settingsTab = "volume";
 let homeMessage = "";
+let homeRenderCacheKey = "";
 let lastItemOfferKey = "";
 let lastShopOfferKey = "";
 let lastItemBarKey = "";
@@ -308,19 +308,16 @@ function renderAudioControls() {
   }
 }
 
+function applyAudioInput(input) {
+  if (!input) return;
+  audioSettings = normalizeAudioSettings({ ...audioSettings, [input.dataset.audioVolume]: Number(input.value) / 100 });
+  renderAudioControls();
+  syncAudioState();
+  scheduleAudioSettingsSave();
+}
+
 function bindAudioPanel() {
   renderAudioControls();
-  const fields = document.getElementById("soundFields");
-  if (!fields) return;
-  fields.addEventListener("input", (event) => {
-    const input = event.target && typeof event.target.matches === "function" && event.target.matches("[data-audio-volume]") ? event.target : null;
-    if (!input) return;
-    audioSettings = normalizeAudioSettings({ ...audioSettings, [input.dataset.audioVolume]: Number(input.value) / 100 });
-    renderAudioControls();
-    syncAudioState();
-    scheduleAudioSettingsSave();
-  });
-  fields.addEventListener("change", scheduleAudioSettingsSave);
   loadAudioSettings().then((settings) => {
     audioSettings = settings;
     renderAudioControls();
@@ -384,7 +381,7 @@ class MainScene extends Phaser.Scene {
       this.pressStart = null;
       const elapsed = this.time.now - start.time;
       const moved = start.moved || Math.hypot(pointer.x - start.x, pointer.y - start.y) > TAP_MOVE_CANCEL;
-      if (codexOpen || gameApi.gameState !== "playing" || moved || elapsed > TAP_MAX_MS) return;
+      if (gameApi.gameState !== "playing" || moved || elapsed > TAP_MAX_MS) return;
       const col = Math.floor(pointer.x / TILE);
       const row = Math.floor(pointer.y / TILE);
       if (gameApi.tryDig(col, row)) playDigSound();
@@ -417,7 +414,7 @@ class MainScene extends Phaser.Scene {
   }
 
   update(_time, delta) {
-    if (!codexOpen) gameApi.update(Math.min(delta, 60));
+    gameApi.update(Math.min(delta, 60));
     syncProgressEvents();
     this.syncTiles();
     this.syncCracks();
@@ -745,9 +742,9 @@ function saveProgressAndRefresh(message = "") {
   normalizeProgressDeck();
   saveProgress(progress);
   homeMessage = message;
+  homeRenderCacheKey = "";
   updateProgressStatus();
   renderHome();
-  if (codexOpen) renderCodex();
 }
 
 function canAffordUnlock(row) {
@@ -856,7 +853,7 @@ function familyCard(id, mode = "deck") {
       <span class="home-card-body">
         <b>${escapeHtml(row.name)}</b>
         <em>${escapeHtml(familyStagesText(id))}</em>
-        <small>${escapeHtml(row.trait)} / ${escapeHtml(gate)}</small>
+        <small>${escapeHtml(mode === "unlock" ? `${row.trait} / ${gate}` : row.trait)}</small>
       </span>
       <button type="button" ${attr}${disabled ? " disabled" : ""}>${escapeHtml(action)}</button>
     </article>`;
@@ -864,100 +861,197 @@ function familyCard(id, mode = "deck") {
 
 function renderDeckHome() {
   const veins = ["moss", "meat", "venom", "stone", "ember"];
+  const unlocked = unlockedFamilySet();
   return veins.map((vein) => {
     const veinName = (gameApi.VEIN[vein] && gameApi.VEIN[vein].legend.split("→")[0]) || vein;
     const cards = Object.keys(MONSTER_FAMILIES)
       .filter((id) => MONSTER_FAMILIES[id].vein === vein)
+      .filter((id) => unlocked.has(id))
       .map((id) => familyCard(id, "deck"))
       .join("");
     return `<section class="home-group"><h3>${escapeHtml(veinName)}</h3><div class="home-card-list">${cards}</div></section>`;
   }).join("");
 }
 
-function renderUnlockHome() {
-  const familyHtml = Object.keys(MONSTER_FAMILIES)
-    .filter((id) => !MONSTER_FAMILIES[id].default)
-    .map((id) => familyCard(id, "unlock"))
-    .join("");
-  const itemHtml = Object.keys(ITEM_UNLOCKS).map((id) => {
-    const row = ITEM_UNLOCKS[id];
-    const item = gameApi.ITEMS[id];
-    const unlocked = (progress.unlockedItems || []).includes(id);
-    const canBuy = !unlocked && clearGateMet(row) && canAffordUnlock(row);
-    const gate = row.unlockClears ? `${row.unlockClears}周クリア` : "初期候補";
-    return `
-      <article class="home-card ${unlocked ? "selected" : ""}">
-        ${itemIconHtml(id, "home-item-icon", 34)}
-        <span class="home-card-body">
-          <b>${escapeHtml(item.name)}</b>
-          <em>${escapeHtml(item.profile)}</em>
-          <small>${escapeHtml(gate)}</small>
-        </span>
-        <button type="button" data-buy-item="${escapeHtml(id)}"${canBuy ? "" : " disabled"}>${unlocked ? "解放済み" : `解放 ${row.price}`}</button>
-      </article>`;
-  }).join("");
-  return `
-    <section class="home-group"><h3>モンスター</h3><div class="home-card-list">${familyHtml}</div></section>
-    <section class="home-group"><h3>アイテム</h3><div class="home-card-list">${itemHtml}</div></section>`;
+function unlockStatus(row, unlocked) {
+  if (unlocked) return "解放済み";
+  if (!clearGateMet(row)) return row.unlockClears ? `${row.unlockClears}周` : "未解放";
+  if (!canAffordUnlock(row)) return "コイン不足";
+  return "未解放";
 }
 
-function renderHome() {
+function codexMonsterFamilyCard(id) {
+  const row = MONSTER_FAMILIES[id];
+  if (!row) return "";
+  const deck = resolveMonsterDeck(progress.monsterDeck);
+  const unlocked = unlockedFamilySet().has(id);
+  const selected = deck[row.vein] === id;
+  const canBuy = !row.default && !unlocked && clearGateMet(row) && canAffordUnlock(row);
+  const status = row.default ? "初期" : unlockStatus(row, unlocked);
+  const classes = ["codex-card", "codex-unlock-card", unlocked ? "" : "locked", selected ? "selected" : ""].filter(Boolean).join(" ");
+  return `
+    <article class="${classes}">
+      <div class="codex-sprite-wrap">${familySpriteHtml(id)}</div>
+      <div class="codex-body">
+        <div class="codex-title"><strong>${escapeHtml(row.name)}</strong><em>${escapeHtml(status)}</em></div>
+        <div class="codex-stats">
+          ${statPill("系統", familyStagesText(id))}${statPill("価格", row.default ? "初期" : row.price)}
+        </div>
+        <p>${escapeHtml(row.trait)}</p>
+      </div>
+      <button type="button" data-buy-family="${escapeHtml(id)}"${canBuy ? "" : " disabled"}>${escapeHtml(unlocked || row.default ? "解放済み" : `解放 ${row.price}`)}</button>
+    </article>`;
+}
+
+function codexItemCard(id) {
+  const item = gameApi.ITEMS[id];
+  const row = ITEM_UNLOCKS[id];
+  const found = progressSets().items.has(id);
+  const unlocked = !row || (progress.unlockedItems || []).includes(id);
+  if (!row) return itemCard(id);
+  const canBuy = !unlocked && clearGateMet(row) && canAffordUnlock(row);
+  const status = unlockStatus(row, unlocked);
+  return `
+    <article class="codex-card codex-unlock-card ${unlocked ? "" : "locked"}">
+      <div class="codex-sprite-wrap">${itemIconHtml(id, found || unlocked ? "codex-item-icon" : "codex-item-icon silhouette", 48)}</div>
+      <div class="codex-body">
+        <div class="codex-title"><strong>${escapeHtml(item.name)}</strong><em>${escapeHtml(status)}</em></div>
+        <div class="codex-stats">
+          ${statPill("格", itemRarityName(id))}${statPill("価格", row.price)}
+        </div>
+        <p>${escapeHtml(item.profile)}</p>
+      </div>
+      <button type="button" data-buy-item="${escapeHtml(id)}"${canBuy ? "" : " disabled"}>${escapeHtml(unlocked ? "解放済み" : `解放 ${row.price}`)}</button>
+    </article>`;
+}
+
+function renderDefenseHome() {
+  const max = selectableMaxLoop();
+  const loop = max > 1
+    ? `<label class="home-loop"><span>挑戦する周回</span><select id="homeLoopSelect" aria-label="挑戦する周回">${loopOptionsHtml()}</select></label>`
+    : "";
+  return `
+    ${loop}
+    <div class="home-defense-stats">
+      <span>最高到達 W${escapeHtml(progress.highestWave)}</span>
+    </div>`;
+}
+
+function renderCodexHome() {
+  return `
+    <section class="codex home-codex" aria-label="図鑑">
+      <div class="codex-tabs" role="tablist" aria-label="図鑑切替">
+        <button class="codex-tab active" data-codex-tab="monster" role="tab" aria-selected="true">モンスター</button>
+        <button class="codex-tab" data-codex-tab="hero" role="tab" aria-selected="false">冒険者</button>
+        <button class="codex-tab" data-codex-tab="item" role="tab" aria-selected="false">アイテム</button>
+      </div>
+      <div class="codex-grid" id="codexGrid"></div>
+    </section>`;
+}
+
+function renderVolumeSettingsHome() {
+  return `
+    <section class="home-settings-panel">
+      <div class="sound-fields" id="soundFields">
+        <label><span><b>マスター</b><em id="masterVolumeValue">80%</em></span><input id="masterVolume" data-audio-volume="master" type="range" min="0" max="100" value="80" aria-label="マスター音量"></label>
+        <label><span><b>BGM</b><em id="bgmVolumeValue">45%</em></span><input id="bgmVolume" data-audio-volume="bgm" type="range" min="0" max="100" value="45" aria-label="BGM音量"></label>
+        <label><span><b>効果音</b><em id="seVolumeValue">75%</em></span><input id="seVolume" data-audio-volume="se" type="range" min="0" max="100" value="75" aria-label="効果音量"></label>
+        <label><span><b>音声</b><em id="voiceVolumeValue">85%</em></span><input id="voiceVolume" data-audio-volume="voice" type="range" min="0" max="100" value="85" aria-label="音声音量"></label>
+      </div>
+    </section>`;
+}
+
+function renderDevSettingsHome() {
+  return `
+    <section class="home-settings-panel dev-panel">
+      <div class="dev-actions">
+        <span id="devStatus">変更は次回開始時に反映</span>
+        <button type="button" id="exportDevJsonBtn">JSON出力</button>
+        <button type="button" id="copyDevJsonBtn">コピー</button>
+        <button type="button" id="resetDevBtn">初期化</button>
+        <button type="button" id="resetProgressBtn">図鑑初期化</button>
+      </div>
+      <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0 / アイテム 0</div>
+      <textarea id="devJsonOutput" class="dev-json-output" readonly spellcheck="false" aria-label="開発JSON"></textarea>
+      <div class="dev-fields" id="devFields"></div>
+    </section>`;
+}
+
+function renderSettingsHome() {
+  return `
+    <div class="settings-tabs" role="tablist" aria-label="設定切替">
+      <button type="button" data-settings-tab="volume" class="${settingsTab === "volume" ? "active" : ""}">音量</button>
+      <button type="button" data-settings-tab="dev" class="${settingsTab === "dev" ? "active" : ""}">開発</button>
+    </div>
+    ${settingsTab === "dev" ? renderDevSettingsHome() : renderVolumeSettingsHome()}`;
+}
+
+function homeRenderKey() {
+  return JSON.stringify({
+    state: gameApi.gameState,
+    homeTab,
+    settingsTab,
+    codexTab,
+    selectedLoop,
+    maxLoop: selectableMaxLoop(),
+    message: homeMessage,
+    coins: progress.coins || 0,
+    highestWave: progress.highestWave || 0,
+    highestClearedLoop: progress.highestClearedLoop || 0,
+    resetPenaltyActive: !!progress.resetPenaltyActive,
+    deck: resolveMonsterDeck(progress.monsterDeck),
+    families: [...(progress.unlockedMonsterFamilies || [])].sort(),
+    items: [...(progress.unlockedItems || [])].sort(),
+    monsters: [...(progress.discoveredMonsters || [])].sort(),
+    heroes: [...(progress.discoveredHeroes || [])].sort(),
+    discoveredItems: [...(progress.discoveredItems || [])].sort(),
+  });
+}
+
+function renderHome(force = false) {
   const body = document.getElementById("homeBody");
   const coin = document.getElementById("homeCoinNum");
   const message = document.getElementById("homeMessage");
   const start = document.getElementById("startBtn");
   if (!body) return;
   if (coin) coin.textContent = String(progress.coins || 0);
-  if (message) message.textContent = homeMessage || (progress.lastCoinReward ? `前回 +${progress.lastCoinReward}` : "");
+  if (message) message.textContent = homeMessage || "";
   for (const btn of document.querySelectorAll("[data-home-tab]")) btn.classList.toggle("active", btn.dataset.homeTab === homeTab);
   if (start) start.classList.toggle("hidden", homeTab !== "defense");
+  const key = homeRenderKey();
+  if (!force && key === homeRenderCacheKey) return;
+  homeRenderCacheKey = key;
   if (homeTab === "deck") {
     body.innerHTML = renderDeckHome();
-  } else if (homeTab === "unlock") {
-    body.innerHTML = renderUnlockHome();
   } else if (homeTab === "codex") {
-    body.innerHTML = `<button type="button" class="home-wide-button" id="homeOpenCodexBtn">図鑑を開く</button>`;
+    body.innerHTML = renderCodexHome();
+    renderCodex();
   } else if (homeTab === "settings") {
-    body.innerHTML = `
-      <button type="button" class="home-wide-button" id="homeOpenSoundBtn">音量設定を開く</button>
-      <button type="button" class="home-wide-button" id="homeOpenDevBtn">開発設定を開く</button>`;
+    body.innerHTML = renderSettingsHome();
+    if (settingsTab === "dev") {
+      renderDevPanel();
+      updateProgressStatus();
+    } else {
+      renderAudioControls();
+    }
   } else {
-    body.innerHTML = `
-      <label class="home-loop"><span>挑戦する周回</span><select id="homeLoopSelect" aria-label="挑戦する周回">${loopOptionsHtml()}</select></label>
-      <div class="home-defense-stats">
-        <span>最高到達 W${progress.highestWave}</span>
-        <span>最高周回 ${progress.highestClearedLoop || 0}</span>
-        <span>次の獲得 ${coinRewardForRun(gameApi.score, selectedLoop, false)}+</span>
-      </div>`;
+    body.innerHTML = renderDefenseHome();
+    renderLoopSelector();
   }
 }
 
 function renderLoopSelector() {
-  const select = document.getElementById("loopSelect");
   const homeSelect = document.getElementById("homeLoopSelect");
-  const info = document.getElementById("loopInfo");
-  if (!select && !homeSelect) return;
   const max = selectableMaxLoop();
   const selectable = ["title", "dead", "clear"].includes(gameApi.gameState);
   if (selectable) selectedLoop = Math.max(1, Math.min(max, selectedLoop || defaultLoop()));
   else selectedLoop = gameApi.loop;
+  if (!homeSelect) return;
   const current = String(selectedLoop);
   const options = loopOptionsHtml();
-  if (select) {
-    select.innerHTML = options;
-    select.value = current;
-    select.disabled = !selectable;
-  }
-  if (homeSelect) {
-    homeSelect.innerHTML = options;
-    homeSelect.value = current;
-    homeSelect.disabled = !selectable;
-  }
-  if (info) {
-    const parts = [`解放${max}`, `x${(1 + (selectedLoop - 1) * 0.15).toFixed(2)}`];
-    if (progress.resetPenaltyActive && selectedLoop >= 10) parts.push("罰");
-    info.textContent = parts.join(" ");
-  }
+  homeSelect.innerHTML = options;
+  homeSelect.value = current;
+  homeSelect.disabled = !selectable;
 }
 
 function markRunInterrupted() {
@@ -1011,7 +1105,7 @@ function syncProgressEvents() {
   saveProgress(progress);
   updateProgressStatus();
   renderLoopSelector();
-  if (codexOpen) renderCodex();
+  if (homeTab === "codex") renderHome(true);
 }
 
 function legendHtml() {
@@ -1217,9 +1311,9 @@ function renderCodex() {
   const grid = document.getElementById("codexGrid");
   if (!grid) return;
   const htmlByTab = {
-    monster: MONSTER_CODEX_ORDER.map(monsterCard).join(""),
+    monster: Object.keys(MONSTER_FAMILIES).map(codexMonsterFamilyCard).join(""),
     hero: HERO_CODEX_ORDER.map(heroCard).join(""),
-    item: ITEM_CODEX_ORDER.map(itemCard).join(""),
+    item: ITEM_CODEX_ORDER.map(codexItemCard).join(""),
   };
   grid.innerHTML = htmlByTab[codexTab] || htmlByTab.monster;
   for (const btn of document.querySelectorAll("[data-codex-tab]")) {
@@ -1227,20 +1321,6 @@ function renderCodex() {
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-selected", active ? "true" : "false");
   }
-}
-
-function showCodex() {
-  codexOpen = true;
-  document.getElementById("gameScreen").classList.add("hidden");
-  document.getElementById("codexPanel").classList.remove("hidden");
-  renderCodex();
-}
-
-function hideCodex() {
-  codexOpen = false;
-  document.getElementById("codexPanel").classList.add("hidden");
-  document.getElementById("gameScreen").classList.remove("hidden");
-  updateHud();
 }
 
 function devFieldInfo(labels, key) {
@@ -1376,7 +1456,7 @@ function updateProgressStatus() {
   const status = document.getElementById("progressStatus");
   if (!status) return;
   const penalty = progress.resetPenaltyActive ? " / リセット罰あり" : "";
-  status.textContent = `コイン ${progress.coins || 0} / 最高到達 W${progress.highestWave} / 最高周回 ${progress.highestClearedLoop || 0} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}${penalty}`;
+  status.textContent = `コイン ${progress.coins || 0} / 最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}${penalty}`;
 }
 
 function saveDevPanel() {
@@ -1413,37 +1493,7 @@ async function copyDevJson() {
 }
 
 function bindDevPanel() {
-  renderDevPanel();
   updateProgressStatus();
-  const fields = document.getElementById("devFields");
-  if (fields) {
-    fields.addEventListener("input", () => updateDevDefaultDiffs(fields));
-    fields.addEventListener("change", saveDevPanel);
-  }
-  const exportJson = document.getElementById("exportDevJsonBtn");
-  if (exportJson) exportJson.addEventListener("click", exportDevJson);
-  const copyJson = document.getElementById("copyDevJsonBtn");
-  if (copyJson) copyJson.addEventListener("click", copyDevJson);
-  const resetDev = document.getElementById("resetDevBtn");
-  if (resetDev) resetDev.addEventListener("click", () => {
-    clearStoredRuleConfig();
-    renderDevPanel();
-    const output = document.getElementById("devJsonOutput");
-    if (output) output.value = "";
-    updateDevStatus("開発設定を初期化");
-  });
-  const resetProgress = document.getElementById("resetProgressBtn");
-  if (resetProgress) resetProgress.addEventListener("click", () => {
-    clearProgress();
-    progress = loadProgress();
-    normalizeProgressDeck();
-    homeMessage = "";
-    selectedLoop = defaultLoop();
-    renderLoopSelector();
-    renderHome();
-    updateProgressStatus();
-    if (codexOpen) renderCodex();
-  });
 }
 
 function hideItemPopup() {
@@ -1739,7 +1789,6 @@ function updateHud() {
   renderTrapOffer();
   renderDebuffNotice();
   renderDialogue();
-  document.getElementById("legend").innerHTML = legendHtml();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
   let waveLabel = "次の襲来まで";
@@ -1795,7 +1844,7 @@ function startGame() {
   hideItemPopup();
   lastItemBarKey = "";
   lastShopOfferKey = "";
-  const select = document.getElementById("loopSelect");
+  const select = document.getElementById("homeLoopSelect");
   selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(select && select.value) || defaultLoop())));
   markRunStarted(selectedLoop);
   gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
@@ -1841,7 +1890,19 @@ function boot() {
       if (tab) {
         homeTab = tab.dataset.homeTab || "defense";
         homeMessage = "";
-        renderHome();
+        renderHome(true);
+        return;
+      }
+      const settings = target ? target.closest("[data-settings-tab]") : null;
+      if (settings) {
+        settingsTab = settings.dataset.settingsTab || "volume";
+        renderHome(true);
+        return;
+      }
+      const codex = target ? target.closest("[data-codex-tab]") : null;
+      if (codex) {
+        codexTab = codex.dataset.codexTab || "monster";
+        renderCodex();
         return;
       }
       const familyBuy = target ? target.closest("[data-buy-family]") : null;
@@ -1860,40 +1921,62 @@ function boot() {
         updateHud();
         return;
       }
-      if (target && target.closest("#homeOpenCodexBtn")) {
-        showCodex();
+      if (target && target.closest("#exportDevJsonBtn")) {
+        exportDevJson();
         return;
       }
-      if (target && target.closest("#homeOpenSoundBtn")) {
-        const panel = document.getElementById("soundPanel");
-        if (panel) panel.open = true;
+      if (target && target.closest("#copyDevJsonBtn")) {
+        copyDevJson();
         return;
       }
-      if (target && target.closest("#homeOpenDevBtn")) {
-        const panel = document.getElementById("devPanel");
-        if (panel) panel.open = true;
+      if (target && target.closest("#resetDevBtn")) {
+        clearStoredRuleConfig();
+        renderDevPanel();
+        const output = document.getElementById("devJsonOutput");
+        if (output) output.value = "";
+        updateDevStatus("開発を初期化");
+        return;
+      }
+      if (target && target.closest("#resetProgressBtn")) {
+        clearProgress();
+        progress = loadProgress();
+        normalizeProgressDeck();
+        homeMessage = "";
+        selectedLoop = defaultLoop();
+        gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
+        gameApi.gameState = "title";
+        homeRenderCacheKey = "";
+        renderLoopSelector();
+        renderHome(true);
+        updateProgressStatus();
+      }
+    });
+    startOverlay.addEventListener("input", (event) => {
+      const target = event.target;
+      if (!target || typeof target.matches !== "function") return;
+      if (target.matches("[data-audio-volume]")) {
+        applyAudioInput(target);
+        return;
+      }
+      if (target.matches("[data-dev-path]")) {
+        const fields = document.getElementById("devFields");
+        updateDevDefaultDiffs(fields || document);
       }
     });
     startOverlay.addEventListener("change", (event) => {
       const target = event.target;
-      if (!target || target.id !== "homeLoopSelect") return;
-      selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(target.value) || defaultLoop())));
-      renderLoopSelector();
-      renderHome();
-    });
-  }
-  const loopSelect = document.getElementById("loopSelect");
-  if (loopSelect) loopSelect.addEventListener("change", () => {
-    if (loopSelect.disabled) return;
-    selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(loopSelect.value) || defaultLoop())));
-    renderLoopSelector();
-  });
-  document.getElementById("codexBtn").addEventListener("click", showCodex);
-  document.getElementById("codexBackBtn").addEventListener("click", hideCodex);
-  for (const btn of document.querySelectorAll("[data-codex-tab]")) {
-    btn.addEventListener("click", () => {
-      codexTab = btn.dataset.codexTab;
-      renderCodex();
+      if (!target || typeof target.matches !== "function") return;
+      if (target.id === "homeLoopSelect") {
+        selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(target.value) || defaultLoop())));
+        renderLoopSelector();
+        renderHome(true);
+        return;
+      }
+      if (target.matches("[data-audio-volume]")) {
+        scheduleAudioSettingsSave();
+        return;
+      }
+      if (target.matches("[data-dev-path]")) saveDevPanel();
     });
   }
   document.getElementById("tauntBtn").addEventListener("click", () => {

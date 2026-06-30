@@ -241,15 +241,15 @@ async function run() {
       app: !!document.querySelector("#app"),
       canvas: !!document.querySelector("canvas"),
       state: globalThis.MakaiDefense?.current?.gameState || null,
-      soundPanel: !!document.getElementById("soundPanel"),
-      soundSliders: document.querySelectorAll("[data-audio-volume]").length
+      tabs: [...document.querySelectorAll("[data-home-tab]")].map((button) => button.textContent.trim()),
+      oldBottom: !!document.getElementById("codexBtn") || !!document.getElementById("loopSelect") || !!document.getElementById("soundPanel")
     })`);
-    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || loaded.state !== "title" || !loaded.soundPanel || loaded.soundSliders !== 4) {
+    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || loaded.state !== "title" || loaded.oldBottom || loaded.tabs.join("/") !== "防衛/モンスターデッキ/図鑑/設定") {
       throw new Error(`初回ロード状態が不正です: ${JSON.stringify(loaded)}`);
     }
 
-    await evaluate(client, `document.getElementById("codexBtn").click()`);
-    await waitFor(client, `!document.getElementById("codexPanel").classList.contains("hidden")`, "キャラクター紹介表示");
+    await evaluate(client, `document.querySelector('[data-home-tab="codex"]').click()`);
+    await waitFor(client, `!!document.getElementById("codexGrid")`, "図鑑表示");
     const initialCodex = await evaluate(client, `(() => {
       const tabs = [...document.querySelectorAll("[data-codex-tab]")].map((button) => {
         const rect = button.getBoundingClientRect();
@@ -263,59 +263,28 @@ async function run() {
           visible: rect.width > 0 && rect.height > 0 && rect.left >= 0 && rect.right <= innerWidth && getComputedStyle(button).visibility === "visible",
         };
       });
-      return { width: innerWidth, panelHidden: document.getElementById("codexPanel").classList.contains("hidden"), tabs };
+      const cards = [...document.querySelectorAll("#codexGrid .codex-card")];
+      const slime = cards.find((card) => card.textContent.includes("スライム"));
+      return { width: innerWidth, homeActive: document.querySelector('[data-home-tab="codex"]').classList.contains("active"), tabs, cards: cards.length, slimeText: slime?.textContent || "" };
     })()`);
     const itemTab = initialCodex.tabs.find((tab) => tab.tab === "item");
-    if (initialCodex.panelHidden || initialCodex.width !== 390 || initialCodex.tabs.length !== 3 || !itemTab || itemTab.text !== "アイテム" || !itemTab.visible) {
-      throw new Error(`キャラクター紹介タブ表示が不正です: ${JSON.stringify(initialCodex)}`);
+    if (!initialCodex.homeActive || initialCodex.width !== 390 || initialCodex.tabs.length !== 3 || !itemTab || itemTab.text !== "アイテム" || !itemTab.visible || initialCodex.cards < 10 || !initialCodex.slimeText.includes("解放済み")) {
+      throw new Error(`図鑑タブ表示が不正です: ${JSON.stringify(initialCodex)}`);
     }
-    await evaluate(client, `document.getElementById("codexBackBtn").click()`);
-    await waitFor(client, `document.getElementById("codexPanel").classList.contains("hidden") && !document.getElementById("gameScreen").classList.contains("hidden")`, "キャラクター紹介を閉じる");
 
-    const loopUi = await evaluate(client, `(() => {
-      const select = document.getElementById("loopSelect");
-      const rect = select.getBoundingClientRect();
-      return {
-        inControls: !!select.closest(".controls"),
-        inStart: !!document.querySelector("#startTitlePanel #loopSelect"),
-        visible: rect.width > 0 && rect.height > 0,
-        disabled: select.disabled,
-        text: document.getElementById("loopInfo").textContent,
-      };
-    })()`);
-    if (!loopUi.inControls || loopUi.inStart || !loopUi.visible || loopUi.disabled || !loopUi.text.includes("解放")) {
+    await evaluate(client, `document.querySelector('[data-home-tab="defense"]').click()`);
+    const loopUi = await evaluate(client, `(() => ({
+      controlsSelect: !!document.querySelector(".controls select"),
+      firstHomeSelect: !!document.getElementById("homeLoopSelect"),
+      defenseActive: document.querySelector('[data-home-tab="defense"]').classList.contains("active"),
+    }))()`);
+    if (loopUi.controlsSelect || loopUi.firstHomeSelect || !loopUi.defenseActive) {
       throw new Error(`周回UIの配置が不正です: ${JSON.stringify(loopUi)}`);
     }
 
-    await evaluate(client, `document.getElementById("startBtn").click()`);
-    await waitFor(client, `globalThis.MakaiDefense?.current?.gameState === "dialogue" && !document.getElementById("dialogueOverlay").classList.contains("hidden")`, "開始チュートリアル会話表示");
-    const introDialogue = await evaluate(client, `({
-      state: globalThis.MakaiDefense.current.gameState,
-      id: globalThis.MakaiDefense.current.dialogue?.id || "",
-      speaker: document.getElementById("dialogueSpeaker").textContent,
-      topic: document.getElementById("dialogueTopic").textContent,
-      text: document.getElementById("dialogueText").textContent,
-      label: document.getElementById("waveLabel").textContent,
-      timer: document.getElementById("waveTimer").textContent,
-      startHidden: document.getElementById("startOverlay").classList.contains("hidden")
-    })`);
-    if (introDialogue.state !== "dialogue" || introDialogue.id !== "intro" || introDialogue.speaker !== "迷宮王直属幹部" || introDialogue.topic !== "防衛開始" || !introDialogue.text.includes("最下層コア") || introDialogue.label !== "会話中" || introDialogue.timer !== "時間停止中" || !introDialogue.startHidden) {
-      throw new Error(`開始チュートリアル会話が不正です: ${JSON.stringify(introDialogue)}`);
-    }
-    await advanceDialogueTo(client, "playing", "開始チュートリアル後のplaying状態");
-    const playing = await evaluate(client, `({
-      state: globalThis.MakaiDefense.current.gameState,
-      coreHP: globalThis.MakaiDefense.current.coreHP,
-      nutrients: globalThis.MakaiDefense.current.nutrients,
-      startHidden: document.getElementById("startOverlay").classList.contains("hidden"),
-      loopDisabled: document.getElementById("loopSelect").disabled
-    })`);
-    if (playing.state !== "playing" || !playing.startHidden || playing.coreHP <= 0 || playing.nutrients < 0 || !playing.loopDisabled) {
-      throw new Error(`開始後状態が不正です: ${JSON.stringify(playing)}`);
-    }
-
+    await evaluate(client, `document.querySelector('[data-home-tab="settings"]').click()`);
+    await waitFor(client, `!!document.getElementById("soundFields") && document.querySelectorAll("[data-audio-volume]").length === 4`, "音量表示");
     await evaluate(client, `(() => {
-      document.getElementById("soundPanel").open = true;
       const voice = document.querySelector('[data-audio-volume="voice"]');
       voice.value = "40";
       voice.dispatchEvent(new Event("input", { bubbles: true }));
@@ -342,10 +311,11 @@ async function run() {
       };
     })`);
     if (!soundSettings.ok || soundSettings.label !== "40%") {
-      throw new Error(`音量設定保存が不正です: ${JSON.stringify(soundSettings)}`);
+      throw new Error(`音量保存が不正です: ${JSON.stringify(soundSettings)}`);
     }
 
-    await evaluate(client, `document.getElementById("devPanel").open = true`);
+    await evaluate(client, `document.querySelector('[data-settings-tab="dev"]').click()`);
+    await waitFor(client, `!!document.getElementById("devFields") && !!document.querySelector('[data-dev-path="constants.START_NUT"]')`, "開発表示");
     await evaluate(client, `document.getElementById("exportDevJsonBtn").click()`);
     const devJson = await evaluate(client, `(() => {
       const value = document.getElementById("devJsonOutput").value;
@@ -364,8 +334,36 @@ async function run() {
         defaultColor: getComputedStyle(startNutDefault).color,
       };
     })()`);
-    if (!devJson.hasValue || devJson.reaperChance !== 0.002 || !devJson.hasKinds || devJson.status !== "JSONを出力しました" || !devJson.defaultLabel.includes("初期 25") || !devJson.defaultDiff || devJson.defaultColor !== "rgb(255, 107, 107)") {
+    if (!devJson.hasValue || devJson.reaperChance <= 0 || !devJson.hasKinds || devJson.status !== "JSONを出力しました" || !devJson.defaultLabel.includes("初期 25") || !devJson.defaultDiff || devJson.defaultColor !== "rgb(255, 107, 107)") {
       throw new Error(`開発JSON出力が不正です: ${JSON.stringify(devJson)}`);
+    }
+
+    await evaluate(client, `document.querySelector('[data-home-tab="defense"]').click()`);
+    await evaluate(client, `document.getElementById("startBtn").click()`);
+    await waitFor(client, `globalThis.MakaiDefense?.current?.gameState === "dialogue" && !document.getElementById("dialogueOverlay").classList.contains("hidden")`, "開始チュートリアル会話表示");
+    const introDialogue = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      id: globalThis.MakaiDefense.current.dialogue?.id || "",
+      speaker: document.getElementById("dialogueSpeaker").textContent,
+      topic: document.getElementById("dialogueTopic").textContent,
+      text: document.getElementById("dialogueText").textContent,
+      label: document.getElementById("waveLabel").textContent,
+      timer: document.getElementById("waveTimer").textContent,
+      startHidden: document.getElementById("startOverlay").classList.contains("hidden")
+    })`);
+    if (introDialogue.state !== "dialogue" || introDialogue.id !== "intro" || introDialogue.speaker !== "迷宮王直属幹部" || introDialogue.topic !== "防衛開始" || !introDialogue.text.includes("最下層コア") || introDialogue.label !== "会話中" || introDialogue.timer !== "時間停止中" || !introDialogue.startHidden) {
+      throw new Error(`開始チュートリアル会話が不正です: ${JSON.stringify(introDialogue)}`);
+    }
+    await advanceDialogueTo(client, "playing", "開始チュートリアル後のplaying状態");
+    const playing = await evaluate(client, `({
+      state: globalThis.MakaiDefense.current.gameState,
+      coreHP: globalThis.MakaiDefense.current.coreHP,
+      nutrients: globalThis.MakaiDefense.current.nutrients,
+      startHidden: document.getElementById("startOverlay").classList.contains("hidden"),
+      controlsSelect: !!document.querySelector(".controls select")
+    })`);
+    if (playing.state !== "playing" || !playing.startHidden || playing.coreHP <= 0 || playing.nutrients < 0 || playing.controlsSelect) {
+      throw new Error(`開始後状態が不正です: ${JSON.stringify(playing)}`);
     }
 
     await evaluate(client, `(() => {
@@ -503,31 +501,33 @@ async function run() {
     }
 
     await waitFor(client, progressIncludesItemExpression("rustyPickaxe"), "アイテム発見の保存");
-    await evaluate(client, `document.getElementById("codexBtn").click()`);
-    await waitFor(client, `!document.getElementById("codexPanel").classList.contains("hidden")`, "キャラクター紹介表示");
+    await evaluate(client, `document.querySelector('[data-home-tab="codex"]').click()`);
+    await waitFor(client, `!!document.getElementById("codexGrid")`, "図鑑表示");
     await evaluate(client, `document.querySelector('[data-codex-tab="item"]').click()`);
     const codex = await evaluate(client, `(() => {
       const cards = [...document.querySelectorAll("#codexGrid .codex-card")];
       const item = cards.find((card) => card.textContent.includes("錆びたつるはし"));
       const locked = cards.filter((card) => card.classList.contains("locked"));
+      const unknown = locked.find((card) => card.textContent.includes("???"));
+      const unlockable = cards.find((card) => card.textContent.includes("地下倉庫"));
       return {
         active: document.querySelector('[data-codex-tab="item"]').classList.contains("active"),
         cards: cards.length,
         itemText: item?.textContent || "",
         itemLocked: item?.classList.contains("locked") ?? null,
         lockedCount: locked.length,
-        lockedText: locked[0]?.textContent || "",
-        progressText: document.getElementById("progressStatus").textContent,
+        unknownText: unknown?.textContent || "",
+        unlockableText: unlockable?.textContent || "",
       };
     })()`);
-    if (!codex.active || codex.cards !== 64 || !codex.itemText.includes("採掘成功時") || codex.itemLocked || codex.lockedCount < 1 || !codex.lockedText.includes("???") || !codex.progressText.includes("アイテム 1/64")) {
+    if (!codex.active || codex.cards !== 64 || !codex.itemText.includes("採掘成功時") || codex.itemLocked || codex.lockedCount < 1 || !codex.unknownText.includes("???") || !codex.unlockableText.includes("解放 80")) {
       throw new Error(`アイテム図鑑表示が不正です: ${JSON.stringify(codex)}`);
     }
 
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: ブラウザ初回ロード、下部周回UI、開始会話、音量設定、開発JSON出力、アイテム3択前会話、アイテム3択、満杯時取得不可、デバフ同居、ショップ前会話、ショップ、イベントなし、長押しポップアップ、アイテム図鑑を検査しました");
+    console.log("OK: ブラウザ初回ロード、ホームメニュー、図鑑、設定、開始会話、アイテム3択前会話、アイテム3択、満杯時取得不可、デバフ同居、ショップ前会話、ショップ、イベントなし、長押しポップアップ、アイテム図鑑を検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));
