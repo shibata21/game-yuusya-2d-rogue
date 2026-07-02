@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { createGame, pixelActorX, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTORS } from "../src/gameCore.js";
+import { createGame, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTOR_SHEETS } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -56,7 +56,7 @@ describe("Phaserアプリ構成", () => {
     expect(html).not.toContain("hakaishin_dungeon");
   });
 
-  it("Phaserシーンは5枚のアトラスをspritesheetとして読む", () => {
+  it("Phaserシーンは分割アトラスをspritesheetとして読む", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     expect(src).toContain('import Phaser from "phaser"');
     expect(src).toContain("let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);");
@@ -66,7 +66,10 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("applyProgressEvents");
     expect(src).toContain("DEFAULT_RULE_CONFIG");
     expect(src).toContain('this.load.spritesheet("tiles"');
-    expect(src).toContain('this.load.spritesheet("actors"');
+    expect(src).toContain("pixelActorTextureKey(sheet)");
+    expect(src).toContain("actorSheetsForCurrentDeck");
+    expect(src).not.toContain('this.load.spritesheet("actors"');
+    expect(src).not.toContain('pixelAssetUrl("actors.png")');
     expect(src).toContain('this.load.spritesheet("effects"');
     expect(src).toContain('this.load.spritesheet("items"');
     expect(src).toContain('this.load.spritesheet("debuffs"');
@@ -83,6 +86,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("crackGraphics");
     expect(src).toContain("DIG_BREAK");
     expect(src).toContain("drawEntryZone");
+    expect(src).toContain("showIntro: selectedLoop === 1 && (progress.highestWave || 0) < 3");
     expect(src).toContain("drawInitialDigHint");
     expect(src).toContain("coreShock");
     expect(src).toContain("healArea");
@@ -183,6 +187,7 @@ describe("Phaserアプリ構成", () => {
     const config = fs.readFileSync(path.join(repoDir, "vite.config.mjs"), "utf8");
     expect(config).toContain('base: "./"');
     expect(config).toContain('copyDir("assets/audio", "dist/assets/audio")');
+    expect(config).toContain('skipNames: new Set(["source"])');
   });
 
   it("公開名前空間から独立したゲームを生成できる", async () => {
@@ -192,7 +197,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v25-coins");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v26-actor-split");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
@@ -210,20 +215,31 @@ describe("Phaserアプリ構成", () => {
     const action = "attack";
     const dir = "e";
     const frame = 2;
-    const expectedColumn = ((PIXEL_ACTIONS.indexOf(action) * PIXEL_DIRS.length + PIXEL_DIRS.indexOf(dir)) * PIXEL_FRAMES + frame);
+    const expectedColumn = ((PIXEL_ACTIONS.indexOf(action) * PIXEL_ACTOR_RENDER_DIRS.length + PIXEL_ACTOR_RENDER_DIRS.indexOf(dir)) * PIXEL_FRAMES + frame);
     expect(pixelActorX(action, dir, frame)).toBe(expectedColumn * PIXEL_CELL);
+    const west = pixelActorFrameInfo("warrior", action, "w", frame);
+    const east = pixelActorFrameInfo("warrior", action, "e", frame);
+    expect(west.frame).toBe(east.frame);
+    expect(west.flipX).toBe(true);
+    expect(east.flipX).toBe(false);
   });
 
   it("アクターのPhaserフレーム番号はアクション数変更後も正しい行を指す", () => {
-    const framesPerRow = PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length;
+    const framesPerRow = PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length;
+    const adventurer = pixelActorFrameInfo("warrior", "idle", "s", 1);
+    const whiteflame = pixelActorFrameInfo("whiteflame", "idle", "s", 1);
     const adventurerFrame = pixelActorFrameIndex("warrior", "idle", "s", 1);
     const whiteflameFrame = pixelActorFrameIndex("whiteflame", "idle", "s", 1);
-    expect(Math.floor(adventurerFrame / framesPerRow)).toBe(PIXEL_ACTORS.indexOf("warrior"));
-    expect(Math.floor(whiteflameFrame / framesPerRow)).toBe(PIXEL_ACTORS.indexOf("whiteflame"));
+    expect(adventurerFrame).toBe(adventurer.frame);
+    expect(whiteflameFrame).toBe(whiteflame.frame);
+    expect(Math.floor(adventurerFrame / framesPerRow)).toBe(PIXEL_ACTOR_SHEETS.heroes.indexOf("warrior"));
+    expect(Math.floor(whiteflameFrame / framesPerRow)).toBe(PIXEL_ACTOR_SHEETS.ember_dragon.indexOf("whiteflame"));
+    expect(adventurer.sheet).toBe("heroes");
+    expect(whiteflame.sheet).toBe("ember_dragon");
     expect(adventurerFrame).not.toBe(whiteflameFrame);
 
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
-    expect(src).toContain("pixelActorFrameIndex");
+    expect(src).toContain("pixelActorFrameInfo");
     expect(src).not.toContain("PIXEL_FRAMES * 8 * 6");
   });
 });

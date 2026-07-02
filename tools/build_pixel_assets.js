@@ -3,7 +3,7 @@
 const fs = require("fs");
 const path = require("path");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
+  CELL, FRAMES, DIRECTIONS, ACTOR_RENDER_DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, ACTOR_SHEETS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
   ensureDir, image, writePng, readPng, rgba, setPx, rect, diamond, line, tri, copyInto, spritePath,
 } = require("./pixel_asset_common");
 
@@ -23,12 +23,12 @@ const eliteBase = {
   meat_hedgehog: "carniv", meat_steelHedgehog: "carniv", meat_spineKing: "carniv",
   bug_centipede: "spitter", bug_steelCentipede: "spitter", bug_goldCentipede: "spitter",
   bug_beetle: "spitter", bug_shieldBeetle: "spitter", bug_fortressBeetle: "spitter",
-  bug_needler: "spitter", bug_flyingNeedler: "spitter", bug_bowNeedler: "spitter",
+  bug_needler: "needler", bug_flyingNeedler: "needler", bug_bowNeedler: "needler",
   stone_turtle: "golem", stone_ironTurtle: "golem", stone_goldTurtle: "golem",
   stone_magnetCrab: "golem", stone_ironCrab: "golem", stone_blackCrab: "golem",
   stone_crystalEye: "virus", stone_quartzEye: "virus", stone_rainbowEye: "virus",
   dragon_serpent: "flame", dragon_flameSerpent: "flame", dragon_whiteSerpent: "flame",
-  dragon_salamander: "flame", dragon_lavaSalamander: "flame", dragon_mirageSalamander: "flame",
+  dragon_salamander: "salamander", dragon_lavaSalamander: "salamander", dragon_mirageSalamander: "salamander",
   dragon_wyvern: "flame", dragon_stormWyvern: "flame", dragon_skyWyvern: "flame",
 };
 
@@ -475,6 +475,91 @@ function drawSpider(img, pal, cx, cy, dx, dy, action, frame) {
   }
 }
 
+function drawNeedler(img, pal, cx, cy, dx, dy, action, frame) {
+  const thrust = action === "attack" || action === "cast" ? [0, 2, 5, 2][frame] : 0;
+  const faceX = dx || 1;
+  oval(img, cx, cy + 14, 17, 4, "#0c0812", 76);
+  if (dx === 0) {
+    const lift = dy < 0 ? -3 : 2;
+    for (let i = 0; i < 5; i++) {
+      const y = cy - 9 + i * 7 + lift;
+      const w = 8 + (i % 2) * 2;
+      oval(img, cx, y, w, 5, i % 2 ? pal.mid : pal.dark, 245);
+      tri(img, cx - w, y, cx - w - 6, y - 3, cx - w - 2, y + 4, pal.light, 190);
+      tri(img, cx + w, y, cx + w + 6, y - 3, cx + w + 2, y + 4, pal.light, 190);
+    }
+    const headY = dy < 0 ? cy - 13 : cy - 6;
+    oval(img, cx, headY, 10, 8, pal.mid, 250);
+    line(img, cx, headY - 2, cx, headY + dy * (15 + thrust), pal.light, 3, 235);
+    diamond(img, cx, headY + dy * (17 + thrust), 3, pal.eye, 220);
+    if (dy >= 0) {
+      drawEye(img, cx - 4, headY - 2, pal);
+      drawEye(img, cx + 4, headY - 2, pal);
+    } else {
+      line(img, cx - 8, headY + 5, cx + 8, headY + 3, pal.light, 2, 150);
+    }
+    return;
+  }
+  const headX = cx + faceX * (12 + thrust);
+  for (let i = 0; i < 5; i++) {
+    const sx = cx - faceX * (13 - i * 6);
+    const sy = cy + Math.sin((frame + i) * 1.2) * 2;
+    oval(img, sx, sy + 3, 8, 6, i % 2 ? pal.mid : pal.dark, 245);
+    tri(img, sx, sy - 3, sx - faceX * 3, sy - 12, sx + faceX * 4, sy - 4, pal.light, 180);
+    tri(img, sx, sy + 8, sx - faceX * 2, sy + 16, sx + faceX * 5, sy + 9, pal.light, 160);
+  }
+  oval(img, headX - faceX * 5, cy + 1, 9, 7, pal.mid, 250);
+  line(img, headX - faceX, cy, headX + faceX * 15, cy - 2 + dy * 4, pal.light, 3, 245);
+  diamond(img, headX + faceX * 17, cy - 2 + dy * 4, 3, pal.eye, 225);
+  drawEye(img, headX - faceX * 3, cy - 4 + Math.max(0, dy), pal);
+}
+
+function drawSalamander(img, pal, cx, cy, dx, dy, action, frame) {
+  const flare = action === "attack" || action === "cast" ? [0, 1, 4, 1][frame] : 0;
+  const faceX = dx || 1;
+  oval(img, cx, cy + 15, 18, 4, "#0c0812", 82);
+  if (dx === 0) {
+    const headY = dy >= 0 ? cy - 8 + flare : cy + 4;
+    const tailY = dy >= 0 ? cy + 18 : cy - 17 - flare;
+    oval(img, cx, cy + 4, 12, 16, pal.dark, 245);
+    oval(img, cx, cy + 1, 9, 13, pal.mid, 240);
+    oval(img, cx, headY, 11, 8, pal.mid, 250);
+    line(img, cx, cy + 14, cx, tailY, pal.dark, 5, 235);
+    diamond(img, cx, tailY + (dy >= 0 ? 3 : -3), 3, pal.light, 180);
+    for (const sx of [-11, 11]) {
+      line(img, cx + sx * 0.45, cy + 1, cx + sx, cy + 8, pal.dark, 3, 230);
+      line(img, cx + sx * 0.4, cy + 11, cx + sx, cy + 17, pal.dark, 3, 230);
+      diamond(img, cx + sx, cy + 8, 2, pal.light, 190);
+      diamond(img, cx + sx, cy + 17, 2, pal.light, 175);
+    }
+    tri(img, cx - 4, cy - 3, cx, cy - 16 - flare, cx + 4, cy - 3, pal.light, 165);
+    if (dy >= 0) {
+      drawEye(img, cx - 4, headY - 2, pal);
+      drawEye(img, cx + 4, headY - 2, pal);
+    } else {
+      line(img, cx - 8, cy + 3, cx + 8, cy + 1, pal.light, 2, 145);
+    }
+    return;
+  }
+  const headX = cx + faceX * (12 + flare);
+  oval(img, cx - faceX * 2, cy + 5, 17, 8, pal.dark, 245);
+  oval(img, cx - faceX, cy + 2, 13, 7, pal.mid, 245);
+  oval(img, headX - faceX * 4, cy - 2 + dy * 3, 8, 7, pal.mid, 250);
+  line(img, cx - faceX * 14, cy + 7, cx - faceX * 24, cy + 1 - dy * 3, pal.dark, 5, 235);
+  diamond(img, cx - faceX * 26, cy - dy * 3, 3, pal.light, 180);
+  for (const sx of [-7, 5]) {
+    const lx = cx + sx - faceX * 2;
+    line(img, lx, cy + 9, lx + faceX * 5, cy + 17, pal.dark, 3, 230);
+    diamond(img, lx + faceX * 5, cy + 17, 2, pal.light, 190);
+  }
+  tri(img, cx - faceX * 3, cy - 2, cx + faceX * 2, cy - 16, cx + faceX * 7, cy - 2, pal.light, 160);
+  drawEye(img, headX - faceX, cy - 5 + Math.max(0, dy), pal);
+  if (action === "attack" || action === "cast") {
+    tri(img, headX + faceX * 4, cy - 2, headX + faceX * (14 + flare), cy - 8, headX + faceX * (12 + flare), cy + 5, pal.light, 190);
+    diamond(img, headX + faceX * (16 + flare), cy - 2, 3, pal.eye, 180);
+  }
+}
+
 function drawGolem(img, pal, cx, cy, dx, dy, action, frame) {
   const slam = action === "attack" || action === "dig" ? [0, 1, 4, 1][frame] : 0;
   rect(img, cx - 15, cy - 5, 30, 23, pal.dark, 250);
@@ -682,8 +767,10 @@ function drawMonster(img, name, action, dir, frame) {
   else if (base === "virus") drawVirus(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "carniv") drawDogBeast(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "spitter") drawSpider(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "needler") drawNeedler(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "golem") drawGolem(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "flame") drawDragon(img, pal, cx, cy, dx, dy, action, frame);
+  else if (base === "salamander") drawSalamander(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "reaper") drawReaper(img, pal, cx, cy, dx, dy, action, frame);
   else if (base === "chimera") drawChimera(img, pal, cx, cy, dx, dy, action, frame);
 }
@@ -1350,16 +1437,21 @@ function writeSourceFrames() {
 }
 
 function actorFrameX(actionIndex, dirIndex, frame) {
-  return ((actionIndex * DIRECTIONS.length + dirIndex) * FRAMES + frame) * CELL;
+  return ((actionIndex * ACTOR_RENDER_DIRECTIONS.length + dirIndex) * FRAMES + frame) * CELL;
 }
 
 function writeAtlas() {
   ensureDir(OUT_DIR);
-  const actors = image(CELL * FRAMES * DIRECTIONS.length * ACTIONS.length, CELL * ACTORS.length);
-  ACTORS.forEach((name, row) => ACTIONS.forEach((action, ai) => DIRECTIONS.forEach((dir, di) => {
-    for (let f = 0; f < FRAMES; f++) copyInto(actors, readPng(spritePath("actors", name, f, dir, action)), actorFrameX(ai, di, f), row * CELL);
-  })));
-  writePng(path.join(OUT_DIR, "actors.png"), actors);
+  const oldActors = path.join(OUT_DIR, "actors.png");
+  if (fs.existsSync(oldActors)) fs.rmSync(oldActors);
+  for (const sheet in ACTOR_SHEETS) {
+    const names = ACTOR_SHEETS[sheet];
+    const actors = image(CELL * FRAMES * ACTOR_RENDER_DIRECTIONS.length * ACTIONS.length, CELL * names.length);
+    names.forEach((name, row) => ACTIONS.forEach((action, ai) => ACTOR_RENDER_DIRECTIONS.forEach((dir, di) => {
+      for (let f = 0; f < FRAMES; f++) copyInto(actors, readPng(spritePath("actors", name, f, dir, action)), actorFrameX(ai, di, f), row * CELL);
+    })));
+    writePng(path.join(OUT_DIR, `actor_${sheet}.png`), actors);
+  }
 
   const tiles = image(CELL * TILES.length, CELL);
   TILES.forEach((name, col) => copyInto(tiles, readPng(spritePath("tiles", name)), col * CELL, 0));
@@ -1385,9 +1477,19 @@ function writeAtlas() {
 }
 
 function writeMeta() {
-  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, actions: ACTIONS, actors: {}, tiles: {}, effects: {}, items: {}, debuffs: {}, dialogue: {} };
-  ACTORS.forEach((name, row) => {
-    meta.actors[name] = { sheet: "actors", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, directions: DIRECTIONS.length, actions: ACTIONS.length, anchor: [CELL / 2, Math.round(CELL * 0.75)] };
+  const meta = { cell: CELL, frames: FRAMES, directions: DIRECTIONS, renderDirections: ACTOR_RENDER_DIRECTIONS, actions: ACTIONS, actorSheets: ACTOR_SHEETS, actors: {}, tiles: {}, effects: {}, items: {}, debuffs: {}, dialogue: {} };
+  ACTORS.forEach((name) => {
+    let sheet = "moss_slime";
+    let row = 0;
+    for (const key in ACTOR_SHEETS) {
+      const idx = ACTOR_SHEETS[key].indexOf(name);
+      if (idx >= 0) {
+        sheet = key;
+        row = idx;
+        break;
+      }
+    }
+    meta.actors[name] = { sheet: `actor_${sheet}`, x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, directions: ACTOR_RENDER_DIRECTIONS.length, actions: ACTIONS.length, anchor: [CELL / 2, Math.round(CELL * 0.75)] };
   });
   TILES.forEach((name, col) => { meta.tiles[name] = { sheet: "tiles", x: col * CELL, y: 0, w: CELL, h: CELL }; });
   EFFECTS.forEach((name, row) => { meta.effects[name] = { sheet: "effects", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, anchor: [CELL / 2, CELL / 2] }; });

@@ -4,7 +4,7 @@ const fs = require("fs");
 const path = require("path");
 const { PNG } = require("pngjs");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
+  CELL, FRAMES, DIRECTIONS, ACTOR_RENDER_DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, ACTOR_SHEETS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
   readPng, spritePath,
 } = require("./pixel_asset_common");
 
@@ -120,7 +120,9 @@ function validateMeta() {
   const meta = JSON.parse(fs.readFileSync(file, "utf8"));
   if (meta.cell !== CELL || meta.frames !== FRAMES) fail("sprites.json のセル仕様が不正です");
   if (JSON.stringify(meta.directions) !== JSON.stringify(DIRECTIONS)) fail("directions の順序が不正です");
+  if (JSON.stringify(meta.renderDirections) !== JSON.stringify(ACTOR_RENDER_DIRECTIONS)) fail("renderDirections の順序が不正です");
   if (JSON.stringify(meta.actions) !== JSON.stringify(ACTIONS)) fail("actions の順序が不正です");
+  if (JSON.stringify(meta.actorSheets) !== JSON.stringify(ACTOR_SHEETS)) fail("actorSheets の順序が不正です");
   if (JSON.stringify(Object.keys(meta.actors)) !== JSON.stringify(ACTORS)) fail("actors の順序が不正です");
   if (JSON.stringify(Object.keys(meta.tiles)) !== JSON.stringify(TILES)) fail("tiles の順序が不正です");
   if (JSON.stringify(Object.keys(meta.effects)) !== JSON.stringify(EFFECTS)) fail("effects の順序が不正です");
@@ -131,19 +133,26 @@ function validateMeta() {
 }
 
 function validateAtlas() {
-  const actors = validatePng(path.join(OUT_DIR, "actors.png"), CELL * FRAMES * DIRECTIONS.length * ACTIONS.length, CELL * ACTORS.length, false);
+  if (fs.existsSync(path.join(OUT_DIR, "actors.png"))) fail("旧単一アクターシートが残っています: " + path.join(OUT_DIR, "actors.png"));
+  const actorSheets = {};
+  for (const sheet in ACTOR_SHEETS) {
+    actorSheets[sheet] = validatePng(path.join(OUT_DIR, `actor_${sheet}.png`), CELL * FRAMES * ACTOR_RENDER_DIRECTIONS.length * ACTIONS.length, CELL * ACTOR_SHEETS[sheet].length, false);
+  }
   const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL, false);
   const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length, true);
   const items = validatePng(path.join(OUT_DIR, "items.png"), CELL * ITEM_ICONS.length, CELL, false);
   const debuffs = validatePng(path.join(OUT_DIR, "debuffs.png"), CELL * DEBUFF_ICONS.length, CELL, false);
   const dialogue = validatePng(path.join(OUT_DIR, "dialogue_portraits.png"), CELL * DIALOGUE_PORTRAITS.length, CELL, false);
-  for (let row = 0; row < ACTORS.length; row++) {
-    for (let ai = 0; ai < ACTIONS.length; ai++) for (let di = 0; di < DIRECTIONS.length; di++) {
+  for (const sheet in ACTOR_SHEETS) {
+    const actors = actorSheets[sheet];
+    for (let row = 0; row < ACTOR_SHEETS[sheet].length; row++) {
+      for (let ai = 0; ai < ACTIONS.length; ai++) for (let di = 0; di < ACTOR_RENDER_DIRECTIONS.length; di++) {
       for (let f = 0; f < FRAMES; f++) {
         const frame = new PNG({ width: CELL, height: CELL });
-        PNG.bitblt(actors, frame, ((ai * DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL, CELL, CELL, 0, 0);
-        nonEmpty(frame, "actors.png:" + ACTORS[row] + ":" + ACTIONS[ai] + ":" + DIRECTIONS[di] + ":" + f);
+        PNG.bitblt(actors, frame, ((ai * ACTOR_RENDER_DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL, CELL, CELL, 0, 0);
+        nonEmpty(frame, `actor_${sheet}.png:${ACTOR_SHEETS[sheet][row]}:${ACTIONS[ai]}:${ACTOR_RENDER_DIRECTIONS[di]}:${f}`);
       }
+    }
     }
   }
   for (let col = 0; col < TILES.length; col++) {
@@ -186,15 +195,17 @@ function validateAtlas() {
 
 async function validateGeneratedDiff() {
   const pixelmatch = (await import("pixelmatch")).default;
-  const files = ["actors.png", "tiles.png", "effects.png", "items.png", "debuffs.png", "dialogue_portraits.png"];
+  const files = Object.keys(ACTOR_SHEETS).map((sheet) => `actor_${sheet}.png`).concat(["tiles.png", "effects.png", "items.png", "debuffs.png", "dialogue_portraits.png"]);
   for (const file of files) {
     const img = readPng(path.join(OUT_DIR, file));
     const source = new PNG({ width: img.width, height: img.height });
-    if (file === "actors.png") {
-      ACTORS.forEach((name, row) => {
+    if (file.startsWith("actor_")) {
+      const sheet = file.replace(/^actor_/, "").replace(/\.png$/, "");
+      const names = ACTOR_SHEETS[sheet] || [];
+      names.forEach((name, row) => {
         ACTIONS.forEach((action, ai) => {
-          DIRECTIONS.forEach((dir, di) => {
-          for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("actors", name, f, dir, action)), source, 0, 0, CELL, CELL, ((ai * DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL);
+          ACTOR_RENDER_DIRECTIONS.forEach((dir, di) => {
+            for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("actors", name, f, dir, action)), source, 0, 0, CELL, CELL, ((ai * ACTOR_RENDER_DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL);
           });
         });
       });
@@ -221,6 +232,16 @@ async function validateGeneratedDiff() {
 function actorFrame(name, action, dir, frame = 2) {
   return readPng(spritePath("actors", name, frame, dir, action));
 }
+
+function validateDistinctActorFamilies() {
+  const pairs = [["spitter", "bug_needler"], ["flame", "dragon_lavaSalamander"]];
+  for (const [a, b] of pairs) {
+    const ratio = diffRatio(actorFrame(a, "idle", "s", 1), actorFrame(b, "idle", "s", 1));
+    if (ratio <= 0.08) fail(`${a} と ${b} の図鑑画像差分が小さすぎます: ${ratio.toFixed(3)}`);
+  }
+  ok("別系統のアクター画像差分を検査しました");
+}
+
 function validateActorDirectionDiff() {
   const names = ACTORS.filter((n) => !n.startsWith("egg_"));
   for (const name of names) {
@@ -433,6 +454,7 @@ function validateNoLegacyAssetSources() {
   validateNoCircleSyntax();
   validateSelfMadeAssetPipeline();
   validateNoLegacyAssetSources();
+  validateDistinctActorFamilies();
   validateActorDirectionDiff();
   validateHeroActionDiff();
   validateDodgeActionDiff();

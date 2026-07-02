@@ -11,6 +11,13 @@
     "n",
     "ne"
   ],
+  "renderDirections": [
+    "e",
+    "se",
+    "s",
+    "ne",
+    "n"
+  ],
   "actions": [
     "idle",
     "attack",
@@ -20,15 +27,149 @@
     "eat",
     "dodge"
   ],
+  "actorSheets": {
+    "moss_slime": [
+      "slime",
+      "superslime",
+      "crownslime"
+    ],
+    "moss_shroom": [
+      "moss_shroom",
+      "moss_mycelia",
+      "moss_myceliaKing"
+    ],
+    "moss_virus": [
+      "moss_virus",
+      "moss_crystalVirus",
+      "moss_crownVirus"
+    ],
+    "moss_root": [
+      "moss_root",
+      "moss_tangleRoot",
+      "moss_ancientRoot"
+    ],
+    "meat_carniv": [
+      "carniv",
+      "evolved",
+      "direfang"
+    ],
+    "meat_wolf": [
+      "meat_wolf",
+      "meat_shadowWolf",
+      "meat_nightfangKing"
+    ],
+    "meat_boar": [
+      "meat_boar",
+      "meat_fangBoar",
+      "meat_ironBoar"
+    ],
+    "meat_hedgehog": [
+      "meat_hedgehog",
+      "meat_steelHedgehog",
+      "meat_spineKing"
+    ],
+    "venom_spider": [
+      "spitter",
+      "tarantula",
+      "goldweaver"
+    ],
+    "bug_centipede": [
+      "bug_centipede",
+      "bug_steelCentipede",
+      "bug_goldCentipede"
+    ],
+    "bug_beetle": [
+      "bug_beetle",
+      "bug_shieldBeetle",
+      "bug_fortressBeetle"
+    ],
+    "bug_needler": [
+      "bug_needler",
+      "bug_flyingNeedler",
+      "bug_bowNeedler"
+    ],
+    "stone_golem": [
+      "golem",
+      "titan",
+      "goldcore"
+    ],
+    "stone_turtle": [
+      "stone_turtle",
+      "stone_ironTurtle",
+      "stone_goldTurtle"
+    ],
+    "stone_magnetCrab": [
+      "stone_magnetCrab",
+      "stone_ironCrab",
+      "stone_blackCrab"
+    ],
+    "stone_crystalEye": [
+      "stone_crystalEye",
+      "stone_quartzEye",
+      "stone_rainbowEye"
+    ],
+    "ember_dragon": [
+      "flame",
+      "infernal",
+      "whiteflame"
+    ],
+    "dragon_serpent": [
+      "dragon_serpent",
+      "dragon_flameSerpent",
+      "dragon_whiteSerpent"
+    ],
+    "dragon_salamander": [
+      "dragon_salamander",
+      "dragon_lavaSalamander",
+      "dragon_mirageSalamander"
+    ],
+    "dragon_wyvern": [
+      "dragon_wyvern",
+      "dragon_stormWyvern",
+      "dragon_skyWyvern"
+    ],
+    "special": [
+      "reaper",
+      "chimera"
+    ],
+    "heroes": [
+      "warrior",
+      "superwarrior",
+      "ultrawarrior",
+      "tank",
+      "crossknight",
+      "captain",
+      "max",
+      "shon",
+      "hori",
+      "xTerminator",
+      "priest",
+      "saint",
+      "mage",
+      "supermage",
+      "sage"
+    ],
+    "eggs": [
+      "egg_spitter",
+      "egg_golem",
+      "egg_flame",
+      "egg_tarantula",
+      "egg_titan",
+      "egg_infernal",
+      "egg_goldweaver",
+      "egg_goldcore",
+      "egg_whiteflame"
+    ]
+  },
   "actors": {
     "slime": {
-      "sheet": "actors",
+      "sheet": "actor_moss_slime",
       "x": 0,
       "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -36,13 +177,13 @@
       ]
     },
     "carniv": {
-      "sheet": "actors",
+      "sheet": "actor_meat_carniv",
       "x": 0,
-      "y": 48,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -50,13 +191,13 @@
       ]
     },
     "evolved": {
-      "sheet": "actors",
+      "sheet": "actor_meat_carniv",
       "x": 0,
-      "y": 96,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -64,13 +205,13 @@
       ]
     },
     "spitter": {
-      "sheet": "actors",
+      "sheet": "actor_venom_spider",
       "x": 0,
-      "y": 144,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -78,13 +219,13 @@
       ]
     },
     "golem": {
-      "sheet": "actors",
+      "sheet": "actor_stone_golem",
       "x": 0,
-      "y": 192,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -92,13 +233,13 @@
       ]
     },
     "flame": {
-      "sheet": "actors",
+      "sheet": "actor_ember_dragon",
       "x": 0,
-      "y": 240,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -106,13 +247,13 @@
       ]
     },
     "moss_shroom": {
-      "sheet": "actors",
+      "sheet": "actor_moss_shroom",
       "x": 0,
-      "y": 288,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -120,13 +261,13 @@
       ]
     },
     "moss_mycelia": {
-      "sheet": "actors",
+      "sheet": "actor_moss_shroom",
       "x": 0,
-      "y": 336,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -134,13 +275,13 @@
       ]
     },
     "moss_myceliaKing": {
-      "sheet": "actors",
+      "sheet": "actor_moss_shroom",
       "x": 0,
-      "y": 384,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -148,13 +289,13 @@
       ]
     },
     "moss_virus": {
-      "sheet": "actors",
+      "sheet": "actor_moss_virus",
       "x": 0,
-      "y": 432,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -162,13 +303,13 @@
       ]
     },
     "moss_crystalVirus": {
-      "sheet": "actors",
+      "sheet": "actor_moss_virus",
       "x": 0,
-      "y": 480,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -176,13 +317,13 @@
       ]
     },
     "moss_crownVirus": {
-      "sheet": "actors",
+      "sheet": "actor_moss_virus",
       "x": 0,
-      "y": 528,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -190,13 +331,13 @@
       ]
     },
     "moss_root": {
-      "sheet": "actors",
+      "sheet": "actor_moss_root",
       "x": 0,
-      "y": 576,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -204,13 +345,13 @@
       ]
     },
     "moss_tangleRoot": {
-      "sheet": "actors",
+      "sheet": "actor_moss_root",
       "x": 0,
-      "y": 624,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -218,13 +359,13 @@
       ]
     },
     "moss_ancientRoot": {
-      "sheet": "actors",
+      "sheet": "actor_moss_root",
       "x": 0,
-      "y": 672,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -232,13 +373,13 @@
       ]
     },
     "meat_wolf": {
-      "sheet": "actors",
+      "sheet": "actor_meat_wolf",
       "x": 0,
-      "y": 720,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -246,13 +387,13 @@
       ]
     },
     "meat_shadowWolf": {
-      "sheet": "actors",
+      "sheet": "actor_meat_wolf",
       "x": 0,
-      "y": 768,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -260,13 +401,13 @@
       ]
     },
     "meat_nightfangKing": {
-      "sheet": "actors",
+      "sheet": "actor_meat_wolf",
       "x": 0,
-      "y": 816,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -274,13 +415,13 @@
       ]
     },
     "meat_boar": {
-      "sheet": "actors",
+      "sheet": "actor_meat_boar",
       "x": 0,
-      "y": 864,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -288,13 +429,13 @@
       ]
     },
     "meat_fangBoar": {
-      "sheet": "actors",
+      "sheet": "actor_meat_boar",
       "x": 0,
-      "y": 912,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -302,13 +443,13 @@
       ]
     },
     "meat_ironBoar": {
-      "sheet": "actors",
+      "sheet": "actor_meat_boar",
       "x": 0,
-      "y": 960,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -316,13 +457,13 @@
       ]
     },
     "meat_hedgehog": {
-      "sheet": "actors",
+      "sheet": "actor_meat_hedgehog",
       "x": 0,
-      "y": 1008,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -330,13 +471,13 @@
       ]
     },
     "meat_steelHedgehog": {
-      "sheet": "actors",
+      "sheet": "actor_meat_hedgehog",
       "x": 0,
-      "y": 1056,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -344,13 +485,13 @@
       ]
     },
     "meat_spineKing": {
-      "sheet": "actors",
+      "sheet": "actor_meat_hedgehog",
       "x": 0,
-      "y": 1104,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -358,13 +499,13 @@
       ]
     },
     "bug_centipede": {
-      "sheet": "actors",
+      "sheet": "actor_bug_centipede",
       "x": 0,
-      "y": 1152,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -372,13 +513,13 @@
       ]
     },
     "bug_steelCentipede": {
-      "sheet": "actors",
+      "sheet": "actor_bug_centipede",
       "x": 0,
-      "y": 1200,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -386,13 +527,13 @@
       ]
     },
     "bug_goldCentipede": {
-      "sheet": "actors",
+      "sheet": "actor_bug_centipede",
       "x": 0,
-      "y": 1248,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -400,13 +541,13 @@
       ]
     },
     "bug_beetle": {
-      "sheet": "actors",
+      "sheet": "actor_bug_beetle",
       "x": 0,
-      "y": 1296,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -414,13 +555,13 @@
       ]
     },
     "bug_shieldBeetle": {
-      "sheet": "actors",
+      "sheet": "actor_bug_beetle",
       "x": 0,
-      "y": 1344,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -428,13 +569,13 @@
       ]
     },
     "bug_fortressBeetle": {
-      "sheet": "actors",
+      "sheet": "actor_bug_beetle",
       "x": 0,
-      "y": 1392,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -442,13 +583,13 @@
       ]
     },
     "bug_needler": {
-      "sheet": "actors",
+      "sheet": "actor_bug_needler",
       "x": 0,
-      "y": 1440,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -456,13 +597,13 @@
       ]
     },
     "bug_flyingNeedler": {
-      "sheet": "actors",
+      "sheet": "actor_bug_needler",
       "x": 0,
-      "y": 1488,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -470,13 +611,13 @@
       ]
     },
     "bug_bowNeedler": {
-      "sheet": "actors",
+      "sheet": "actor_bug_needler",
       "x": 0,
-      "y": 1536,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -484,13 +625,13 @@
       ]
     },
     "stone_turtle": {
-      "sheet": "actors",
+      "sheet": "actor_stone_turtle",
       "x": 0,
-      "y": 1584,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -498,13 +639,13 @@
       ]
     },
     "stone_ironTurtle": {
-      "sheet": "actors",
+      "sheet": "actor_stone_turtle",
       "x": 0,
-      "y": 1632,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -512,13 +653,13 @@
       ]
     },
     "stone_goldTurtle": {
-      "sheet": "actors",
+      "sheet": "actor_stone_turtle",
       "x": 0,
-      "y": 1680,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -526,13 +667,13 @@
       ]
     },
     "stone_magnetCrab": {
-      "sheet": "actors",
+      "sheet": "actor_stone_magnetCrab",
       "x": 0,
-      "y": 1728,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -540,13 +681,13 @@
       ]
     },
     "stone_ironCrab": {
-      "sheet": "actors",
+      "sheet": "actor_stone_magnetCrab",
       "x": 0,
-      "y": 1776,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -554,13 +695,13 @@
       ]
     },
     "stone_blackCrab": {
-      "sheet": "actors",
+      "sheet": "actor_stone_magnetCrab",
       "x": 0,
-      "y": 1824,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -568,13 +709,13 @@
       ]
     },
     "stone_crystalEye": {
-      "sheet": "actors",
+      "sheet": "actor_stone_crystalEye",
       "x": 0,
-      "y": 1872,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -582,13 +723,13 @@
       ]
     },
     "stone_quartzEye": {
-      "sheet": "actors",
+      "sheet": "actor_stone_crystalEye",
       "x": 0,
-      "y": 1920,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -596,13 +737,13 @@
       ]
     },
     "stone_rainbowEye": {
-      "sheet": "actors",
+      "sheet": "actor_stone_crystalEye",
       "x": 0,
-      "y": 1968,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -610,13 +751,13 @@
       ]
     },
     "dragon_serpent": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_serpent",
       "x": 0,
-      "y": 2016,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -624,13 +765,13 @@
       ]
     },
     "dragon_flameSerpent": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_serpent",
       "x": 0,
-      "y": 2064,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -638,13 +779,13 @@
       ]
     },
     "dragon_whiteSerpent": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_serpent",
       "x": 0,
-      "y": 2112,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -652,13 +793,13 @@
       ]
     },
     "dragon_salamander": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_salamander",
       "x": 0,
-      "y": 2160,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -666,13 +807,13 @@
       ]
     },
     "dragon_lavaSalamander": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_salamander",
       "x": 0,
-      "y": 2208,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -680,13 +821,13 @@
       ]
     },
     "dragon_mirageSalamander": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_salamander",
       "x": 0,
-      "y": 2256,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -694,13 +835,13 @@
       ]
     },
     "dragon_wyvern": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_wyvern",
       "x": 0,
-      "y": 2304,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -708,13 +849,13 @@
       ]
     },
     "dragon_stormWyvern": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_wyvern",
       "x": 0,
-      "y": 2352,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -722,13 +863,13 @@
       ]
     },
     "dragon_skyWyvern": {
-      "sheet": "actors",
+      "sheet": "actor_dragon_wyvern",
       "x": 0,
-      "y": 2400,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -736,13 +877,13 @@
       ]
     },
     "superslime": {
-      "sheet": "actors",
+      "sheet": "actor_moss_slime",
       "x": 0,
-      "y": 2448,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -750,13 +891,13 @@
       ]
     },
     "tarantula": {
-      "sheet": "actors",
+      "sheet": "actor_venom_spider",
       "x": 0,
-      "y": 2496,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -764,13 +905,13 @@
       ]
     },
     "titan": {
-      "sheet": "actors",
+      "sheet": "actor_stone_golem",
       "x": 0,
-      "y": 2544,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -778,13 +919,13 @@
       ]
     },
     "infernal": {
-      "sheet": "actors",
+      "sheet": "actor_ember_dragon",
       "x": 0,
-      "y": 2592,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -792,13 +933,13 @@
       ]
     },
     "crownslime": {
-      "sheet": "actors",
+      "sheet": "actor_moss_slime",
       "x": 0,
-      "y": 2640,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -806,13 +947,13 @@
       ]
     },
     "direfang": {
-      "sheet": "actors",
+      "sheet": "actor_meat_carniv",
       "x": 0,
-      "y": 2688,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -820,13 +961,13 @@
       ]
     },
     "goldweaver": {
-      "sheet": "actors",
+      "sheet": "actor_venom_spider",
       "x": 0,
-      "y": 2736,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -834,13 +975,13 @@
       ]
     },
     "goldcore": {
-      "sheet": "actors",
+      "sheet": "actor_stone_golem",
       "x": 0,
-      "y": 2784,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -848,13 +989,13 @@
       ]
     },
     "whiteflame": {
-      "sheet": "actors",
+      "sheet": "actor_ember_dragon",
       "x": 0,
-      "y": 2832,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -862,13 +1003,13 @@
       ]
     },
     "reaper": {
-      "sheet": "actors",
+      "sheet": "actor_special",
       "x": 0,
-      "y": 2880,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -876,13 +1017,13 @@
       ]
     },
     "chimera": {
-      "sheet": "actors",
+      "sheet": "actor_special",
       "x": 0,
-      "y": 2928,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -890,13 +1031,13 @@
       ]
     },
     "warrior": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 2976,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -904,13 +1045,13 @@
       ]
     },
     "superwarrior": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3024,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -918,13 +1059,13 @@
       ]
     },
     "ultrawarrior": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3072,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -932,13 +1073,13 @@
       ]
     },
     "tank": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3120,
+      "y": 144,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -946,13 +1087,13 @@
       ]
     },
     "crossknight": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3168,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -960,13 +1101,13 @@
       ]
     },
     "captain": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3216,
+      "y": 240,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -974,13 +1115,13 @@
       ]
     },
     "max": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3264,
+      "y": 288,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -988,13 +1129,13 @@
       ]
     },
     "shon": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3312,
+      "y": 336,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1002,13 +1143,13 @@
       ]
     },
     "hori": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3360,
+      "y": 384,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1016,13 +1157,13 @@
       ]
     },
     "xTerminator": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3408,
+      "y": 432,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1030,13 +1171,13 @@
       ]
     },
     "priest": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3456,
+      "y": 480,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1044,13 +1185,13 @@
       ]
     },
     "saint": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3504,
+      "y": 528,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1058,13 +1199,13 @@
       ]
     },
     "mage": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3552,
+      "y": 576,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1072,13 +1213,13 @@
       ]
     },
     "supermage": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3600,
+      "y": 624,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1086,13 +1227,13 @@
       ]
     },
     "sage": {
-      "sheet": "actors",
+      "sheet": "actor_heroes",
       "x": 0,
-      "y": 3648,
+      "y": 672,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1100,13 +1241,13 @@
       ]
     },
     "egg_spitter": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 3696,
+      "y": 0,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1114,13 +1255,13 @@
       ]
     },
     "egg_golem": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 3744,
+      "y": 48,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1128,13 +1269,13 @@
       ]
     },
     "egg_flame": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 3792,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1142,13 +1283,13 @@
       ]
     },
     "egg_tarantula": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 3840,
+      "y": 144,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1156,13 +1297,13 @@
       ]
     },
     "egg_titan": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 3888,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1170,13 +1311,13 @@
       ]
     },
     "egg_infernal": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 3936,
+      "y": 240,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1184,13 +1325,13 @@
       ]
     },
     "egg_goldweaver": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 3984,
+      "y": 288,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1198,13 +1339,13 @@
       ]
     },
     "egg_goldcore": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 4032,
+      "y": 336,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,
@@ -1212,13 +1353,13 @@
       ]
     },
     "egg_whiteflame": {
-      "sheet": "actors",
+      "sheet": "actor_eggs",
       "x": 0,
-      "y": 4080,
+      "y": 384,
       "w": 48,
       "h": 48,
       "frames": 4,
-      "directions": 8,
+      "directions": 5,
       "actions": 7,
       "anchor": [
         24,

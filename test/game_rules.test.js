@@ -130,6 +130,27 @@ describe("ゲームルール", () => {
     expect(G.isDiggable(G.ENTRANCE_COL, 3)).toBe(false);
   });
 
+  it("魔物と卵が上限なら鉱脈採掘は止まり、栄養と鉱脈を消費しない", () => {
+    G.grid[3][G.ENTRANCE_COL] = { t: "earth", sub: "moss", shade: 0, evo: false, touch: 3 };
+    G.grid[2][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+    while (G.monsters.length + G.eggs.length < G.MONSTER_CAP) G.monsters.push({ kind: "slime", col: 100 + G.monsters.length, row: 100, hp: 1 });
+    const beforeNut = G.nutrients;
+    expect(G.isDiggable(G.ENTRANCE_COL, 3)).toBe(false);
+    expect(G.tryDig(G.ENTRANCE_COL, 3)).toBe(false);
+    expect(G.grid[3][G.ENTRANCE_COL]).toMatchObject({ t: "earth", sub: "moss", touch: 3 });
+    expect(G.nutrients).toBe(beforeNut);
+    expect(G.effects.some((e) => e.type === "float" && e.text === "満杯")).toBe(true);
+  });
+
+  it("魔物と卵が上限でも通常の土は採掘できる", () => {
+    G.grid[3][G.ENTRANCE_COL] = { t: "earth", sub: null, shade: 0 };
+    G.grid[2][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
+    while (G.monsters.length + G.eggs.length < G.MONSTER_CAP) G.monsters.push({ kind: "slime", col: 100 + G.monsters.length, row: 100, hp: 1 });
+    expect(G.isDiggable(G.ENTRANCE_COL, 3)).toBe(true);
+    expect(G.tryDig(G.ENTRANCE_COL, 3)).toBe(true);
+    expect(G.grid[3][G.ENTRANCE_COL].t).toBe("tunnel");
+  });
+
   it("上位鉱脈から上位種が出る", () => {
     G.grid[3][G.ENTRANCE_COL] = { t: "earth", sub: "moss", shade: 0, evo: true };
     G.grid[2][G.ENTRANCE_COL] = { t: "tunnel", sub: null, shade: 0 };
@@ -1715,10 +1736,8 @@ describe("ゲームルール", () => {
   it("10周目以降は初期デバフを表示し、リセット罰中は2個背負う", () => {
     const normal = createGame({ random: () => 0 });
     normal.startGame(10);
-    expect(normal.gameState).toBe("dialogue");
-    expect(normal.dialogue.returnState).toBe("debuffNotice");
-    advanceDialogueAll(normal);
     expect(normal.gameState).toBe("debuffNotice");
+    expect(normal.dialogue).toBe(null);
     expect(normal.debuffNotice).toEqual({ ids: ["rottenRations"], penalty: false });
     expect(normal.debuffItems).toEqual(["rottenRations"]);
     expect(normal.nutrients).toBe(normal.START_NUT - 5);
@@ -1727,10 +1746,8 @@ describe("ゲームルール", () => {
 
     const penalty = createGame({ random: () => 0 });
     penalty.startGame(10, { resetPenaltyActive: true });
-    expect(penalty.gameState).toBe("dialogue");
-    expect(penalty.dialogue.returnState).toBe("debuffNotice");
-    advanceDialogueAll(penalty);
     expect(penalty.gameState).toBe("debuffNotice");
+    expect(penalty.dialogue).toBe(null);
     expect(penalty.debuffNotice).toEqual({ ids: ["rottenRations", "crackedCore"], penalty: true });
     expect(penalty.debuffItems).toEqual(["rottenRations", "crackedCore"]);
     expect(penalty.nutrients).toBe(penalty.START_NUT - 5);
@@ -1987,6 +2004,18 @@ describe("ゲームルール", () => {
     forced.startGame(1);
     forced.gameState = "playing";
     expect(forced.dialogue).toBe(null);
+  });
+
+  it("開始会話は1周目の指定時だけ表示し、到達済み扱いでは挟まない", () => {
+    const skipped = createGame({ seed: 1 });
+    skipped.startGame(1, { showIntro: false });
+    expect(skipped.gameState).toBe("playing");
+    expect(skipped.dialogue).toBe(null);
+
+    const secondLoop = createGame({ seed: 1 });
+    secondLoop.startGame(2);
+    expect(secondLoop.gameState).toBe("playing");
+    expect(secondLoop.dialogue).toBe(null);
   });
 
   it("出現した魔物と冒険者と到達ウェーブをイベントで取り出せる", () => {

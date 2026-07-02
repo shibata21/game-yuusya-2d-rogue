@@ -394,6 +394,40 @@ textarea {
   touch-action: pan-y;
 }
 
+.load-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  background: rgba(10, 7, 16, 0.82);
+  color: var(--ink);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.load-overlay.hidden {
+  display: none;
+}
+
+.load-bar {
+  width: min(260px, 70%);
+  height: 10px;
+  border: 1px solid #554261;
+  border-radius: 6px;
+  background: #110d18;
+  overflow: hidden;
+}
+
+.load-bar i {
+  display: block;
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #66bf68, #ffcf4d);
+}
+
 .controls {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 116px;

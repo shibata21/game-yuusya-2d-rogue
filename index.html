@@ -32,6 +32,10 @@
 
         <div class="stage">
           <div id="game-root"></div>
+          <div class="load-overlay" id="loadOverlay" aria-live="polite">
+            <div class="load-bar"><i id="loadFill"></i></div>
+            <span id="loadText">読み込み中 0%</span>
+          </div>
           <div class="dialogue-overlay hidden" id="dialogueOverlay" role="dialog" aria-live="polite" aria-label="会話">
             <button class="dialogue-box" id="dialogueAdvanceBtn" type="button">
               <span class="dialogue-portrait" id="dialoguePortrait" aria-hidden="true"></span>

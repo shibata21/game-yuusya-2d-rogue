@@ -8,6 +8,8 @@ import { fileURLToPath } from "node:url";
 import {
   PIXEL_ACTIONS,
   PIXEL_ACTORS,
+  PIXEL_ACTOR_RENDER_DIRS,
+  PIXEL_ACTOR_SHEETS,
   PIXEL_CELL,
   PIXEL_DIRS,
   PIXEL_EFFECTS,
@@ -18,6 +20,8 @@ import {
   PIXEL_DIALOGUE_PORTRAITS,
   PIXEL_ASSET_VERSION,
   pixelAssetUrl,
+  pixelActorFileName,
+  pixelActorFrameInfo,
   pixelItemFrameIndex,
   pixelDebuffFrameIndex,
   pixelDialoguePortraitFrameIndex,
@@ -58,11 +62,13 @@ function alphaBounds(img) {
 }
 
 function actorCrop(name, action, dir, frame) {
-  const img = png("assets/pixel/actors.png");
-  const row = Object.keys(meta.actors).indexOf(name);
+  const info = pixelActorFrameInfo(name, action, dir, frame);
+  const img = png(`assets/pixel/${pixelActorFileName(info.sheet)}`);
+  const row = (PIXEL_ACTOR_SHEETS[info.sheet] || []).indexOf(name);
   const ai = meta.actions.indexOf(action);
-  const di = meta.directions.indexOf(dir);
-  return crop(img, ((ai * meta.directions.length + di) * meta.frames + frame) * meta.cell, row * meta.cell, meta.cell, meta.cell);
+  const renderDir = info.flipX ? (dir === "w" ? "e" : (dir === "sw" ? "se" : "ne")) : dir;
+  const di = meta.renderDirections.indexOf(renderDir);
+  return crop(img, ((ai * meta.renderDirections.length + di) * meta.frames + frame) * meta.cell, row * meta.cell, meta.cell, meta.cell);
 }
 
 function tileCrop(name) {
@@ -191,7 +197,9 @@ describe("ピクセル素材", () => {
     expect(meta.cell).toBe(PIXEL_CELL);
     expect(meta.frames).toBe(PIXEL_FRAMES);
     expect(meta.directions).toEqual(PIXEL_DIRS);
+    expect(meta.renderDirections).toEqual(PIXEL_ACTOR_RENDER_DIRS);
     expect(meta.actions).toEqual(PIXEL_ACTIONS);
+    expect(meta.actorSheets).toEqual(PIXEL_ACTOR_SHEETS);
     expect(Object.keys(meta.actors)).toEqual(PIXEL_ACTORS);
     expect(Object.keys(meta.tiles)).toEqual(PIXEL_TILES);
     expect(Object.keys(meta.effects)).toEqual(PIXEL_EFFECTS);
@@ -201,14 +209,19 @@ describe("ピクセル素材", () => {
   });
 
   it("アトラスPNGの寸法が正しい", () => {
-    const actors = png("assets/pixel/actors.png");
     const tiles = png("assets/pixel/tiles.png");
     const effects = png("assets/pixel/effects.png");
     const items = png("assets/pixel/items.png");
     const debuffs = png("assets/pixel/debuffs.png");
     const dialogue = png("assets/pixel/dialogue_portraits.png");
-    expect(actors.width).toBe(PIXEL_CELL * PIXEL_FRAMES * PIXEL_DIRS.length * PIXEL_ACTIONS.length);
-    expect(actors.height).toBe(PIXEL_CELL * PIXEL_ACTORS.length);
+    expect(fs.existsSync(path.join(repoDir, "assets/pixel/actors.png"))).toBe(false);
+    for (const sheet in PIXEL_ACTOR_SHEETS) {
+      const actors = png(`assets/pixel/${pixelActorFileName(sheet)}`);
+      expect(actors.width, sheet).toBe(PIXEL_CELL * PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length);
+      expect(actors.height, sheet).toBe(PIXEL_CELL * PIXEL_ACTOR_SHEETS[sheet].length);
+      expect(actors.width, sheet).toBeLessThanOrEqual(8192);
+      expect(actors.height, sheet).toBeLessThanOrEqual(8192);
+    }
     expect(tiles.width).toBe(PIXEL_CELL * PIXEL_TILES.length);
     expect(tiles.height).toBe(PIXEL_CELL);
     expect(effects.width).toBe(PIXEL_CELL * PIXEL_FRAMES);
@@ -222,11 +235,12 @@ describe("ピクセル素材", () => {
   });
 
   it("素材URLにはバージョン文字列が付く", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v25-coins");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v25-coins");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v25-coins");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v25-coins");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v25-coins");
+    expect(PIXEL_ASSET_VERSION).toBe("v26-actor-split");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v26-actor-split");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v26-actor-split");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v26-actor-split");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v26-actor-split");
+    expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe("assets/pixel/actor_venom_spider.png?v=v26-actor-split");
     expect(pixelItemFrameIndex("rustyPickaxe")).toBe(PIXEL_ITEMS.indexOf("rustyPickaxe"));
     expect(pixelDebuffFrameIndex("crackedCore")).toBe(PIXEL_DEBUFFS.indexOf("crackedCore"));
     expect(pixelDialoguePortraitFrameIndex("gorilla")).toBe(PIXEL_DIALOGUE_PORTRAITS.indexOf("gorilla"));
@@ -248,6 +262,11 @@ describe("ピクセル素材", () => {
 
   it("スライムは苔脈に近い緑優勢になる", () => {
     expect(greenDominantRatio(actorCrop("slime", "idle", "s", 1))).toBeGreaterThan(0.68);
+  });
+
+  it("別系統の図鑑用アクターは同一画像にならない", () => {
+    expect(diffRatio(actorCrop("spitter", "idle", "s", 1), actorCrop("bug_needler", "idle", "s", 1))).toBeGreaterThan(0.08);
+    expect(diffRatio(actorCrop("flame", "idle", "s", 1), actorCrop("dragon_lavaSalamander", "idle", "s", 1))).toBeGreaterThan(0.08);
   });
 
   it("方向と職業アクションの差分がある", () => {

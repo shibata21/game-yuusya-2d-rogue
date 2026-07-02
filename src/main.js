@@ -12,7 +12,11 @@ import {
   resolveMonsterDeck,
   pixelAssetUrl,
   pixelActorX,
+  pixelActorFileName,
+  pixelActorFrameInfo,
   pixelActorFrameIndex,
+  pixelActorSheetName,
+  pixelActorTextureKey,
   pixelItemFrameIndex,
   pixelDebuffFrameIndex,
   pixelDialoguePortraitFrameIndex,
@@ -26,6 +30,9 @@ import {
   CORE_ROW,
   ENTRANCE_COL,
   PIXEL_ACTORS,
+  PIXEL_ACTOR_SHEETS,
+  PIXEL_ACTOR_RENDER_DIRS,
+  PIXEL_ACTIONS,
   PIXEL_TILES,
   PIXEL_EFFECTS,
   PIXEL_ITEMS,
@@ -117,6 +124,28 @@ function resolveInterruptedRunOnBoot(raw) {
 
 function audioAssetUrl(name) {
   return `assets/audio/${name}?v=${AUDIO_ASSET_VERSION}`;
+}
+
+function actorAssetUrl(sheet) {
+  return pixelAssetUrl(pixelActorFileName(sheet));
+}
+
+function actorSheetsForCurrentDeck() {
+  const deck = resolveMonsterDeck(progress.monsterDeck);
+  const sheets = new Set(["heroes"]);
+  for (const vein in deck) if (deck[vein]) sheets.add(deck[vein]);
+  return [...sheets].filter((sheet) => PIXEL_ACTOR_SHEETS[sheet]);
+}
+
+function updateLoadProgress(value = 1, visible = false) {
+  const overlay = document.getElementById("loadOverlay");
+  const fill = document.getElementById("loadFill");
+  const text = document.getElementById("loadText");
+  if (!overlay || !fill || !text) return;
+  const progressValue = Math.max(0, Math.min(1, Number(value) || 0));
+  overlay.classList.toggle("hidden", !visible);
+  fill.style.width = `${Math.round(progressValue * 100)}%`;
+  text.textContent = `読み込み中 ${Math.round(progressValue * 100)}%`;
 }
 
 function tileKey(tile) {
@@ -343,11 +372,17 @@ class MainScene extends Phaser.Scene {
     this.crackGraphics = null;
     this.flameGraphics = null;
     this.pressStart = null;
+    this.loadingActorSheets = new Set();
   }
 
   preload() {
+    updateLoadProgress(0, true);
+    this.load.on("progress", (value) => updateLoadProgress(value, true));
+    this.load.once("complete", () => updateLoadProgress(1, false));
     this.load.spritesheet("tiles", pixelAssetUrl("tiles.png"), { frameWidth: TILE, frameHeight: TILE });
-    this.load.spritesheet("actors", pixelAssetUrl("actors.png"), { frameWidth: TILE, frameHeight: TILE });
+    for (const sheet of actorSheetsForCurrentDeck()) {
+      this.load.spritesheet(pixelActorTextureKey(sheet), actorAssetUrl(sheet), { frameWidth: TILE, frameHeight: TILE });
+    }
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("items", pixelAssetUrl("items.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("debuffs", pixelAssetUrl("debuffs.png"), { frameWidth: TILE, frameHeight: TILE });
@@ -579,15 +614,44 @@ class MainScene extends Phaser.Scene {
     }
   }
 
+  ensureActorSheets(sheets) {
+    const missing = [...new Set(sheets)]
+      .filter((sheet) => PIXEL_ACTOR_SHEETS[sheet])
+      .filter((sheet) => !this.textures.exists(pixelActorTextureKey(sheet)) && !this.loadingActorSheets.has(sheet));
+    if (!missing.length) return true;
+    const loaderBusy = typeof this.load.isLoading === "function" ? this.load.isLoading() : !!this.load.isLoading;
+    if (loaderBusy) return false;
+    for (const sheet of missing) {
+      this.loadingActorSheets.add(sheet);
+      this.load.spritesheet(pixelActorTextureKey(sheet), actorAssetUrl(sheet), { frameWidth: TILE, frameHeight: TILE });
+    }
+    updateLoadProgress(0, true);
+    const onProgress = (value) => updateLoadProgress(value, true);
+    this.load.on("progress", onProgress);
+    this.load.once("complete", () => {
+      this.load.off("progress", onProgress);
+      for (const sheet of missing) this.loadingActorSheets.delete(sheet);
+      updateLoadProgress(1, false);
+    });
+    this.load.start();
+    return false;
+  }
+
   syncActors() {
     const entries = [];
     for (const e of gameApi.eggs) entries.push({ z: e.row - 0.2, egg: true, e });
     for (const e of gameApi.monsters) entries.push({ z: e.row, hero: false, e });
     for (const e of gameApi.heroes) entries.push({ z: e.row + 0.5, hero: true, e });
     entries.sort((a, b) => a.z - b.z);
+    const requiredSheets = entries.map((entry) => {
+      const e = entry.e;
+      const name = entry.egg ? `egg_${e.kind}` : (entry.hero ? e.cls : e.kind);
+      return pixelActorSheetName(name);
+    });
+    const sheetsReady = this.ensureActorSheets(requiredSheets);
 
     while (this.actorSprites.length < entries.length) {
-      const sprite = this.add.image(0, 0, "actors", 0);
+      const sprite = this.add.image(0, 0, "tiles", 0);
       sprite.setOrigin(0.5, 0.75);
       this.actorSprites.push(sprite);
     }
@@ -603,10 +667,17 @@ class MainScene extends Phaser.Scene {
       const action = entry.egg ? "idle" : gameApi.actorAction(e);
       const dir = entry.egg ? "s" : (e.faceDir || "s");
       const frame = entry.egg ? Math.floor(this.time.now / 220 + e.col) % PIXEL_FRAMES : actorFrame(e, this);
+      const frameInfo = pixelActorFrameInfo(name, action, dir, frame);
+      if (!sheetsReady || !this.textures.exists(frameInfo.key)) {
+        sprite.setVisible(false);
+        continue;
+      }
       const pose = entry.egg ? { x: 0, y: 0, scale: 1, rot: 0 } : gameApi.actorPose(e);
       const bornScale = e.bornAnim > 0 ? 0.4 + 0.6 * Math.max(0, Math.min(1, 1 - e.bornAnim / gameApi.BORN_ANIM)) : 1;
       sprite.setVisible(true);
-      sprite.setFrame(pixelActorFrameIndex(name, action, dir, frame));
+      sprite.setTexture(frameInfo.key);
+      sprite.setFrame(frameInfo.frame);
+      sprite.setFlipX(frameInfo.flipX);
       sprite.setPosition((e.px ?? gameApi.cx(e.col)) + pose.x, (e.py ?? gameApi.cy(e.row)) + pose.y + (entry.egg ? 8 : 0));
       sprite.setScale(bornScale * pose.scale);
       sprite.setRotation(pose.rot || 0);
@@ -1138,10 +1209,13 @@ function monsterUnlockLabel(kind) {
 }
 
 function codexSpriteStyle(name) {
-  const row = PIXEL_ACTORS.indexOf(name);
+  const info = pixelActorFrameInfo(name, "idle", "s", 1);
+  const row = (PIXEL_ACTOR_SHEETS[info.sheet] || []).indexOf(name);
   const x = pixelActorX("idle", "s", 1);
   const y = Math.max(0, row) * TILE;
-  return `background-image:url("${pixelAssetUrl("actors.png")}");background-position:-${x}px -${y}px;`;
+  const sheetWidth = TILE * PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length;
+  const sheetHeight = TILE * ((PIXEL_ACTOR_SHEETS[info.sheet] || []).length || 1);
+  return `background-image:url("${actorAssetUrl(info.sheet)}");background-size:${sheetWidth}px ${sheetHeight}px;background-position:-${x}px -${y}px;`;
 }
 
 function statPill(label, value) {
@@ -1780,7 +1854,7 @@ function updateHud() {
   if (coreLine) coreLine.classList.toggle("core-alert", gameApi.coreHP > 0 && gameApi.gameState === "playing" && (effectLevel("corehit") > 0 || effectLevel("coreShock") > 0));
   document.getElementById("nutNum").textContent = Math.floor(gameApi.nutrients);
   document.getElementById("waveNum").textContent = `${gameApi.wave}/${gameApi.MAX_WAVE}`;
-  document.getElementById("monNum").textContent = gameApi.monsters.length + gameApi.eggs.length;
+  document.getElementById("monNum").textContent = `${gameApi.monsters.length + gameApi.eggs.length}/${gameApi.MONSTER_CAP}`;
   document.getElementById("scoreNum").textContent = gameApi.score;
   renderLoopSelector();
   renderItems();
@@ -1848,7 +1922,8 @@ function startGame() {
   selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(select && select.value) || defaultLoop())));
   markRunStarted(selectedLoop);
   gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
-  gameApi.startGame(selectedLoop, { resetPenaltyActive: progress.resetPenaltyActive });
+  gameApi.startGame(selectedLoop, { resetPenaltyActive: progress.resetPenaltyActive, showIntro: selectedLoop === 1 && (progress.highestWave || 0) < 3 });
+  if (activeScene) activeScene.ensureActorSheets(actorSheetsForCurrentDeck());
   syncAudioState(true);
   syncProgressEvents();
   updateHud();
