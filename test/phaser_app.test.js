@@ -146,6 +146,8 @@ describe("Phaserアプリ構成", () => {
   it("盤面上から縦スクロールできるCSSを持つ", () => {
     const css = fs.readFileSync(path.join(repoDir, "src/style.css"), "utf8");
     expect(css).toContain("touch-action: pan-y");
+    expect(css).toContain("box-sizing: content-box");
+    expect(css).toContain("width: calc(100% - 4px)");
     expect(css).toContain(".codex-card");
     expect(css).toContain(".codex-card.locked");
     expect(css).toContain(".codex-unlock-card");
@@ -197,7 +199,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v27-imagegen");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v28-imagegen");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
@@ -222,6 +224,30 @@ describe("Phaserアプリ構成", () => {
     expect(west.frame).toBe(east.frame);
     expect(west.flipX).toBe(true);
     expect(east.flipX).toBe(false);
+
+    for (const name of Object.values(PIXEL_ACTOR_SHEETS).flat()) {
+      for (const actionName of PIXEL_ACTIONS) {
+        for (let frameIndex = 0; frameIndex < PIXEL_FRAMES; frameIndex++) {
+          const eastFrame = pixelActorFrameInfo(name, actionName, "e", frameIndex);
+          const westFrame = pixelActorFrameInfo(name, actionName, "w", frameIndex);
+          const southeastFrame = pixelActorFrameInfo(name, actionName, "se", frameIndex);
+          const southwestFrame = pixelActorFrameInfo(name, actionName, "sw", frameIndex);
+          const northeastFrame = pixelActorFrameInfo(name, actionName, "ne", frameIndex);
+          const northwestFrame = pixelActorFrameInfo(name, actionName, "nw", frameIndex);
+          expect(westFrame.frame, `${name}:${actionName}:w`).toBe(eastFrame.frame);
+          expect(southwestFrame.frame, `${name}:${actionName}:sw`).toBe(southeastFrame.frame);
+          expect(northwestFrame.frame, `${name}:${actionName}:nw`).toBe(northeastFrame.frame);
+          expect(westFrame.flipX, `${name}:${actionName}:w`).toBe(true);
+          expect(southwestFrame.flipX, `${name}:${actionName}:sw`).toBe(true);
+          expect(northwestFrame.flipX, `${name}:${actionName}:nw`).toBe(true);
+          expect(eastFrame.flipX, `${name}:${actionName}:e`).toBe(false);
+          expect(southeastFrame.flipX, `${name}:${actionName}:se`).toBe(false);
+          expect(northeastFrame.flipX, `${name}:${actionName}:ne`).toBe(false);
+          expect(pixelActorFrameInfo(name, actionName, "s", frameIndex).flipX, `${name}:${actionName}:s`).toBe(false);
+          expect(pixelActorFrameInfo(name, actionName, "n", frameIndex).flipX, `${name}:${actionName}:n`).toBe(false);
+        }
+      }
+    }
 
     const healFrame = 1;
     const healFrameInActor =

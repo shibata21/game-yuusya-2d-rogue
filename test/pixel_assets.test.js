@@ -113,6 +113,150 @@ function sourcePath(relativePath) {
   return path.join(sourceDir, ...relativePath.split("/"));
 }
 
+function gridCell(img, column, row, columns, rows) {
+  const x0 = Math.round((column * img.width) / columns);
+  const x1 = Math.round(((column + 1) * img.width) / columns);
+  const y0 = Math.round((row * img.height) / rows);
+  const y1 = Math.round(((row + 1) * img.height) / rows);
+  return crop(img, x0, y0, x1 - x0, y1 - y0);
+}
+
+function alphaBounds(img, threshold = 12) {
+  let minX = img.width;
+  let minY = img.height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      if (img.data[(y * img.width + x) * 4 + 3] <= threshold) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  if (maxX < minX || maxY < minY) throw new Error("imagegen生成画像のセルが空です");
+  return { minX, minY, maxX, maxY };
+}
+
+function resizeNearest(img, width, height) {
+  const out = new PNG({ width, height });
+  for (let y = 0; y < height; y++) {
+    const sy = Math.min(img.height - 1, Math.floor(((y + 0.5) * img.height) / height));
+    for (let x = 0; x < width; x++) {
+      const sx = Math.min(img.width - 1, Math.floor(((x + 0.5) * img.width) / width));
+      const si = (sy * img.width + sx) * 4;
+      const di = (y * width + x) * 4;
+      out.data[di] = img.data[si];
+      out.data[di + 1] = img.data[si + 1];
+      out.data[di + 2] = img.data[si + 2];
+      out.data[di + 3] = img.data[si + 3] <= 8 ? 0 : img.data[si + 3];
+    }
+  }
+  return out;
+}
+
+function flipHorizontal(img) {
+  const out = new PNG({ width: img.width, height: img.height });
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      const si = (y * img.width + x) * 4;
+      const di = (y * out.width + out.width - x - 1) * 4;
+      out.data[di] = img.data[si];
+      out.data[di + 1] = img.data[si + 1];
+      out.data[di + 2] = img.data[si + 2];
+      out.data[di + 3] = img.data[si + 3];
+    }
+  }
+  return out;
+}
+
+function normalizeActorCell(img) {
+  const bounds = alphaBounds(img);
+  const cropped = crop(img, bounds.minX, bounds.minY, bounds.maxX - bounds.minX + 1, bounds.maxY - bounds.minY + 1);
+  const scale = Math.min(42 / cropped.width, 42 / cropped.height);
+  const width = Math.max(1, Math.round(cropped.width * scale));
+  const height = Math.max(1, Math.round(cropped.height * scale));
+  const resized = resizeNearest(cropped, width, height);
+  const out = new PNG({ width: PIXEL_CELL, height: PIXEL_CELL });
+  const x = Math.round((PIXEL_CELL - width) / 2);
+  const y = PIXEL_CELL - height - 2;
+  PNG.bitblt(resized, out, 0, 0, width, height, x, y);
+  return out;
+}
+
+function shifted(img, dx, dy) {
+  const out = new PNG({ width: img.width, height: img.height });
+  for (let y = 0; y < img.height; y++) {
+    const ty = y + dy;
+    if (ty < 0 || ty >= out.height) continue;
+    for (let x = 0; x < img.width; x++) {
+      const tx = x + dx;
+      if (tx < 0 || tx >= out.width) continue;
+      const si = (y * img.width + x) * 4;
+      const di = (ty * out.width + tx) * 4;
+      out.data[di] = img.data[si];
+      out.data[di + 1] = img.data[si + 1];
+      out.data[di + 2] = img.data[si + 2];
+      out.data[di + 3] = img.data[si + 3];
+    }
+  }
+  return out;
+}
+
+function frameOffset(action, direction, frame) {
+  const vectors = { e: [1, 0], se: [1, 1], s: [0, 1], ne: [1, -1], n: [0, -1] };
+  const [vx, vy] = vectors[direction];
+  const side = vx === 0 ? 1 : vx;
+  const motions = {
+    idle: [[0, 0], [0, -1], [0, 0], [0, 1]],
+    attack: [[-vx, -vy], [0, 0], [vx * 2, vy * 2], [vx, vy]],
+    cast: [[0, 1], [0, 0], [0, -2], [0, -1]],
+    dig: [[0, -1], [side, 0], [side * 2, 2], [0, 1]],
+    heal: [[0, 1], [0, 0], [0, -2], [0, -1]],
+    eat: [[-side, 0], [0, 1], [side, 0], [0, 0]],
+    dodge: [[0, 0], [-side * 2, 0], [side * 2, -1], [0, 0]],
+  };
+  return motions[action][frame];
+}
+
+function expectedActorFrame(name, action, direction, frame) {
+  const src = png(`assets/pixel/source/imagegen-v1/${manifest.actorSources[name]}`);
+  const column = PIXEL_ACTOR_RENDER_DIRS.indexOf(direction);
+  const row = PIXEL_ACTIONS.indexOf(action);
+  const cell = gridCell(src, column, row, manifest.layouts.actors.columns, manifest.layouts.actors.rows);
+  const transforms = manifest.actorSourceFlipX[name]?.[direction] || [];
+  const corrected = transforms.includes("*") || transforms.includes(action) ? flipHorizontal(cell) : cell;
+  const [dx, dy] = frameOffset(action, direction, frame);
+  return shifted(normalizeActorCell(corrected), dx, dy);
+}
+
+function luminance(img, x, y) {
+  const i = (y * img.width + x) * 4;
+  return img.data[i] * 0.2126 + img.data[i + 1] * 0.7152 + img.data[i + 2] * 0.0722;
+}
+
+function tileEdgeRatio(tile, side) {
+  let edge = 0;
+  let inner = 0;
+  for (let n = 0; n < PIXEL_CELL; n++) {
+    if (side === "left") {
+      edge += luminance(tile, 0, n);
+      inner += luminance(tile, 2, n);
+    } else if (side === "right") {
+      edge += luminance(tile, PIXEL_CELL - 1, n);
+      inner += luminance(tile, PIXEL_CELL - 3, n);
+    } else if (side === "top") {
+      edge += luminance(tile, n, 0);
+      inner += luminance(tile, n, 2);
+    } else {
+      edge += luminance(tile, n, PIXEL_CELL - 1);
+      inner += luminance(tile, n, PIXEL_CELL - 3);
+    }
+  }
+  return edge / Math.max(1, inner);
+}
+
 describe("imagegenピクセル素材", () => {
   it("公開仕様とメタデータの順序が一致する", () => {
     expect(PIXEL_CELL).toBe(48);
@@ -137,16 +281,18 @@ describe("imagegenピクセル素材", () => {
     expect(Object.keys(meta.dialogue)).toEqual(PIXEL_DIALOGUE_PORTRAITS);
     expect(meta.sourceVersion).toBe("imagegen-v1");
     expect(meta.generator.toLowerCase()).toContain("imagegen");
+    expect(manifest.layouts.environmentTiles.trimRatio).toBe(0.03);
+    expect(manifest.layouts.veinTiles.trimRatio).toBe(0.03);
   });
 
   it("公開アセットURLとフレーム参照が新しい版を使う", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v27-imagegen");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v27-imagegen");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v27-imagegen");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v27-imagegen");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v27-imagegen");
+    expect(PIXEL_ASSET_VERSION).toBe("v28-imagegen");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v28-imagegen");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v28-imagegen");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v28-imagegen");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v28-imagegen");
     expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe(
-      "assets/pixel/actor_venom_spider.png?v=v27-imagegen",
+      "assets/pixel/actor_venom_spider.png?v=v28-imagegen",
     );
 
     const east = pixelActorFrameInfo("slime", "idle", "e", 0);
@@ -219,6 +365,62 @@ describe("imagegenピクセル素材", () => {
     expect(new Set(heroes).size).toBe(heroes.length);
   });
 
+  it("原画ごとの左右補正は監査結果を保持する", () => {
+    expect(manifest.actorSourceFlipX).toEqual({
+      slime: { se: ["*"], ne: ["cast", "heal", "eat", "dodge"] },
+      carniv: { e: ["*"], se: ["*"] },
+      moss_shroom: { ne: ["*"] },
+      moss_virus: { e: ["*"], se: ["*"] },
+      moss_root: { e: ["*"], se: ["*"] },
+      meat_wolf: { e: ["*"], se: ["*"] },
+      meat_boar: { e: ["*"], se: ["*"] },
+      meat_hedgehog: { e: ["*"], se: ["*"] },
+      spitter: { e: ["*"], se: ["*"] },
+      bug_centipede: { e: ["*"], se: ["*"] },
+      bug_beetle: { e: ["*"], se: ["*"] },
+      bug_needler: { e: ["*"], se: ["*"] },
+      golem: { e: ["*"], se: ["*"] },
+      stone_turtle: { e: ["*"], se: ["*"] },
+      stone_magnetCrab: { e: ["*"], se: ["*"] },
+      stone_crystalEye: { ne: ["cast", "eat", "dodge"] },
+      flame: { e: ["*"], se: ["*"] },
+      dragon_serpent: { se: ["*"], ne: ["*"] },
+      dragon_salamander: { se: ["*"] },
+      dragon_wyvern: { se: ["*"], ne: ["*"] },
+      reaper: { e: ["*"], se: ["*"] },
+      chimera: { se: ["*"], ne: ["*"] },
+      warrior: { e: ["*"], se: ["*"] },
+      tank: { e: ["*"], se: ["*"] },
+      superwarrior: { e: ["*"], se: ["*"], ne: ["*"] },
+      ultrawarrior: { e: ["*"], se: ["*"] },
+      crossknight: { e: ["*"], se: ["*"], ne: ["*"] },
+      captain: { e: ["*"], se: ["*"] },
+      priest: { e: ["*"], se: ["*"] },
+      saint: {},
+      mage: { e: ["*"], se: ["*"] },
+      supermage: { e: ["*"], se: ["*"], ne: ["*"] },
+      sage: { e: ["*"], se: ["*"], ne: ["*"] },
+      max: { e: ["*"], se: ["*"] },
+      shon: { ne: ["*"] },
+      hori: { ne: ["*"] },
+      xTerminator: { e: ["*"], se: ["*"], ne: ["*"] },
+    });
+    expect(manifest.actorSourceFlipX.moss_virus.ne).toBeUndefined();
+  });
+
+  it("方向補正済み原画セルがアトラスへ反映される", () => {
+    for (const [name, directions] of Object.entries(manifest.actorSourceFlipX)) {
+      for (const [direction, actions] of Object.entries(directions)) {
+        const targets = actions.includes("*") ? PIXEL_ACTIONS : actions;
+        for (const action of targets) {
+          const expected = expectedActorFrame(name, action, direction, 0);
+          const actual = actorCrop(name, action, direction, 0);
+          expect(imageHash(actual), `${name}:${action}:${direction}`).toBe(imageHash(expected));
+        }
+      }
+    }
+  });
+
   it("第一・第二進化は通常種と同じ形状の色違いである", () => {
     for (const [variant, spec] of Object.entries(manifest.paletteVariants)) {
       for (const action of ["idle", "attack", "cast"]) {
@@ -263,6 +465,22 @@ describe("imagegenピクセル素材", () => {
     expect(opaqueCount(executive)).toBeGreaterThan(180);
     expect(opaqueCount(gorilla)).toBeGreaterThan(180);
     expect(diffStats(executive, gorilla).colorRatio).toBeGreaterThan(0.3);
+  });
+
+  it("通常地形と第一進化鉱脈に原画セル境界を焼き込まない", () => {
+    const seamSensitiveTiles = [
+      "earth", "tunnel", "bedrock",
+      "moss", "meat", "venom", "stone", "ember",
+      "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo",
+    ];
+    for (const name of seamSensitiveTiles) {
+      const tile = atlasCell("tiles.png", PIXEL_TILES.indexOf(name));
+      for (const side of ["left", "right", "top", "bottom"]) {
+        const ratio = tileEdgeRatio(tile, side);
+        expect(ratio, `${name}:${side}`).toBeGreaterThanOrEqual(0.55);
+        expect(ratio, `${name}:${side}`).toBeLessThanOrEqual(1.8);
+      }
+    }
   });
 
   it("imagegen原画・プロンプト・代替禁止方針を記録している", () => {

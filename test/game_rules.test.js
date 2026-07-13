@@ -67,6 +67,26 @@ function advanceDialogueAll(game = G) {
 }
 
 describe("ゲームルール", () => {
+  it("移動差分と向きは8方向で一致する", () => {
+    carveAll();
+    const directions = [
+      [1, 0, "e"], [1, 1, "se"], [0, 1, "s"], [-1, 1, "sw"],
+      [-1, 0, "w"], [-1, -1, "nw"], [0, -1, "n"], [1, -1, "ne"],
+    ];
+    for (const [dc, dr, expected] of directions) {
+      expect(G.dirFromDelta(dc, dr), `${dc},${dr}`).toBe(expected);
+      G.spawnMonster("slime", 5, 5);
+      const monster = G.monsters.at(-1);
+      G.beginMove(monster, 5 + dc, 5 + dr);
+      expect(monster.faceDir, `move:${dc},${dr}`).toBe(expected);
+      monster.px = G.cx(5);
+      monster.py = G.cy(5);
+      G.faceToward(monster, G.cx(5 + dc), G.cy(5 + dr));
+      expect(monster.faceDir, `face:${dc},${dr}`).toBe(expected);
+      G.monsters.length = 0;
+    }
+  });
+
   it("初期盤面と資源が正しい", () => {
     expect(G.grid).toHaveLength(G.ROWS);
     expect(G.grid[0]).toHaveLength(G.COLS);

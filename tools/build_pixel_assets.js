@@ -51,6 +51,26 @@ function validateManifest() {
   assertList("デバフ", manifest.layouts.debuffs.ids, DEBUFF_ICONS);
   assertList("会話立ち絵", manifest.layouts.dialogue.ids, DIALOGUE_PORTRAITS);
   assertList("アイテム", manifest.itemSheets.flatMap((sheet) => sheet.ids), ITEM_ICONS);
+  for (const [label, layout] of [["通常タイル", manifest.layouts.environmentTiles], ["鉱脈タイル", manifest.layouts.veinTiles]]) {
+    if (!Number.isFinite(layout.trimRatio) || layout.trimRatio <= 0 || layout.trimRatio >= 0.25) {
+      throw new Error(`${label} のトリム率が不正です。`);
+    }
+  }
+  const transforms = manifest.actorSourceFlipX;
+  assertList("アクター方向補正", Object.keys(transforms || {}), Object.keys(manifest.actorSources));
+  for (const [name, directions] of Object.entries(transforms || {})) {
+    if (!directions || Array.isArray(directions)) throw new Error(`${name} の方向補正が不正です。`);
+    for (const [direction, actions] of Object.entries(directions)) {
+      if (!ACTOR_RENDER_DIRECTIONS.includes(direction) || !Array.isArray(actions) || actions.length === 0) {
+        throw new Error(`${name}:${direction} の方向補正が不正です。`);
+      }
+      if (actions.includes("*") && actions.length !== 1) throw new Error(`${name}:${direction} の全アクション指定が重複しています。`);
+      if (!actions.includes("*") && actions.some((action) => !ACTIONS.includes(action))) {
+        throw new Error(`${name}:${direction} のアクション補正が不正です。`);
+      }
+      if (new Set(actions).size !== actions.length) throw new Error(`${name}:${direction} のアクション補正が重複しています。`);
+    }
+  }
   for (const name of ACTORS) {
     if (name.startsWith("egg_")) continue;
     if (!manifest.actorSources[name] && !manifest.paletteVariants[name]) {
@@ -142,11 +162,28 @@ function normalizeTransparent(src, maxWidth = 42, maxHeight = 42, align = "botto
   return out;
 }
 
-function normalizeTile(src) {
+function flipHorizontal(src) {
+  const out = image(src.width, src.height);
+  for (let y = 0; y < src.height; y++) {
+    for (let x = 0; x < src.width; x++) {
+      const si = (y * src.width + x) * 4;
+      const di = (y * out.width + (out.width - x - 1)) * 4;
+      out.data[di] = src.data[si];
+      out.data[di + 1] = src.data[si + 1];
+      out.data[di + 2] = src.data[si + 2];
+      out.data[di + 3] = src.data[si + 3];
+    }
+  }
+  return out;
+}
+
+function normalizeTile(src, trimRatio) {
   const size = Math.min(src.width, src.height);
   const x = Math.floor((src.width - size) / 2);
   const y = Math.floor((src.height - size) / 2);
-  return resizeNearest(crop(src, x, y, size, size), CELL, CELL);
+  const trim = Math.round(size * trimRatio);
+  if (trim < 1 || trim * 2 >= size) throw new Error("タイル原画のトリム量が不正です。");
+  return resizeNearest(crop(src, x + trim, y + trim, size - trim * 2, size - trim * 2), CELL, CELL);
 }
 
 function shifted(src, dx, dy) {
@@ -184,6 +221,11 @@ function frameOffset(action, direction, frame) {
   return motions[action][frame];
 }
 
+function shouldFlipActorSource(baseName, action, direction) {
+  const actions = manifest.actorSourceFlipX?.[baseName]?.[direction];
+  return Array.isArray(actions) && (actions.includes("*") || actions.includes(action));
+}
+
 function actorPose(baseName, action, direction) {
   const key = `${baseName}:${action}:${direction}`;
   if (!actorPoseCache.has(key)) {
@@ -193,7 +235,8 @@ function actorPose(baseName, action, direction) {
     const column = ACTOR_RENDER_DIRECTIONS.indexOf(direction);
     const row = ACTIONS.indexOf(action);
     const cell = gridCell(src, column, row, manifest.layouts.actors.columns, manifest.layouts.actors.rows);
-    actorPoseCache.set(key, normalizeTransparent(cell, 42, 42, "bottom"));
+    const corrected = shouldFlipActorSource(baseName, action, direction) ? flipHorizontal(cell) : cell;
+    actorPoseCache.set(key, normalizeTransparent(corrected, 42, 42, "bottom"));
   }
   return actorPoseCache.get(key);
 }
@@ -300,7 +343,10 @@ function writeTileAtlas() {
   const environment = manifest.layouts.environmentTiles;
   const environmentSource = sourceImage(environment.file);
   environment.ids.forEach((name, index) => {
-    const tile = normalizeTile(gridCell(environmentSource, index, 0, environment.columns, environment.rows));
+    const tile = normalizeTile(
+      gridCell(environmentSource, index, 0, environment.columns, environment.rows),
+      environment.trimRatio,
+    );
     copyInto(atlas, tile, TILES.indexOf(name) * CELL, 0);
   });
 
@@ -309,7 +355,10 @@ function writeTileAtlas() {
   veins.kinds.forEach((kind, row) => {
     veins.levels.forEach((level, column) => {
       const name = level === "normal" ? kind : `${kind}_${level}`;
-      const tile = normalizeTile(gridCell(veinSource, column, row, veins.columns, veins.rows));
+      const tile = normalizeTile(
+        gridCell(veinSource, column, row, veins.columns, veins.rows),
+        veins.trimRatio,
+      );
       copyInto(atlas, tile, TILES.indexOf(name) * CELL, 0);
     });
   });

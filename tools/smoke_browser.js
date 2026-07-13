@@ -240,11 +240,15 @@ async function run() {
       title: document.title,
       app: !!document.querySelector("#app"),
       canvas: !!document.querySelector("canvas"),
+      canvasRatio: (() => {
+        const rect = document.querySelector("canvas")?.getBoundingClientRect();
+        return rect ? rect.width / rect.height : 0;
+      })(),
       state: globalThis.MakaiDefense?.current?.gameState || null,
       tabs: [...document.querySelectorAll("[data-home-tab]")].map((button) => button.textContent.trim()),
       oldBottom: !!document.getElementById("codexBtn") || !!document.getElementById("loopSelect") || !!document.getElementById("soundPanel")
     })`);
-    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || loaded.state !== "title" || loaded.oldBottom || loaded.tabs.join("/") !== "防衛/モンスターデッキ/図鑑/設定") {
+    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || Math.abs(loaded.canvasRatio - 528 / 768) > 0.002 || loaded.state !== "title" || loaded.oldBottom || loaded.tabs.join("/") !== "防衛/モンスターデッキ/図鑑/設定") {
       throw new Error(`初回ロード状態が不正です: ${JSON.stringify(loaded)}`);
     }
 

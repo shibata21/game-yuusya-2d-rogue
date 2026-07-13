@@ -374,7 +374,8 @@ textarea {
 
 .stage {
   position: relative;
-  width: 100%;
+  box-sizing: content-box;
+  width: calc(100% - 4px);
   aspect-ratio: 528 / 768;
   line-height: 0;
   border: 2px solid var(--frame);

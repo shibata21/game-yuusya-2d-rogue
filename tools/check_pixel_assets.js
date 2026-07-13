@@ -71,6 +71,32 @@ function gridCell(src, column, row, columns, rows) {
   return crop(src, x0, y0, x1 - x0, y1 - y0);
 }
 
+function luminance(img, x, y) {
+  const i = (y * img.width + x) * 4;
+  return img.data[i] * 0.2126 + img.data[i + 1] * 0.7152 + img.data[i + 2] * 0.0722;
+}
+
+function tileEdgeRatio(tile, side) {
+  let edge = 0;
+  let inner = 0;
+  for (let n = 0; n < CELL; n++) {
+    if (side === "left") {
+      edge += luminance(tile, 0, n);
+      inner += luminance(tile, 2, n);
+    } else if (side === "right") {
+      edge += luminance(tile, CELL - 1, n);
+      inner += luminance(tile, CELL - 3, n);
+    } else if (side === "top") {
+      edge += luminance(tile, n, 0);
+      inner += luminance(tile, n, 2);
+    } else {
+      edge += luminance(tile, n, CELL - 1);
+      inner += luminance(tile, n, CELL - 3);
+    }
+  }
+  return edge / Math.max(1, inner);
+}
+
 function diffStats(a, b) {
   let union = 0;
   let alphaDiff = 0;
@@ -149,8 +175,36 @@ function validateImagegenSource(manifest) {
   const actorLayout = manifest.layouts.actors;
   if (!sameList(actorLayout.directions, ACTOR_RENDER_DIRECTIONS)) fail("生成元の方向順が不正です");
   if (!sameList(actorLayout.actions, ACTIONS)) fail("生成元のアクション順が不正です");
+  for (const [label, layout] of [["通常タイル", manifest.layouts.environmentTiles], ["鉱脈タイル", manifest.layouts.veinTiles]]) {
+    if (!Number.isFinite(layout.trimRatio) || layout.trimRatio !== 0.03) {
+      fail(`${label} のセル境界トリム率が不正です`);
+    }
+  }
   for (const [name, file] of Object.entries(manifest.actorSources)) {
     validateSourceGrid(file, actorLayout.columns, actorLayout.rows, `アクター ${name}`);
+  }
+  const transforms = manifest.actorSourceFlipX;
+  const sourceNames = Object.keys(manifest.actorSources);
+  if (!transforms || !sameList(Object.keys(transforms), sourceNames)) {
+    fail("アクター方向補正が全生成元を網羅していません");
+  } else {
+    for (const [name, directions] of Object.entries(transforms)) {
+      if (!directions || Array.isArray(directions)) {
+        fail(`${name} の方向補正形式が不正です`);
+        continue;
+      }
+      for (const [direction, actions] of Object.entries(directions)) {
+        if (!ACTOR_RENDER_DIRECTIONS.includes(direction) || !Array.isArray(actions) || actions.length === 0) {
+          fail(`${name}:${direction} の方向補正が不正です`);
+          continue;
+        }
+        if (actions.includes("*") && actions.length !== 1) fail(`${name}:${direction} の全アクション指定が重複しています`);
+        if (!actions.includes("*") && actions.some((action) => !ACTIONS.includes(action))) {
+          fail(`${name}:${direction} のアクション補正が不正です`);
+        }
+        if (new Set(actions).size !== actions.length) fail(`${name}:${direction} のアクション補正が重複しています`);
+      }
+    }
   }
 
   const gridLayouts = [
@@ -270,6 +324,20 @@ function validateAtlases() {
     if (opaqueCount(tile) < CELL * CELL * 0.95) fail(`タイル ${name} に透明部が多すぎます`);
     if (uniqueColors(tile) < 8) fail(`タイル ${name} の色数が不足しています`);
   });
+  const seamSensitiveTiles = [
+    "earth", "tunnel", "bedrock",
+    "moss", "meat", "venom", "stone", "ember",
+    "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo",
+  ];
+  for (const name of seamSensitiveTiles) {
+    const tile = crop(tiles, TILES.indexOf(name) * CELL, 0);
+    for (const side of ["left", "right", "top", "bottom"]) {
+      const ratio = tileEdgeRatio(tile, side);
+      if (ratio < 0.55 || ratio > 1.8) {
+        fail(`タイル ${name}:${side} に原画セル境界が混入しています: ${ratio.toFixed(2)}`);
+      }
+    }
+  }
   EFFECTS.forEach((name, row) => {
     for (let frame = 0; frame < FRAMES; frame++) {
       if (opaqueCount(crop(effects, frame * CELL, row * CELL)) < 8) fail(`エフェクト ${name}:${frame} が空です`);
