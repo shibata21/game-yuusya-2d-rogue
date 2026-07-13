@@ -141,6 +141,19 @@
     "hori": {"ne": ["*"]},
     "xTerminator": {"e": ["*"], "se": ["*"], "ne": ["*"]}
   },
+  "actorPoseOverrides": {
+    "moss_virus": {
+      "ne": {
+        "idle": "actors/moss_virus_ne/idle.png",
+        "attack": "actors/moss_virus_ne/attack.png",
+        "cast": "actors/moss_virus_ne/cast.png",
+        "dig": "actors/moss_virus_ne/dig.png",
+        "heal": "actors/moss_virus_ne/heal.png",
+        "eat": "actors/moss_virus_ne/eat.png",
+        "dodge": "actors/moss_virus_ne/dodge.png"
+      }
+    }
+  },
   "paletteVariants": {
     "superslime": {"base": "slime", "tint": "#46c8ef", "strength": 0.78},
     "crownslime": {"base": "slime", "tint": "#e2b83e", "strength": 0.82},

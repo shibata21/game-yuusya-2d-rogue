@@ -71,6 +71,29 @@ function validateManifest() {
       if (new Set(actions).size !== actions.length) throw new Error(`${name}:${direction} のアクション補正が重複しています。`);
     }
   }
+  const overrides = manifest.actorPoseOverrides || {};
+  if (!overrides || Array.isArray(overrides)) throw new Error("アクター個別ポーズの形式が不正です。");
+  for (const [name, directions] of Object.entries(overrides)) {
+    if (!Object.prototype.hasOwnProperty.call(manifest.actorSources, name)) {
+      throw new Error(`${name} の個別ポーズは直接生成元のアクターだけに指定できます。`);
+    }
+    if (!directions || Array.isArray(directions)) throw new Error(`${name} の個別ポーズ方向が不正です。`);
+    for (const [direction, actions] of Object.entries(directions)) {
+      if (!ACTOR_RENDER_DIRECTIONS.includes(direction) || !actions || Array.isArray(actions)) {
+        throw new Error(`${name}:${direction} の個別ポーズが不正です。`);
+      }
+      for (const [action, file] of Object.entries(actions)) {
+        if (!ACTIONS.includes(action) || typeof file !== "string" || file.length === 0) {
+          throw new Error(`${name}:${direction}:${action} の個別ポーズ指定が不正です。`);
+        }
+        const src = sourceImage(file);
+        const cornerPixels = [0, src.width - 1, (src.height - 1) * src.width, src.width * src.height - 1];
+        if (src.width < CELL || src.height < CELL || !alphaBounds(src) || !cornerPixels.every((pixel) => src.data[pixel * 4 + 3] <= 12)) {
+          throw new Error(`${name}:${direction}:${action} の個別ポーズ透過PNGが不正です。`);
+        }
+      }
+    }
+  }
   for (const name of ACTORS) {
     if (name.startsWith("egg_")) continue;
     if (!manifest.actorSources[name] && !manifest.paletteVariants[name]) {
@@ -229,12 +252,18 @@ function shouldFlipActorSource(baseName, action, direction) {
 function actorPose(baseName, action, direction) {
   const key = `${baseName}:${action}:${direction}`;
   if (!actorPoseCache.has(key)) {
-    const file = manifest.actorSources[baseName];
-    if (!file) throw new Error(`${baseName} のimagegenアクター画像がありません。`);
-    const src = sourceImage(file);
-    const column = ACTOR_RENDER_DIRECTIONS.indexOf(direction);
-    const row = ACTIONS.indexOf(action);
-    const cell = gridCell(src, column, row, manifest.layouts.actors.columns, manifest.layouts.actors.rows);
+    const override = manifest.actorPoseOverrides?.[baseName]?.[direction]?.[action];
+    let cell;
+    if (override) {
+      cell = sourceImage(override);
+    } else {
+      const file = manifest.actorSources[baseName];
+      if (!file) throw new Error(`${baseName} のimagegenアクター画像がありません。`);
+      const src = sourceImage(file);
+      const column = ACTOR_RENDER_DIRECTIONS.indexOf(direction);
+      const row = ACTIONS.indexOf(action);
+      cell = gridCell(src, column, row, manifest.layouts.actors.columns, manifest.layouts.actors.rows);
+    }
     const corrected = shouldFlipActorSource(baseName, action, direction) ? flipHorizontal(cell) : cell;
     actorPoseCache.set(key, normalizeTransparent(corrected, 42, 42, "bottom"));
   }

@@ -57,6 +57,13 @@ function opaqueCount(img) {
   return count;
 }
 
+function hasOpaqueMagenta(img) {
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i + 3] > 12 && img.data[i] > 240 && img.data[i + 1] < 16 && img.data[i + 2] > 240) return true;
+  }
+  return false;
+}
+
 function imageHash(img) {
   let hash = 2166136261;
   for (const value of img.data) {
@@ -221,10 +228,17 @@ function frameOffset(action, direction, frame) {
 }
 
 function expectedActorFrame(name, action, direction, frame) {
-  const src = png(`assets/pixel/source/imagegen-v1/${manifest.actorSources[name]}`);
-  const column = PIXEL_ACTOR_RENDER_DIRS.indexOf(direction);
-  const row = PIXEL_ACTIONS.indexOf(action);
-  const cell = gridCell(src, column, row, manifest.layouts.actors.columns, manifest.layouts.actors.rows);
+  const override = manifest.actorPoseOverrides?.[name]?.[direction]?.[action];
+  const src = png(`assets/pixel/source/imagegen-v1/${override || manifest.actorSources[name]}`);
+  const cell = override
+    ? src
+    : gridCell(
+      src,
+      PIXEL_ACTOR_RENDER_DIRS.indexOf(direction),
+      PIXEL_ACTIONS.indexOf(action),
+      manifest.layouts.actors.columns,
+      manifest.layouts.actors.rows,
+    );
   const transforms = manifest.actorSourceFlipX[name]?.[direction] || [];
   const corrected = transforms.includes("*") || transforms.includes(action) ? flipHorizontal(cell) : cell;
   const [dx, dy] = frameOffset(action, direction, frame);
@@ -286,13 +300,13 @@ describe("imagegenピクセル素材", () => {
   });
 
   it("公開アセットURLとフレーム参照が新しい版を使う", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v28-imagegen");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v28-imagegen");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v28-imagegen");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v28-imagegen");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v28-imagegen");
+    expect(PIXEL_ASSET_VERSION).toBe("v29-imagegen");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v29-imagegen");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v29-imagegen");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v29-imagegen");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v29-imagegen");
     expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe(
-      "assets/pixel/actor_venom_spider.png?v=v28-imagegen",
+      "assets/pixel/actor_venom_spider.png?v=v29-imagegen",
     );
 
     const east = pixelActorFrameInfo("slime", "idle", "e", 0);
@@ -421,6 +435,25 @@ describe("imagegenピクセル素材", () => {
     }
   });
 
+  it("北東向きの個別ポーズ原画が透過化されアトラスへ反映される", () => {
+    const poses = manifest.actorPoseOverrides;
+    expect(poses).toEqual({
+      moss_virus: {
+        ne: Object.fromEntries(
+          PIXEL_ACTIONS.map((action) => [action, `actors/moss_virus_ne/${action}.png`]),
+        ),
+      },
+    });
+    for (const action of PIXEL_ACTIONS) {
+      const source = png(`assets/pixel/source/imagegen-v1/${poses.moss_virus.ne[action]}`);
+      const corners = [0, source.width - 1, (source.height - 1) * source.width, source.width * source.height - 1];
+      expect(corners.map((pixel) => source.data[pixel * 4 + 3])).toEqual([0, 0, 0, 0]);
+      expect(hasOpaqueMagenta(source), action).toBe(false);
+      const expected = expectedActorFrame("moss_virus", action, "ne", 0);
+      expect(imageHash(actorCrop("moss_virus", action, "ne", 0)), action).toBe(imageHash(expected));
+    }
+  });
+
   it("第一・第二進化は通常種と同じ形状の色違いである", () => {
     for (const [variant, spec] of Object.entries(manifest.paletteVariants)) {
       for (const action of ["idle", "attack", "cast"]) {
@@ -502,6 +535,9 @@ describe("imagegenピクセル素材", () => {
     const sourceFiles = [
       manifest.generator.styleReference,
       ...Object.values(manifest.actorSources),
+      ...Object.values(manifest.actorPoseOverrides).flatMap((directions) =>
+        Object.values(directions).flatMap((actions) => Object.values(actions)),
+      ),
       manifest.layouts.eggs.file,
       manifest.layouts.environmentTiles.file,
       manifest.layouts.veinTiles.file,

@@ -159,6 +159,28 @@ function validateSourceGrid(relativePath, columns, rows, label) {
   }
 }
 
+function validateActorPoseOverride(relativePath, label) {
+  const file = sourceFile(relativePath);
+  if (!fs.existsSync(file)) {
+    fail(`個別ポーズ生成元がありません: ${file}`);
+    return;
+  }
+  const img = readPng(file);
+  const corners = [0, img.width - 1, (img.height - 1) * img.width, img.width * img.height - 1];
+  if (img.width < CELL || img.height < CELL || opaqueCount(img) < 24) {
+    fail(`${label} の個別ポーズ画像が不正です`);
+  }
+  if (!corners.every((pixel) => img.data[pixel * 4 + 3] <= 12)) {
+    fail(`${label} の個別ポーズ背景が透過されていません`);
+  }
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i + 3] > 12 && img.data[i] > 240 && img.data[i + 1] < 16 && img.data[i + 2] > 240) {
+      fail(`${label} の個別ポーズにマゼンタ背景が残っています`);
+      break;
+    }
+  }
+}
+
 function validateImagegenSource(manifest) {
   if (manifest.version !== "imagegen-v1") fail("素材マニフェストの版が不正です");
   if (!String(manifest.generator?.tool || "").toLowerCase().includes("imagegen")) {
@@ -203,6 +225,34 @@ function validateImagegenSource(manifest) {
           fail(`${name}:${direction} のアクション補正が不正です`);
         }
         if (new Set(actions).size !== actions.length) fail(`${name}:${direction} のアクション補正が重複しています`);
+      }
+    }
+  }
+  const overrides = manifest.actorPoseOverrides || {};
+  if (!overrides || Array.isArray(overrides)) {
+    fail("アクター個別ポーズの形式が不正です");
+  } else {
+    for (const [name, directions] of Object.entries(overrides)) {
+      if (!Object.prototype.hasOwnProperty.call(manifest.actorSources, name)) {
+        fail(`${name} の個別ポーズは直接生成元のアクターだけに指定できます`);
+        continue;
+      }
+      if (!directions || Array.isArray(directions)) {
+        fail(`${name} の個別ポーズ方向が不正です`);
+        continue;
+      }
+      for (const [direction, actions] of Object.entries(directions)) {
+        if (!ACTOR_RENDER_DIRECTIONS.includes(direction) || !actions || Array.isArray(actions)) {
+          fail(`${name}:${direction} の個別ポーズが不正です`);
+          continue;
+        }
+        for (const [action, file] of Object.entries(actions)) {
+          if (!ACTIONS.includes(action) || typeof file !== "string" || file.length === 0) {
+            fail(`${name}:${direction}:${action} の個別ポーズ指定が不正です`);
+            continue;
+          }
+          validateActorPoseOverride(file, `${name}:${direction}:${action}`);
+        }
       }
     }
   }
