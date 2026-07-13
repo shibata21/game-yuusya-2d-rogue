@@ -4,470 +4,394 @@ const fs = require("fs");
 const path = require("path");
 const { PNG } = require("pngjs");
 const {
-  CELL, FRAMES, DIRECTIONS, ACTOR_RENDER_DIRECTIONS, ACTIONS, OUT_DIR, SOURCE_DIR, ACTORS, ACTOR_SHEETS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
-  readPng, spritePath,
+  CELL,
+  FRAMES,
+  DIRECTIONS,
+  ACTOR_RENDER_DIRECTIONS,
+  ACTIONS,
+  ACTOR_FRAMES_PER_ACTOR,
+  ACTOR_ATLAS_COLUMNS,
+  ACTOR_ATLAS_ROWS_PER_ACTOR,
+  OUT_DIR,
+  SOURCE_DIR,
+  ACTORS,
+  ACTOR_SHEETS,
+  TILES,
+  EFFECTS,
+  ITEM_ICONS,
+  DEBUFF_ICONS,
+  DIALOGUE_PORTRAITS,
+  readPng,
 } = require("./pixel_asset_common");
 
-const EXPECTED_EGG_ACTORS = ["egg_spitter", "egg_golem", "egg_flame", "egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"];
+const manifestFile = path.join(SOURCE_DIR, "manifest.json");
 let failed = false;
-function fail(msg) {
+
+function fail(message) {
   failed = true;
-  console.error("NG: " + msg);
-}
-function ok(msg) {
-  console.log("OK: " + msg);
+  console.error("NG: " + message);
 }
 
-function exists(file) {
-  if (!fs.existsSync(file)) fail("ファイルがありません: " + file);
+function ok(message) {
+  console.log("OK: " + message);
 }
 
-function nonEmpty(img, file) {
+function sameList(actual, expected) {
+  return JSON.stringify(actual) === JSON.stringify(expected);
+}
+
+function opaqueCount(img) {
   let count = 0;
-  for (let i = 3; i < img.data.length; i += 4) if (img.data[i] > 0) count++;
-  if (count === 0) fail("透明だけの画像です: " + file);
+  for (let i = 3; i < img.data.length; i += 4) {
+    if (img.data[i] > 12) count++;
+  }
   return count;
 }
-function alphaBounds(img) {
-  let minX = img.width, minY = img.height, maxX = -1, maxY = -1, count = 0;
-  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
-    if (img.data[(y * img.width + x) * 4 + 3] > 0) {
-      count++; minX = Math.min(minX, x); minY = Math.min(minY, y); maxX = Math.max(maxX, x); maxY = Math.max(maxY, y);
-    }
-  }
-  return { minX, minY, maxX, maxY, count };
-}
-function colorDiff(a, ai, b, bi) {
-  return Math.abs(a[ai] - b[bi]) + Math.abs(a[ai + 1] - b[bi + 1]) + Math.abs(a[ai + 2] - b[bi + 2]) + Math.abs(a[ai + 3] - b[bi + 3]);
-}
-function diffRatio(a, b) {
-  let union = 0, diff = 0;
-  for (let i = 0; i < a.data.length; i += 4) {
-    if (a.data[i + 3] > 0 || b.data[i + 3] > 0) union++;
-    if (colorDiff(a.data, i, b.data, i) > 32) diff++;
-  }
-  return union ? diff / union : 0;
-}
-function uniqueOpaqueColors(img) {
+
+function uniqueColors(img) {
   const colors = new Set();
   for (let i = 0; i < img.data.length; i += 4) {
-    if (img.data[i + 3] > 0) colors.add(img.data[i] + "," + img.data[i + 1] + "," + img.data[i + 2] + "," + img.data[i + 3]);
+    if (img.data[i + 3] <= 12) continue;
+    colors.add(`${img.data[i]},${img.data[i + 1]},${img.data[i + 2]}`);
   }
   return colors.size;
 }
-function pixelsIn(img, pred) {
-  let count = 0;
-  for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
-    const i = (y * img.width + x) * 4;
-    if (img.data[i + 3] > 0 && pred(x, y, img.data[i], img.data[i + 1], img.data[i + 2], img.data[i + 3])) count++;
-  }
-  return count;
-}
-function eggMotifPixels(img) {
-  return pixelsIn(img, (x, y, r, g, b, a) => {
-    if (a <= 0 || x < 15 || x > 34 || y < 20 || y > 39) return false;
-    return Math.max(r, g, b) - Math.min(r, g, b) > 35 && Math.min(r, g, b) < 150;
-  });
-}
-function eggGlowPixels(img) {
-  return pixelsIn(img, (x, y, r, g, b, a) => {
-    if (a <= 0 || !(x <= 7 || x >= 41 || y <= 6 || y >= 46)) return false;
-    return r + g + b > 610;
-  });
+
+function crop(src, x, y, width = CELL, height = CELL) {
+  const out = new PNG({ width, height });
+  PNG.bitblt(src, out, x, y, width, height, 0, 0);
+  return out;
 }
 
-function whiteEdgeCount(img) {
-  let count = 0;
-  const sample = (x, y) => {
-    const i = (y * img.width + x) * 4;
-    const a = img.data[i + 3];
-    return a > 0 && img.data[i] >= 235 && img.data[i + 1] >= 235 && img.data[i + 2] >= 235;
-  };
-  for (let x = 0; x < img.width; x++) {
-    if (sample(x, 0)) count++;
-    if (sample(x, img.height - 1)) count++;
-  }
-  for (let y = 0; y < img.height; y++) {
-    if (sample(0, y)) count++;
-    if (sample(img.width - 1, y)) count++;
-  }
-  return count;
+function gridCell(src, column, row, columns, rows) {
+  const x0 = Math.round((column * src.width) / columns);
+  const x1 = Math.round(((column + 1) * src.width) / columns);
+  const y0 = Math.round((row * src.height) / rows);
+  const y1 = Math.round(((row + 1) * src.height) / rows);
+  return crop(src, x0, y0, x1 - x0, y1 - y0);
 }
 
-function validatePng(file, w, h, allowWhiteEdge) {
-  exists(file);
+function diffStats(a, b) {
+  let union = 0;
+  let alphaDiff = 0;
+  let colorDiff = 0;
+  for (let i = 0; i < a.data.length; i += 4) {
+    const aa = a.data[i + 3];
+    const ba = b.data[i + 3];
+    if (aa > 12 || ba > 12) union++;
+    if (aa !== ba) alphaDiff++;
+    const rgb =
+      Math.abs(a.data[i] - b.data[i]) +
+      Math.abs(a.data[i + 1] - b.data[i + 1]) +
+      Math.abs(a.data[i + 2] - b.data[i + 2]);
+    if (rgb > 36 || Math.abs(aa - ba) > 12) colorDiff++;
+  }
+  return { alphaDiff, colorRatio: union ? colorDiff / union : 0 };
+}
+
+function imageHash(img) {
+  let hash = 2166136261;
+  for (const value of img.data) {
+    hash ^= value;
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function validatePng(file, width, height) {
+  if (!fs.existsSync(file)) {
+    fail("ファイルがありません: " + file);
+    return null;
+  }
   const img = readPng(file);
-  if (img.width !== w || img.height !== h) fail(file + " の寸法が不正です: " + img.width + "x" + img.height + " expected " + w + "x" + h);
-  nonEmpty(img, file);
-  const edge = whiteEdgeCount(img);
-  if (!allowWhiteEdge && edge > 0) fail(file + " の外周に白系ピクセルがあります: " + edge);
+  if (img.width !== width || img.height !== height) {
+    fail(`${file} の寸法が不正です: ${img.width}x${img.height} expected ${width}x${height}`);
+  }
+  if (opaqueCount(img) === 0) fail("透明だけの画像です: " + file);
   return img;
 }
 
-function validateSource() {
-  for (const name of TILES) validatePng(spritePath("tiles", name), CELL, CELL, false);
-  for (const name of ACTORS) for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("actors", name, f, dir, action), CELL, CELL, false);
-  for (const name of EFFECTS) for (let f = 0; f < FRAMES; f++) validatePng(spritePath("effects", name, f), CELL, CELL, true);
-  for (const name of ITEM_ICONS) validatePng(spritePath("items", name), CELL, CELL, false);
-  for (const name of DEBUFF_ICONS) validatePng(spritePath("debuffs", name), CELL, CELL, false);
-  for (const name of DIALOGUE_PORTRAITS) validatePng(spritePath("dialogue", name), CELL, CELL, false);
-  ok("個別PNGフレームを検査しました");
+function sourceFile(relativePath) {
+  return path.join(SOURCE_DIR, ...relativePath.split("/"));
 }
 
-function validateMeta() {
+function validateSourceGrid(relativePath, columns, rows, label) {
+  const file = sourceFile(relativePath);
+  if (!fs.existsSync(file)) {
+    fail(`imagegen生成元がありません: ${file}`);
+    return;
+  }
+  const img = readPng(file);
+  if (img.width < columns * CELL || img.height < rows * CELL) {
+    fail(`${label} の生成元解像度が不足しています: ${img.width}x${img.height}`);
+  }
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      const cell = gridCell(img, column, row, columns, rows);
+      if (opaqueCount(cell) < 24) fail(`${label} のセルが空です: ${column},${row}`);
+    }
+  }
+}
+
+function validateImagegenSource(manifest) {
+  if (manifest.version !== "imagegen-v1") fail("素材マニフェストの版が不正です");
+  if (!String(manifest.generator?.tool || "").toLowerCase().includes("imagegen")) {
+    fail("素材生成ツールがimagegenとして記録されていません");
+  }
+  const policy = String(manifest.generator?.policy || "");
+  if (!policy.includes("代替せず") || !policy.includes("報告")) {
+    fail("imagegen利用不能時の代替禁止・報告方針が記録されていません");
+  }
+  if (!fs.existsSync(sourceFile(manifest.generator.styleReference))) {
+    fail("imagegen画風参照画像がありません");
+  }
+
+  const actorLayout = manifest.layouts.actors;
+  if (!sameList(actorLayout.directions, ACTOR_RENDER_DIRECTIONS)) fail("生成元の方向順が不正です");
+  if (!sameList(actorLayout.actions, ACTIONS)) fail("生成元のアクション順が不正です");
+  for (const [name, file] of Object.entries(manifest.actorSources)) {
+    validateSourceGrid(file, actorLayout.columns, actorLayout.rows, `アクター ${name}`);
+  }
+
+  const gridLayouts = [
+    ["卵", manifest.layouts.eggs],
+    ["通常タイル", manifest.layouts.environmentTiles],
+    ["鉱脈タイル", manifest.layouts.veinTiles],
+    ["エフェクト", manifest.layouts.effects],
+    ["デバフ", manifest.layouts.debuffs],
+    ["会話立ち絵", manifest.layouts.dialogue],
+  ];
+  for (const [label, layout] of gridLayouts) {
+    validateSourceGrid(layout.file, layout.columns, layout.rows, label);
+  }
+  for (const [index, layout] of manifest.itemSheets.entries()) {
+    validateSourceGrid(layout.file, layout.columns, layout.rows, `アイテムシート${index + 1}`);
+  }
+
+  if (!sameList(manifest.layouts.eggs.ids, ACTOR_SHEETS.eggs)) fail("卵の順序が不正です");
+  if (!sameList(manifest.layouts.environmentTiles.ids, TILES.slice(0, 5))) fail("通常タイルの順序が不正です");
+  if (!sameList(manifest.layouts.effects.ids, EFFECTS)) fail("エフェクトの順序が不正です");
+  if (!sameList(manifest.layouts.debuffs.ids, DEBUFF_ICONS)) fail("デバフの順序が不正です");
+  if (!sameList(manifest.layouts.dialogue.ids, DIALOGUE_PORTRAITS)) fail("会話立ち絵の順序が不正です");
+  if (!sameList(manifest.itemSheets.flatMap((sheet) => sheet.ids), ITEM_ICONS)) fail("アイテムの順序が不正です");
+
+  for (const actor of ACTORS) {
+    if (actor.startsWith("egg_")) continue;
+    if (!manifest.actorSources[actor] && !manifest.paletteVariants[actor]) {
+      fail(`${actor} のimagegen生成元対応がありません`);
+    }
+  }
+  ok("imagegen生成元とマニフェストを検査しました");
+}
+
+function validateMeta(manifest) {
   const file = path.join(OUT_DIR, "sprites.json");
-  exists(file);
+  if (!fs.existsSync(file)) {
+    fail("sprites.json がありません");
+    return;
+  }
   const meta = JSON.parse(fs.readFileSync(file, "utf8"));
+  if (meta.sourceVersion !== manifest.version) fail("sprites.json の生成元版が不正です");
+  if (!String(meta.generator || "").toLowerCase().includes("imagegen")) fail("sprites.json の生成ツールが不正です");
   if (meta.cell !== CELL || meta.frames !== FRAMES) fail("sprites.json のセル仕様が不正です");
-  if (JSON.stringify(meta.directions) !== JSON.stringify(DIRECTIONS)) fail("directions の順序が不正です");
-  if (JSON.stringify(meta.renderDirections) !== JSON.stringify(ACTOR_RENDER_DIRECTIONS)) fail("renderDirections の順序が不正です");
-  if (JSON.stringify(meta.actions) !== JSON.stringify(ACTIONS)) fail("actions の順序が不正です");
-  if (JSON.stringify(meta.actorSheets) !== JSON.stringify(ACTOR_SHEETS)) fail("actorSheets の順序が不正です");
-  if (JSON.stringify(Object.keys(meta.actors)) !== JSON.stringify(ACTORS)) fail("actors の順序が不正です");
-  if (JSON.stringify(Object.keys(meta.tiles)) !== JSON.stringify(TILES)) fail("tiles の順序が不正です");
-  if (JSON.stringify(Object.keys(meta.effects)) !== JSON.stringify(EFFECTS)) fail("effects の順序が不正です");
-  if (JSON.stringify(Object.keys(meta.items)) !== JSON.stringify(ITEM_ICONS)) fail("items の順序が不正です");
-  if (JSON.stringify(Object.keys(meta.debuffs || {})) !== JSON.stringify(DEBUFF_ICONS)) fail("debuffs の順序が不正です");
-  if (JSON.stringify(Object.keys(meta.dialogue || {})) !== JSON.stringify(DIALOGUE_PORTRAITS)) fail("dialogue の順序が不正です");
+  if (!sameList(meta.directions, DIRECTIONS)) fail("sprites.json の方向順が不正です");
+  if (!sameList(meta.renderDirections, ACTOR_RENDER_DIRECTIONS)) fail("sprites.json の描画方向順が不正です");
+  if (!sameList(meta.actions, ACTIONS)) fail("sprites.json のアクション順が不正です");
+  if (meta.actorFramesPerActor !== ACTOR_FRAMES_PER_ACTOR) fail("sprites.json のアクター総フレーム数が不正です");
+  if (meta.actorAtlasColumns !== ACTOR_ATLAS_COLUMNS) fail("sprites.json のアクターアトラス列数が不正です");
+  if (meta.actorAtlasRowsPerActor !== ACTOR_ATLAS_ROWS_PER_ACTOR) fail("sprites.json のアクター段数が不正です");
+  if (!sameList(meta.actorSheets, ACTOR_SHEETS)) fail("sprites.json のアクターシート定義が不正です");
+  if (!sameList(Object.keys(meta.actors), ACTORS)) fail("sprites.json のアクター順が不正です");
+  if (!sameList(Object.keys(meta.tiles), TILES)) fail("sprites.json のタイル順が不正です");
+  if (!sameList(Object.keys(meta.effects), EFFECTS)) fail("sprites.json のエフェクト順が不正です");
+  if (!sameList(Object.keys(meta.items), ITEM_ICONS)) fail("sprites.json のアイテム順が不正です");
+  if (!sameList(Object.keys(meta.debuffs), DEBUFF_ICONS)) fail("sprites.json のデバフ順が不正です");
+  if (!sameList(Object.keys(meta.dialogue), DIALOGUE_PORTRAITS)) fail("sprites.json の会話立ち絵順が不正です");
   ok("sprites.json を検査しました");
 }
 
-function validateAtlas() {
-  if (fs.existsSync(path.join(OUT_DIR, "actors.png"))) fail("旧単一アクターシートが残っています: " + path.join(OUT_DIR, "actors.png"));
-  const actorSheets = {};
-  for (const sheet in ACTOR_SHEETS) {
-    actorSheets[sheet] = validatePng(path.join(OUT_DIR, `actor_${sheet}.png`), CELL * FRAMES * ACTOR_RENDER_DIRECTIONS.length * ACTIONS.length, CELL * ACTOR_SHEETS[sheet].length, false);
+const actorAtlases = new Map();
+
+function actorLocation(name) {
+  for (const [sheet, names] of Object.entries(ACTOR_SHEETS)) {
+    const row = names.indexOf(name);
+    if (row >= 0) return { sheet, row };
   }
-  const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL, false);
-  const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length, true);
-  const items = validatePng(path.join(OUT_DIR, "items.png"), CELL * ITEM_ICONS.length, CELL, false);
-  const debuffs = validatePng(path.join(OUT_DIR, "debuffs.png"), CELL * DEBUFF_ICONS.length, CELL, false);
-  const dialogue = validatePng(path.join(OUT_DIR, "dialogue_portraits.png"), CELL * DIALOGUE_PORTRAITS.length, CELL, false);
-  for (const sheet in ACTOR_SHEETS) {
-    const actors = actorSheets[sheet];
-    for (let row = 0; row < ACTOR_SHEETS[sheet].length; row++) {
-      for (let ai = 0; ai < ACTIONS.length; ai++) for (let di = 0; di < ACTOR_RENDER_DIRECTIONS.length; di++) {
-      for (let f = 0; f < FRAMES; f++) {
-        const frame = new PNG({ width: CELL, height: CELL });
-        PNG.bitblt(actors, frame, ((ai * ACTOR_RENDER_DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL, CELL, CELL, 0, 0);
-        nonEmpty(frame, `actor_${sheet}.png:${ACTOR_SHEETS[sheet][row]}:${ACTIONS[ai]}:${ACTOR_RENDER_DIRECTIONS[di]}:${f}`);
+  throw new Error(`アクター ${name} のシートがありません`);
+}
+
+function actorFrame(name, action, direction, frame) {
+  const { sheet, row } = actorLocation(name);
+  const atlas = actorAtlases.get(sheet);
+  const actionIndex = ACTIONS.indexOf(action);
+  const directionIndex = ACTOR_RENDER_DIRECTIONS.indexOf(direction);
+  const frameInActor = (actionIndex * ACTOR_RENDER_DIRECTIONS.length + directionIndex) * FRAMES + frame;
+  const atlasFrame = row * ACTOR_FRAMES_PER_ACTOR + frameInActor;
+  const x = (atlasFrame % ACTOR_ATLAS_COLUMNS) * CELL;
+  const y = Math.floor(atlasFrame / ACTOR_ATLAS_COLUMNS) * CELL;
+  return crop(atlas, x, y);
+}
+
+function validateAtlases() {
+  if (fs.existsSync(path.join(OUT_DIR, "actors.png"))) fail("旧単一アクターシートが残っています");
+  for (const [sheet, names] of Object.entries(ACTOR_SHEETS)) {
+    const atlas = validatePng(
+      path.join(OUT_DIR, `actor_${sheet}.png`),
+      CELL * ACTOR_ATLAS_COLUMNS,
+      CELL * names.length * ACTOR_ATLAS_ROWS_PER_ACTOR,
+    );
+    if (atlas && (atlas.width > 4096 || atlas.height > 4096)) {
+      fail(`actor_${sheet}.png がモバイル向け上限4096pxを超えています: ${atlas.width}x${atlas.height}`);
+    }
+    if (atlas) actorAtlases.set(sheet, atlas);
+  }
+  const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL);
+  const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length);
+  const items = validatePng(path.join(OUT_DIR, "items.png"), CELL * ITEM_ICONS.length, CELL);
+  const debuffs = validatePng(path.join(OUT_DIR, "debuffs.png"), CELL * DEBUFF_ICONS.length, CELL);
+  const dialogue = validatePng(path.join(OUT_DIR, "dialogue_portraits.png"), CELL * DIALOGUE_PORTRAITS.length, CELL);
+
+  for (const name of ACTORS) {
+    for (const action of ACTIONS) {
+      for (const direction of ACTOR_RENDER_DIRECTIONS) {
+        const hashes = new Set();
+        for (let frame = 0; frame < FRAMES; frame++) {
+          const sprite = actorFrame(name, action, direction, frame);
+          if (opaqueCount(sprite) < 20) fail(`${name}:${action}:${direction}:${frame} が空です`);
+          hashes.add(imageHash(sprite));
+        }
+        if (hashes.size < 3) fail(`${name}:${action}:${direction} の4フレーム差分が不足しています`);
       }
     }
+  }
+
+  TILES.forEach((name, column) => {
+    const tile = crop(tiles, column * CELL, 0);
+    if (opaqueCount(tile) < CELL * CELL * 0.95) fail(`タイル ${name} に透明部が多すぎます`);
+    if (uniqueColors(tile) < 8) fail(`タイル ${name} の色数が不足しています`);
+  });
+  EFFECTS.forEach((name, row) => {
+    for (let frame = 0; frame < FRAMES; frame++) {
+      if (opaqueCount(crop(effects, frame * CELL, row * CELL)) < 8) fail(`エフェクト ${name}:${frame} が空です`);
     }
-  }
-  for (let col = 0; col < TILES.length; col++) {
-    const tile = new PNG({ width: CELL, height: CELL });
-    PNG.bitblt(tiles, tile, col * CELL, 0, CELL, CELL, 0, 0);
-    nonEmpty(tile, "tiles.png:" + TILES[col]);
-    const edge = whiteEdgeCount(tile);
-    if (edge > 0) fail("tiles.png:" + TILES[col] + " のセル外周に白系ピクセルがあります: " + edge);
-  }
-  for (let row = 0; row < EFFECTS.length; row++) {
-    for (let f = 0; f < FRAMES; f++) {
-      const frame = new PNG({ width: CELL, height: CELL });
-      PNG.bitblt(effects, frame, f * CELL, row * CELL, CELL, CELL, 0, 0);
-      nonEmpty(frame, "effects.png:" + EFFECTS[row] + ":" + f);
-    }
-  }
-  for (let col = 0; col < ITEM_ICONS.length; col++) {
-    const icon = new PNG({ width: CELL, height: CELL });
-    PNG.bitblt(items, icon, col * CELL, 0, CELL, CELL, 0, 0);
-    nonEmpty(icon, "items.png:" + ITEM_ICONS[col]);
-    const edge = whiteEdgeCount(icon);
-    if (edge > 0) fail("items.png:" + ITEM_ICONS[col] + " のセル外周に白系ピクセルがあります: " + edge);
-  }
-  for (let col = 0; col < DEBUFF_ICONS.length; col++) {
-    const icon = new PNG({ width: CELL, height: CELL });
-    PNG.bitblt(debuffs, icon, col * CELL, 0, CELL, CELL, 0, 0);
-    nonEmpty(icon, "debuffs.png:" + DEBUFF_ICONS[col]);
-    const edge = whiteEdgeCount(icon);
-    if (edge > 0) fail("debuffs.png:" + DEBUFF_ICONS[col] + " のセル外周に白系ピクセルがあります: " + edge);
-  }
-  for (let col = 0; col < DIALOGUE_PORTRAITS.length; col++) {
-    const icon = new PNG({ width: CELL, height: CELL });
-    PNG.bitblt(dialogue, icon, col * CELL, 0, CELL, CELL, 0, 0);
-    nonEmpty(icon, "dialogue_portraits.png:" + DIALOGUE_PORTRAITS[col]);
-    const edge = whiteEdgeCount(icon);
-    if (edge > 0) fail("dialogue_portraits.png:" + DIALOGUE_PORTRAITS[col] + " のセル外周に白系ピクセルがあります: " + edge);
-  }
-  ok("アトラスPNGを検査しました");
+  });
+  ITEM_ICONS.forEach((name, column) => {
+    const icon = crop(items, column * CELL, 0);
+    if (opaqueCount(icon) < 60 || uniqueColors(icon) < 8) fail(`アイテム ${name} の情報量が不足しています`);
+  });
+  DEBUFF_ICONS.forEach((name, column) => {
+    if (opaqueCount(crop(debuffs, column * CELL, 0)) < 60) fail(`デバフ ${name} が空です`);
+  });
+  DIALOGUE_PORTRAITS.forEach((name, column) => {
+    if (opaqueCount(crop(dialogue, column * CELL, 0)) < 180) fail(`会話立ち絵 ${name} が小さすぎます`);
+  });
+  ok("アトラス寸法・セル内容・4フレームを検査しました");
+  return { tiles, items, dialogue };
 }
 
-async function validateGeneratedDiff() {
-  const pixelmatch = (await import("pixelmatch")).default;
-  const files = Object.keys(ACTOR_SHEETS).map((sheet) => `actor_${sheet}.png`).concat(["tiles.png", "effects.png", "items.png", "debuffs.png", "dialogue_portraits.png"]);
-  for (const file of files) {
-    const img = readPng(path.join(OUT_DIR, file));
-    const source = new PNG({ width: img.width, height: img.height });
-    if (file.startsWith("actor_")) {
-      const sheet = file.replace(/^actor_/, "").replace(/\.png$/, "");
-      const names = ACTOR_SHEETS[sheet] || [];
-      names.forEach((name, row) => {
-        ACTIONS.forEach((action, ai) => {
-          ACTOR_RENDER_DIRECTIONS.forEach((dir, di) => {
-            for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("actors", name, f, dir, action)), source, 0, 0, CELL, CELL, ((ai * ACTOR_RENDER_DIRECTIONS.length + di) * FRAMES + f) * CELL, row * CELL);
-          });
-        });
-      });
-    } else if (file === "tiles.png") {
-      TILES.forEach((name, col) => PNG.bitblt(readPng(spritePath("tiles", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
-    } else if (file === "effects.png") {
-      EFFECTS.forEach((name, row) => {
-        for (let f = 0; f < FRAMES; f++) PNG.bitblt(readPng(spritePath("effects", name, f)), source, 0, 0, CELL, CELL, f * CELL, row * CELL);
-      });
-    } else if (file === "items.png") {
-      ITEM_ICONS.forEach((name, col) => PNG.bitblt(readPng(spritePath("items", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
-    } else if (file === "debuffs.png") {
-      DEBUFF_ICONS.forEach((name, col) => PNG.bitblt(readPng(spritePath("debuffs", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
-    } else {
-      DIALOGUE_PORTRAITS.forEach((name, col) => PNG.bitblt(readPng(spritePath("dialogue", name)), source, 0, 0, CELL, CELL, col * CELL, 0));
-    }
-    const diff = new PNG({ width: img.width, height: img.height });
-    const mismatches = pixelmatch(img.data, source.data, diff.data, img.width, img.height, { threshold: 0 });
-    if (mismatches !== 0) fail(file + " は個別PNGからの再生成結果と一致しません: " + mismatches);
+function validateActorVariety(manifest) {
+  const directActors = Object.keys(manifest.actorSources);
+  for (const name of directActors) {
+    const directions = new Set(
+      ACTOR_RENDER_DIRECTIONS.map((direction) => imageHash(actorFrame(name, "idle", direction, 1))),
+    );
+    if (directions.size < 4) fail(`${name} の方向差分が不足しています`);
+    const actions = new Set(ACTIONS.map((action) => imageHash(actorFrame(name, action, "s", 1))));
+    if (actions.size < 6) fail(`${name} のアクション差分が不足しています`);
   }
-  ok("アトラスの再生成一致を検査しました");
+
+  const heroHashes = new Set(ACTOR_SHEETS.heroes.map((name) => imageHash(actorFrame(name, "idle", "s", 1))));
+  if (heroHashes.size !== ACTOR_SHEETS.heroes.length) fail("勇者の職業別画像が重複しています");
+  ok("アクターの方向・アクション・職業差分を検査しました");
 }
 
-function actorFrame(name, action, dir, frame = 2) {
-  return readPng(spritePath("actors", name, frame, dir, action));
-}
-
-function validateDistinctActorFamilies() {
-  const pairs = [["spitter", "bug_needler"], ["flame", "dragon_lavaSalamander"]];
-  for (const [a, b] of pairs) {
-    const ratio = diffRatio(actorFrame(a, "idle", "s", 1), actorFrame(b, "idle", "s", 1));
-    if (ratio <= 0.08) fail(`${a} と ${b} の図鑑画像差分が小さすぎます: ${ratio.toFixed(3)}`);
-  }
-  ok("別系統のアクター画像差分を検査しました");
-}
-
-function validateActorDirectionDiff() {
-  const names = ACTORS.filter((n) => !n.startsWith("egg_"));
-  for (const name of names) {
-    const pairs = [["e", "w"], ["s", "n"], ["se", "nw"]];
-    for (const pair of pairs) {
-      const d = diffRatio(actorFrame(name, "idle", pair[0], 1), actorFrame(name, "idle", pair[1], 1));
-      if (d < 0.13) fail(name + " の方向差分が小さすぎます: " + pair.join("/") + " " + d.toFixed(3));
-    }
-  }
-  ok("アクターの8方向差分を検査しました");
-}
-function validateHeroActionDiff() {
-  const heroActions = {
-    warrior: "attack",
-    superwarrior: "attack",
-    ultrawarrior: "attack",
-    tank: "attack",
-    crossknight: "attack",
-    captain: "attack",
-    max: "attack",
-    shon: "attack",
-    hori: "cast",
-    priest: "heal",
-    saint: "heal",
-    mage: "cast",
-    supermage: "cast",
-    sage: "cast",
-  };
-  for (const name of Object.keys(heroActions)) {
-    const action = heroActions[name];
-    const d = diffRatio(actorFrame(name, "idle", "e", 1), actorFrame(name, action, "e", 2));
-    if (d < 0.18) fail(name + " の " + action + " アクション差分が小さすぎます: " + d.toFixed(3));
-  }
-  ok("冒険者の職業別アクション差分を検査しました");
-}
-
-function validateDodgeActionDiff() {
-  for (const name of ["max", "shon", "hori"]) {
-    const d = diffRatio(actorFrame(name, "idle", "e", 1), actorFrame(name, "dodge", "e", 2));
-    if (d < 0.12) fail(name + " の dodge アクション差分が小さすぎます: " + d.toFixed(3));
-  }
-  ok("回避アクション差分を検査しました");
-}
-
-function validateMaxCoatAndSunglasses() {
-  const img = actorFrame("max", "idle", "s", 1);
-  const coat = pixelsIn(img, (x, y, r, g, b) => x >= 10 && x <= 38 && y >= 18 && y <= 43 && r < 35 && g < 38 && b < 48);
-  const glasses = pixelsIn(img, (x, y, r, g, b) => x >= 16 && x <= 32 && y >= 8 && y <= 15 && r < 30 && g < 32 && b < 40);
-  const foreheadBand = pixelsIn(img, (x, y, r, g, b) => x >= 15 && x <= 33 && y >= 5 && y <= 9 && r < 30 && g < 32 && b < 40);
-  if (coat <= 180) fail("マックスのロングコートの黒シルエットが小さすぎます: " + coat);
-  if (glasses <= 12) fail("マックスのサングラスが小さすぎます: " + glasses);
-  if (foreheadBand >= 10) fail("マックスの額にバンダナ風の黒帯が残っています: " + foreheadBand);
-  ok("マックスのロングコートとサングラスを検査しました");
-}
-
-function validateHoriAndShonRedesign() {
-  const hori = actorFrame("hori", "cast", "e", 2);
-  const vegetable = pixelsIn(hori, (x, y, r, g, b) => x >= 26 && x <= 46 && y >= 8 && y <= 25 && g > r + 20 && g > b + 20);
-  const longMetal = pixelsIn(hori, (x, y, r, g, b) => x >= 25 && x <= 46 && y >= 10 && y <= 22 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18 && r > 55 && r < 225);
-  if (vegetable <= 20) fail("ホリの投げ野菜が小さすぎます: " + vegetable);
-  if (longMetal >= 18) fail("ホリにバズーカ風の長い金属シルエットが残っています: " + longMetal);
-
-  const shonIdle = actorFrame("shon", "idle", "s", 1);
-  const shonAttack = actorFrame("shon", "attack", "e", 2);
-  const longHair = pixelsIn(shonIdle, (x, y, r, g, b) => x >= 14 && x <= 34 && y >= 5 && y <= 26 && r < 35 && g < 40 && b < 50);
-  const gunMetal = pixelsIn(shonAttack, (x, y, r, g, b) => x >= 30 && x <= 47 && y >= 10 && y <= 23 && r >= 180 && g >= 180 && b >= 180);
-  if (longHair <= 80) fail("ションのロン毛シルエットが小さすぎます: " + longHair);
-  if (gunMetal <= 12) fail("ションのハンドガンの金属シルエットが小さすぎます: " + gunMetal);
-  ok("ホリの野菜投げとションのロン毛・ハンドガンを検査しました");
-}
-
-function paletteStats(base, elite) {
-  let union = 0, alphaDiff = 0, colorDiff = 0, redDominant = 0, opaque = 0;
-  for (let i = 0; i < base.data.length; i += 4) {
-    const ba = base.data[i + 3], ea = elite.data[i + 3];
-    if (ba > 0 || ea > 0) union++;
-    if (ba !== ea) alphaDiff++;
-    if (Math.abs(base.data[i] - elite.data[i]) + Math.abs(base.data[i + 1] - elite.data[i + 1]) + Math.abs(base.data[i + 2] - elite.data[i + 2]) > 32) colorDiff++;
-    if (ea > 0) {
-      opaque++;
-      if (elite.data[i] > elite.data[i + 1] && elite.data[i] > elite.data[i + 2]) redDominant++;
-    }
-  }
-  return { alphaDiff, colorRatio: union ? colorDiff / union : 0, redRatio: opaque ? redDominant / opaque : 0 };
-}
-function validateElitePaletteVariants() {
-  const pairs = [
-    ["slime", "superslime"], ["slime", "crownslime"],
-    ["carniv", "evolved"], ["carniv", "direfang"],
-    ["spitter", "tarantula"], ["spitter", "goldweaver"],
-    ["golem", "titan"], ["golem", "goldcore"],
-    ["flame", "infernal"], ["flame", "whiteflame"],
-  ];
-  for (const pair of pairs) {
-    for (const action of ACTIONS) for (const dir of DIRECTIONS) for (let f = 0; f < FRAMES; f++) {
-      const stats = paletteStats(actorFrame(pair[0], action, dir, f), actorFrame(pair[1], action, dir, f));
-      if (stats.alphaDiff !== 0) fail(pair.join("/") + " は形状が一致しません: " + action + "/" + dir + "/" + f + " alphaDiff=" + stats.alphaDiff);
-      if (stats.colorRatio < 0.08) fail(pair.join("/") + " の色差分が小さすぎます: " + action + "/" + dir + "/" + f + " " + stats.colorRatio.toFixed(3));
-      if (pair[1] === "superslime" && stats.redRatio < 0.65) fail("superslime が赤優勢ではありません: " + action + "/" + dir + "/" + f + " " + stats.redRatio.toFixed(3));
-    }
-  }
-  ok("進化モンスターの色違い化を検査しました");
-}
-function validateEggShapes() {
-  const eggs = ACTORS.filter((n) => n.startsWith("egg_"));
-  if (JSON.stringify(eggs) !== JSON.stringify(EXPECTED_EGG_ACTORS)) fail("卵アクターの種類が不正です: " + eggs.join(","));
-  for (const name of eggs) {
-    const img = actorFrame(name, "idle", "s", 1);
-    const b = alphaBounds(img);
-    const w = b.maxX - b.minX + 1;
-    const h = b.maxY - b.minY + 1;
-    if (b.count < 360) fail(name + " の卵が小さすぎます: " + b.count);
-    if (w < 29 || w > 35 || h < 36 || h > 42 || h <= w + 2) fail(name + " の卵シルエットが不正です: " + w + "x" + h);
-    if (eggMotifPixels(img) <= 20) fail(name + " の鉱脈マークが読みにくすぎます");
-    if (["egg_tarantula", "egg_titan", "egg_infernal", "egg_goldweaver", "egg_goldcore", "egg_whiteflame"].includes(name)) {
-      if (eggGlowPixels(img) <= 8) fail(name + " の進化卵発光が弱すぎます");
-    } else if (eggGlowPixels(img) !== 0) {
-      fail(name + " は通常卵なのに外周発光があります");
-    }
-  }
-  for (let i = 1; i < eggs.length; i++) {
-    const d = diffRatio(actorFrame(eggs[i - 1], "idle", "s", 1), actorFrame(eggs[i], "idle", "s", 1));
-    if (d < 0.08) fail(eggs[i - 1] + "/" + eggs[i] + " の卵色差分が小さすぎます: " + d.toFixed(3));
-  }
-  ok("モンスター別の卵シルエットと色差を検査しました");
-}
-function validateRichVeins() {
-  const veins = ["moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
-  const earth = readPng(spritePath("tiles", "earth"));
-  for (const name of veins) {
-    const img = readPng(spritePath("tiles", name));
-    let motif = 0, outside = 0;
-    for (let y = 0; y < img.height; y++) for (let x = 0; x < img.width; x++) {
-      const i = (y * img.width + x) * 4;
-      if (colorDiff(img.data, i, earth.data, i) > 48) {
-        motif++;
-        if (x < 10 || x > 38 || y < 8 || y > 40) outside++;
+function validatePaletteVariants(manifest) {
+  for (const [variant, spec] of Object.entries(manifest.paletteVariants)) {
+    for (const action of ACTIONS) {
+      for (const direction of ACTOR_RENDER_DIRECTIONS) {
+        for (let frame = 0; frame < FRAMES; frame++) {
+          const stats = diffStats(
+            actorFrame(spec.base, action, direction, frame),
+            actorFrame(variant, action, direction, frame),
+          );
+          if (stats.alphaDiff !== 0) {
+            fail(`${spec.base}/${variant} の形状が一致しません: ${action}/${direction}/${frame}`);
+          }
+          if (stats.colorRatio < 0.18) {
+            fail(`${spec.base}/${variant} の色差が不足しています: ${action}/${direction}/${frame}`);
+          }
+        }
       }
     }
-    const evo2 = name.endsWith("_evo2");
-    const evo = name.endsWith("_evo") || evo2;
-    if (motif < (evo ? 420 : 95)) fail(name + " の鉱脈マークが単純すぎます: " + motif);
-    if (motif > (evo2 ? 1320 : (evo ? 1160 : 620))) fail(name + " の鉱脈マークが複雑すぎます: " + motif);
-    if (outside > (evo2 ? 700 : (evo ? 360 : 145))) fail(name + " の鉱脈マークが広がりすぎています: " + outside);
   }
-  ok("鉱脈の種別マークと進化枠発光を検査しました");
+  ok("第一・第二進化の同形状色違いを検査しました");
 }
 
-function validateItemIcons() {
-  const icons = ITEM_ICONS.map((name) => [name, readPng(spritePath("items", name))]);
-  for (const [name, img] of icons) {
-    const b = alphaBounds(img);
-    const w = b.maxX - b.minX + 1;
-    const h = b.maxY - b.minY + 1;
-    if (b.count < 160) fail(name + " のアイテムアイコンが小さすぎます: " + b.count);
-    if (w < 20 || h < 20) fail(name + " のアイテムアイコンのシルエットが小さすぎます: " + w + "x" + h);
-    if (uniqueOpaqueColors(img) < 6) fail(name + " のアイテムアイコン色数が少なすぎます");
-  }
-  for (let i = 0; i < icons.length; i++) {
-    for (let j = i + 1; j < icons.length; j++) {
-      const d = diffRatio(icons[i][1], icons[j][1]);
-      if (d < 0.08) fail(icons[i][0] + "/" + icons[j][0] + " のアイテムアイコン差分が小さすぎます: " + d.toFixed(3));
-    }
-  }
-  ok("アイテムアイコンのシルエットと差分を検査しました");
+function validateAtlasVariety(tiles, items, dialogue) {
+  const tileHashes = new Set(TILES.map((_, column) => imageHash(crop(tiles, column * CELL, 0))));
+  if (tileHashes.size !== TILES.length) fail("タイル画像が重複しています");
+
+  const itemHashes = new Set(ITEM_ICONS.map((_, column) => imageHash(crop(items, column * CELL, 0))));
+  if (itemHashes.size !== ITEM_ICONS.length) fail("アイテム画像が重複しています");
+
+  const portraitDiff = diffStats(crop(dialogue, 0, 0), crop(dialogue, CELL, 0));
+  if (portraitDiff.colorRatio < 0.3) fail("会話立ち絵の差分が不足しています");
+  ok("タイル・アイテム・会話立ち絵の固有性を検査しました");
 }
 
-function validateNoCircleSyntax() {
+function validatePipelinePolicy() {
   const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
   const common = fs.readFileSync(path.join("tools", "pixel_asset_common.js"), "utf8");
-  if (/\bring\s*\(/.test(build) || /function\s+ring\b/.test(common)) fail("円形囲み用の ring が残っています");
-  ok("円形囲みヘルパーが残っていないことを検査しました");
-}
-
-function validateSelfMadeAssetPipeline() {
-  const blockedPaths = [
+  const drawingPatterns = [
+    /function\s+(rect|line|tri|diamond|oval|ring)\b/,
+    /function\s+draw[A-Z]/,
+    /setPx\s*\(/,
+  ];
+  for (const pattern of drawingPatterns) {
+    if (pattern.test(build) || pattern.test(common)) fail("JSによる手続き描画処理が残っています: " + pattern);
+  }
+  if (!build.includes("manifest.json") || !build.includes("readPng")) {
+    fail("生成済みimagegen画像を読むアトラス構築処理になっていません");
+  }
+  const blocked = [
     path.join(OUT_DIR, "third_party_assets.json"),
     path.join(OUT_DIR, "THIRD_PARTY_ASSETS.md"),
     path.join("assets", "external"),
   ];
-  for (const file of blockedPaths) if (fs.existsSync(file)) fail("外部素材用ファイルが残っています: " + file);
-  const build = fs.readFileSync(path.join("tools", "build_pixel_assets.js"), "utf8");
-  const blockedTerms = ["readExternal", "actorSources", "tileSources", "third_party", "THIRD_PARTY", "assets/external", "dcss", "DCSS"];
-  for (const term of blockedTerms) if (build.includes(term)) fail("生成スクリプトに外部素材参照が残っています: " + term);
-  for (const name of TILES) {
-    const colors = uniqueOpaqueColors(readPng(spritePath("tiles", name)));
-    if (colors < 8) fail(name + " の自製タイル色数が少なすぎます: " + colors);
+  for (const file of blocked) {
+    if (fs.existsSync(file)) fail("外部素材用ファイルが残っています: " + file);
   }
-  ok("外部素材に依存しない自製生成パイプラインを検査しました");
+  ok("imagegen画像専用のアトラス構築処理を検査しました");
 }
 
-function validateNoLegacyAssetSources() {
-  const sourceRoot = path.join(OUT_DIR, "source");
-  const allowed = path.basename(SOURCE_DIR);
-  if (!fs.existsSync(sourceRoot)) {
-    fail("素材ソースディレクトリがありません: " + sourceRoot);
-    return;
+function validateSourceRoots() {
+  const root = path.join(OUT_DIR, "source");
+  const allowedDirectories = new Set(["imagegen-v1", "legacy-v6-self-made"]);
+  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
+    if (entry.isDirectory() && !allowedDirectories.has(entry.name)) {
+      fail("不明な素材ソースディレクトリがあります: " + entry.name);
+    }
+    if (entry.isFile()) fail("素材ソース直下に旧ファイルが残っています: " + entry.name);
   }
-  for (const entry of fs.readdirSync(sourceRoot, { withFileTypes: true })) {
-    if (entry.isDirectory() && entry.name !== allowed) fail("旧世代の生成素材ソースが残っています: " + path.join(sourceRoot, entry.name));
-  }
-  if (fs.existsSync(path.join(sourceRoot, "actors-source.png"))) fail("旧生成キャラクターシートが残っています");
-  ok("旧世代の生成素材ソースがないことを検査しました");
+  ok("現行imagegen素材と旧素材の退避先を検査しました");
 }
 
-(async () => {
-  validateSource();
-  validateMeta();
-  validateAtlas();
-  validateNoCircleSyntax();
-  validateSelfMadeAssetPipeline();
-  validateNoLegacyAssetSources();
-  validateDistinctActorFamilies();
-  validateActorDirectionDiff();
-  validateHeroActionDiff();
-  validateDodgeActionDiff();
-  validateMaxCoatAndSunglasses();
-  validateHoriAndShonRedesign();
-  validateElitePaletteVariants();
-  validateEggShapes();
-  validateRichVeins();
-  validateItemIcons();
-  await validateGeneratedDiff();
+function main() {
+  if (!fs.existsSync(manifestFile)) {
+    fail("imagegen素材マニフェストがありません");
+    process.exit(1);
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
+  validateImagegenSource(manifest);
+  validateMeta(manifest);
+  const atlases = validateAtlases();
+  validateActorVariety(manifest);
+  validatePaletteVariants(manifest);
+  validateAtlasVariety(atlases.tiles, atlases.items, atlases.dialogue);
+  validatePipelinePolicy();
+  validateSourceRoots();
   if (failed) process.exit(1);
-  console.log("ピクセル素材検査が完了しました。");
-})().catch((err) => {
-  console.error(err && (err.stack || err.message || err));
-  process.exit(1);
-});
+  console.log("imagegenピクセル素材検査が完了しました。");
+}
+
+main();

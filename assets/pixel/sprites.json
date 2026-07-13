@@ -1,4 +1,6 @@
 {
+  "sourceVersion": "imagegen-v1",
+  "generator": "OpenAI imagegen（組み込みツール）",
   "cell": 48,
   "frames": 4,
   "directions": [
@@ -27,6 +29,9 @@
     "eat",
     "dodge"
   ],
+  "actorFramesPerActor": 140,
+  "actorAtlasColumns": 70,
+  "actorAtlasRowsPerActor": 2,
   "actorSheets": {
     "moss_slime": [
       "slime",
@@ -193,7 +198,7 @@
     "evolved": {
       "sheet": "actor_meat_carniv",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -263,7 +268,7 @@
     "moss_mycelia": {
       "sheet": "actor_moss_shroom",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -277,7 +282,7 @@
     "moss_myceliaKing": {
       "sheet": "actor_moss_shroom",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -305,7 +310,7 @@
     "moss_crystalVirus": {
       "sheet": "actor_moss_virus",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -319,7 +324,7 @@
     "moss_crownVirus": {
       "sheet": "actor_moss_virus",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -347,7 +352,7 @@
     "moss_tangleRoot": {
       "sheet": "actor_moss_root",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -361,7 +366,7 @@
     "moss_ancientRoot": {
       "sheet": "actor_moss_root",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -389,7 +394,7 @@
     "meat_shadowWolf": {
       "sheet": "actor_meat_wolf",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -403,7 +408,7 @@
     "meat_nightfangKing": {
       "sheet": "actor_meat_wolf",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -431,7 +436,7 @@
     "meat_fangBoar": {
       "sheet": "actor_meat_boar",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -445,7 +450,7 @@
     "meat_ironBoar": {
       "sheet": "actor_meat_boar",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -473,7 +478,7 @@
     "meat_steelHedgehog": {
       "sheet": "actor_meat_hedgehog",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -487,7 +492,7 @@
     "meat_spineKing": {
       "sheet": "actor_meat_hedgehog",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -515,7 +520,7 @@
     "bug_steelCentipede": {
       "sheet": "actor_bug_centipede",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -529,7 +534,7 @@
     "bug_goldCentipede": {
       "sheet": "actor_bug_centipede",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -557,7 +562,7 @@
     "bug_shieldBeetle": {
       "sheet": "actor_bug_beetle",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -571,7 +576,7 @@
     "bug_fortressBeetle": {
       "sheet": "actor_bug_beetle",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -599,7 +604,7 @@
     "bug_flyingNeedler": {
       "sheet": "actor_bug_needler",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -613,7 +618,7 @@
     "bug_bowNeedler": {
       "sheet": "actor_bug_needler",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -641,7 +646,7 @@
     "stone_ironTurtle": {
       "sheet": "actor_stone_turtle",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -655,7 +660,7 @@
     "stone_goldTurtle": {
       "sheet": "actor_stone_turtle",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -683,7 +688,7 @@
     "stone_ironCrab": {
       "sheet": "actor_stone_magnetCrab",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -697,7 +702,7 @@
     "stone_blackCrab": {
       "sheet": "actor_stone_magnetCrab",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -725,7 +730,7 @@
     "stone_quartzEye": {
       "sheet": "actor_stone_crystalEye",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -739,7 +744,7 @@
     "stone_rainbowEye": {
       "sheet": "actor_stone_crystalEye",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -767,7 +772,7 @@
     "dragon_flameSerpent": {
       "sheet": "actor_dragon_serpent",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -781,7 +786,7 @@
     "dragon_whiteSerpent": {
       "sheet": "actor_dragon_serpent",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -809,7 +814,7 @@
     "dragon_lavaSalamander": {
       "sheet": "actor_dragon_salamander",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -823,7 +828,7 @@
     "dragon_mirageSalamander": {
       "sheet": "actor_dragon_salamander",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -851,7 +856,7 @@
     "dragon_stormWyvern": {
       "sheet": "actor_dragon_wyvern",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -865,7 +870,7 @@
     "dragon_skyWyvern": {
       "sheet": "actor_dragon_wyvern",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -879,7 +884,7 @@
     "superslime": {
       "sheet": "actor_moss_slime",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -893,7 +898,7 @@
     "tarantula": {
       "sheet": "actor_venom_spider",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -907,7 +912,7 @@
     "titan": {
       "sheet": "actor_stone_golem",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -921,7 +926,7 @@
     "infernal": {
       "sheet": "actor_ember_dragon",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -935,7 +940,7 @@
     "crownslime": {
       "sheet": "actor_moss_slime",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -949,7 +954,7 @@
     "direfang": {
       "sheet": "actor_meat_carniv",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -963,7 +968,7 @@
     "goldweaver": {
       "sheet": "actor_venom_spider",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -977,7 +982,7 @@
     "goldcore": {
       "sheet": "actor_stone_golem",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -991,7 +996,7 @@
     "whiteflame": {
       "sheet": "actor_ember_dragon",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1019,7 +1024,7 @@
     "chimera": {
       "sheet": "actor_special",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1047,7 +1052,7 @@
     "superwarrior": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1061,7 +1066,7 @@
     "ultrawarrior": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1075,7 +1080,7 @@
     "tank": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 144,
+      "y": 288,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1089,7 +1094,7 @@
     "crossknight": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 192,
+      "y": 384,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1103,7 +1108,7 @@
     "captain": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 240,
+      "y": 480,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1117,7 +1122,7 @@
     "max": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 288,
+      "y": 576,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1131,7 +1136,7 @@
     "shon": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 336,
+      "y": 672,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1145,7 +1150,7 @@
     "hori": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 384,
+      "y": 768,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1159,7 +1164,7 @@
     "xTerminator": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 432,
+      "y": 864,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1173,7 +1178,7 @@
     "priest": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 480,
+      "y": 960,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1187,7 +1192,7 @@
     "saint": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 528,
+      "y": 1056,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1201,7 +1206,7 @@
     "mage": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 576,
+      "y": 1152,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1215,7 +1220,7 @@
     "supermage": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 624,
+      "y": 1248,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1229,7 +1234,7 @@
     "sage": {
       "sheet": "actor_heroes",
       "x": 0,
-      "y": 672,
+      "y": 1344,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1257,7 +1262,7 @@
     "egg_golem": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 48,
+      "y": 96,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1271,7 +1276,7 @@
     "egg_flame": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 96,
+      "y": 192,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1285,7 +1290,7 @@
     "egg_tarantula": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 144,
+      "y": 288,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1299,7 +1304,7 @@
     "egg_titan": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 192,
+      "y": 384,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1313,7 +1318,7 @@
     "egg_infernal": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 240,
+      "y": 480,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1327,7 +1332,7 @@
     "egg_goldweaver": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 288,
+      "y": 576,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1341,7 +1346,7 @@
     "egg_goldcore": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 336,
+      "y": 672,
       "w": 48,
       "h": 48,
       "frames": 4,
@@ -1355,7 +1360,7 @@
     "egg_whiteflame": {
       "sheet": "actor_eggs",
       "x": 0,
-      "y": 384,
+      "y": 768,
       "w": 48,
       "h": 48,
       "frames": 4,

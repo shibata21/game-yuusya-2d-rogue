@@ -11,7 +11,6 @@ import {
   MONSTER_FAMILIES,
   resolveMonsterDeck,
   pixelAssetUrl,
-  pixelActorX,
   pixelActorFileName,
   pixelActorFrameInfo,
   pixelActorFrameIndex,
@@ -31,8 +30,6 @@ import {
   ENTRANCE_COL,
   PIXEL_ACTORS,
   PIXEL_ACTOR_SHEETS,
-  PIXEL_ACTOR_RENDER_DIRS,
-  PIXEL_ACTIONS,
   PIXEL_TILES,
   PIXEL_EFFECTS,
   PIXEL_ITEMS,
@@ -1210,12 +1207,7 @@ function monsterUnlockLabel(kind) {
 
 function codexSpriteStyle(name) {
   const info = pixelActorFrameInfo(name, "idle", "s", 1);
-  const row = (PIXEL_ACTOR_SHEETS[info.sheet] || []).indexOf(name);
-  const x = pixelActorX("idle", "s", 1);
-  const y = Math.max(0, row) * TILE;
-  const sheetWidth = TILE * PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length;
-  const sheetHeight = TILE * ((PIXEL_ACTOR_SHEETS[info.sheet] || []).length || 1);
-  return `background-image:url("${actorAssetUrl(info.sheet)}");background-size:${sheetWidth}px ${sheetHeight}px;background-position:-${x}px -${y}px;`;
+  return `background-image:url("${actorAssetUrl(info.sheet)}");background-size:${info.sheetWidth}px ${info.sheetHeight}px;background-position:-${info.x}px -${info.y}px;`;
 }
 
 function statPill(label, value) {

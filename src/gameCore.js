@@ -582,12 +582,15 @@ function normalizeUnlockedItems(value) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v26-actor-split";
+export const PIXEL_ASSET_VERSION = "v27-imagegen";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
 export const PIXEL_ACTOR_RENDER_DIRS = ["e", "se", "s", "ne", "n"];
 export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat", "dodge"];
+export const PIXEL_ACTOR_FRAMES_PER_ACTOR = PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length;
+export const PIXEL_ACTOR_ATLAS_COLUMNS = PIXEL_ACTOR_FRAMES_PER_ACTOR / 2;
+export const PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR = PIXEL_ACTOR_FRAMES_PER_ACTOR / PIXEL_ACTOR_ATLAS_COLUMNS;
 export const PIXEL_ACTORS = [
   "slime", "carniv", "evolved", "spitter", "golem", "flame",
   "moss_shroom", "moss_mycelia", "moss_myceliaKing", "moss_virus", "moss_crystalVirus", "moss_crownVirus", "moss_root", "moss_tangleRoot", "moss_ancientRoot",
@@ -742,7 +745,9 @@ export function pixelActorX(action, dir, frame) {
   const di = PIXEL_ACTOR_RENDER_DIRS.indexOf(render.dir);
   const actionIndex = ai < 0 ? 0 : ai;
   const dirIndex = di < 0 ? PIXEL_ACTOR_RENDER_DIRS.indexOf("s") : di;
-  return ((actionIndex * PIXEL_ACTOR_RENDER_DIRS.length + dirIndex) * PIXEL_FRAMES + frame) * PIXEL_CELL;
+  const frameInActor =
+    (actionIndex * PIXEL_ACTOR_RENDER_DIRS.length + dirIndex) * PIXEL_FRAMES + frame;
+  return (frameInActor % PIXEL_ACTOR_ATLAS_COLUMNS) * PIXEL_CELL;
 }
 
 export function pixelActorFrameInfo(name, action, dir, frame) {
@@ -751,13 +756,20 @@ export function pixelActorFrameInfo(name, action, dir, frame) {
   const row = names.indexOf(name);
   const actorRow = row < 0 ? 0 : row;
   const render = pixelActorRenderDir(dir);
-  const frameInRow = Math.floor(pixelActorX(action, render.dir, frame) / PIXEL_CELL);
-  const framesPerRow = PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length;
+  const actionIndex = Math.max(0, PIXEL_ACTIONS.indexOf(action));
+  const directionIndex = Math.max(0, PIXEL_ACTOR_RENDER_DIRS.indexOf(render.dir));
+  const frameInActor =
+    (actionIndex * PIXEL_ACTOR_RENDER_DIRS.length + directionIndex) * PIXEL_FRAMES + frame;
+  const atlasFrame = actorRow * PIXEL_ACTOR_FRAMES_PER_ACTOR + frameInActor;
   return {
     sheet,
     key: pixelActorTextureKey(sheet),
     file: pixelActorFileName(sheet),
-    frame: actorRow * framesPerRow + frameInRow,
+    frame: atlasFrame,
+    x: (atlasFrame % PIXEL_ACTOR_ATLAS_COLUMNS) * PIXEL_CELL,
+    y: Math.floor(atlasFrame / PIXEL_ACTOR_ATLAS_COLUMNS) * PIXEL_CELL,
+    sheetWidth: PIXEL_ACTOR_ATLAS_COLUMNS * PIXEL_CELL,
+    sheetHeight: names.length * PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR * PIXEL_CELL,
     flipX: render.flipX,
   };
 }
@@ -3531,7 +3543,7 @@ export function createGame(options = {}) {
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
     VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, get ITEM_CAP() { return effectiveItemCap(); }, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
@@ -3543,7 +3555,7 @@ export const Core = {
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
   CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, ITEM_CAP, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
   PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
 };
 

@@ -8,7 +8,7 @@
 - `src/main.js` — Phaserシーン、描画、入力、DOM HUD連携。
 - `src/style.css` — 画面レイアウトと見た目。
 - `assets/pixel/` — Phaser版の48pxピクセル素材、アトラス、素材メタデータ。
-- `tools/` — ピクセル素材の生成・検査スクリプト。
+- `tools/` — imagegen生成済みピクセル素材のアトラス構築・検査スクリプト。
 - `test/` — Vitest製の仕様・素材・Phaser構成テスト。
 - `dist/` — Vite build出力。コミット対象ではなく配布成果物。
 
@@ -42,16 +42,22 @@ npm run assets:build
 npm run assets:check
 ```
 
+`npm run assets:build` は `assets/pixel/source/imagegen-v1/` の生成済みPNGを48pxへ切り出してアトラス化する。画像そのものをJSで描画・生成するコマンドではない。
+
 変更を入れて検証が通ったら、ユーザーから別指示がない限り、その変更を毎回 Git commit する。コミット前に `git status --short` で対象ファイルを確認し、関係ない変更を混ぜない。
 ローカルで開発したコミットは GitHub との差分が残らないように、ユーザーから別指示がない限り `git push origin master` まで実行する。push 前後に `git status -sb` を確認し、完了時は `## master...origin/master` のように ahead/behind 表示がない状態にする。
 
 ## 規約
 - UI文言・コードコメントはすべて日本語。利用者とのやり取りも日本語。
 - 正規実装はPhaser/Viteに一本化する。Godot、Pixi、旧Canvas実行系は復活させない。
-- モンスター・勇者・タイル素材は外部素材を使わず、`tools/build_pixel_assets.js` で自製生成する。
+- モンスター、勇者、卵、タイル、エフェクト、アイテム、デバフ、会話立ち絵の新規作成・更新は、OpenAIの組み込み `imagegen` で生成する。外部素材は使わない。
+- `tools/build_pixel_assets.js` はimagegen生成済みPNGの切り出し、48px化、色違い、4フレーム化、アトラス合成だけを行う。図形描画や手続き生成で画像を代替しない。
+- `imagegen` が利用できない、生成に失敗する、または利用上限に達した場合は、JS / Canvas / SVG / 外部素材 / 手描画へ勝手に切り替えない。理由と生成できなかった範囲をユーザーへ報告して作業を止める。
+- CLIやAPIなど別経路の画像生成へ切り替える場合も、事前にユーザーの明示承認を得る。
 - `localStorage` / `sessionStorage` は使わない。
 - バランス調整はデータ駆動。ロジック内に数値を散らさず、`src/gameCore.js` の定数ブロックと各テーブルの値を変える。
-- 既存の数値バランス、種別名、48pxセル、11x16盤面、4フレーム、8方向、6アクション素材仕様を維持する。
+- 既存の数値バランス、種別名、48pxセル、11x16盤面、4フレーム、8方向、7アクション（`idle` / `attack` / `cast` / `dig` / `heal` / `eat` / `dodge`）素材仕様を維持する。
+- モバイルWebGL互換のため、配信用アトラスは縦横とも4096px以下を維持する。
 - テストはVitestを使い、`createGame()` で独立したゲームを生成し、`GameRules.update(ms)` 相当の `update(ms)` を直接呼べる形を維持する。
 - 版権に注意：実在ゲームの名称・固有表現を入れない（オリジナルを維持）。
 

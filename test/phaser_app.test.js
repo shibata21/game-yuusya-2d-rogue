@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { createGame, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTOR_SHEETS } from "../src/gameCore.js";
+import { createGame, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTOR_SHEETS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -197,7 +197,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v26-actor-split");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v27-imagegen");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
@@ -222,18 +222,29 @@ describe("Phaserアプリ構成", () => {
     expect(west.frame).toBe(east.frame);
     expect(west.flipX).toBe(true);
     expect(east.flipX).toBe(false);
+
+    const healFrame = 1;
+    const healFrameInActor =
+      (PIXEL_ACTIONS.indexOf("heal") * PIXEL_ACTOR_RENDER_DIRS.length + PIXEL_ACTOR_RENDER_DIRS.indexOf("s")) *
+        PIXEL_FRAMES +
+      healFrame;
+    const healed = pixelActorFrameInfo("superwarrior", "heal", "s", healFrame);
+    expect(pixelActorX("heal", "s", healFrame)).toBe((healFrameInActor % PIXEL_ACTOR_ATLAS_COLUMNS) * PIXEL_CELL);
+    expect(healed.frame).toBe(PIXEL_ACTOR_FRAMES_PER_ACTOR + healFrameInActor);
+    expect(healed.x).toBe((healed.frame % PIXEL_ACTOR_ATLAS_COLUMNS) * PIXEL_CELL);
+    expect(healed.y).toBe(Math.floor(healed.frame / PIXEL_ACTOR_ATLAS_COLUMNS) * PIXEL_CELL);
   });
 
   it("アクターのPhaserフレーム番号はアクション数変更後も正しい行を指す", () => {
-    const framesPerRow = PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length;
+    const framesPerActor = PIXEL_ACTOR_FRAMES_PER_ACTOR;
     const adventurer = pixelActorFrameInfo("warrior", "idle", "s", 1);
     const whiteflame = pixelActorFrameInfo("whiteflame", "idle", "s", 1);
     const adventurerFrame = pixelActorFrameIndex("warrior", "idle", "s", 1);
     const whiteflameFrame = pixelActorFrameIndex("whiteflame", "idle", "s", 1);
     expect(adventurerFrame).toBe(adventurer.frame);
     expect(whiteflameFrame).toBe(whiteflame.frame);
-    expect(Math.floor(adventurerFrame / framesPerRow)).toBe(PIXEL_ACTOR_SHEETS.heroes.indexOf("warrior"));
-    expect(Math.floor(whiteflameFrame / framesPerRow)).toBe(PIXEL_ACTOR_SHEETS.ember_dragon.indexOf("whiteflame"));
+    expect(Math.floor(adventurerFrame / framesPerActor)).toBe(PIXEL_ACTOR_SHEETS.heroes.indexOf("warrior"));
+    expect(Math.floor(whiteflameFrame / framesPerActor)).toBe(PIXEL_ACTOR_SHEETS.ember_dragon.indexOf("whiteflame"));
     expect(adventurer.sheet).toBe("heroes");
     expect(whiteflame.sheet).toBe("ember_dragon");
     expect(adventurerFrame).not.toBe(whiteflameFrame);

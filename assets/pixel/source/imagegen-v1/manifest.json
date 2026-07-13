@@ -1,0 +1,181 @@
+{
+  "version": "imagegen-v1",
+  "generator": {
+    "tool": "OpenAI imagegen（組み込みツール）",
+    "generatedOn": "2026-07-13",
+    "styleReference": "reference/style-anchor.png",
+    "policy": "新規・更新画像はimagegenで生成する。imagegenが利用不能、失敗、または上限到達の場合は、JS・Canvas・SVG・外部素材・手描画で代替せず、生成できない理由と未完了範囲を利用者へ報告する。"
+  },
+  "layouts": {
+    "actors": {
+      "columns": 5,
+      "rows": 7,
+      "directions": ["e", "se", "s", "ne", "n"],
+      "actions": ["idle", "attack", "cast", "dig", "heal", "eat", "dodge"]
+    },
+    "eggs": {
+      "file": "eggs/eggs.png",
+      "columns": 3,
+      "rows": 3,
+      "ids": [
+        "egg_spitter",
+        "egg_golem",
+        "egg_flame",
+        "egg_tarantula",
+        "egg_titan",
+        "egg_infernal",
+        "egg_goldweaver",
+        "egg_goldcore",
+        "egg_whiteflame"
+      ]
+    },
+    "environmentTiles": {
+      "file": "tiles/environment.png",
+      "columns": 5,
+      "rows": 1,
+      "ids": ["earth", "tunnel", "bedrock", "surface", "core"]
+    },
+    "veinTiles": {
+      "file": "tiles/veins.png",
+      "columns": 3,
+      "rows": 5,
+      "kinds": ["moss", "meat", "venom", "stone", "ember"],
+      "levels": ["normal", "evo", "evo2"]
+    },
+    "effects": {
+      "file": "effects/effects.png",
+      "columns": 4,
+      "rows": 5,
+      "ids": ["slash", "shot", "bite", "birth", "puff"]
+    },
+    "debuffs": {
+      "file": "debuffs/debuffs.png",
+      "columns": 5,
+      "rows": 1,
+      "ids": ["rottenRations", "crackedCore", "informantMap", "sharpenedBlade", "dullFeed"]
+    },
+    "dialogue": {
+      "file": "dialogue/dialogue.png",
+      "columns": 2,
+      "rows": 1,
+      "ids": ["executive", "gorilla"]
+    }
+  },
+  "actorSources": {
+    "slime": "actors/slime.png",
+    "carniv": "actors/carniv.png",
+    "moss_shroom": "actors/moss_shroom.png",
+    "moss_virus": "actors/moss_virus.png",
+    "moss_root": "actors/moss_root.png",
+    "meat_wolf": "actors/meat_wolf.png",
+    "meat_boar": "actors/meat_boar.png",
+    "meat_hedgehog": "actors/meat_hedgehog.png",
+    "spitter": "actors/spitter.png",
+    "bug_centipede": "actors/bug_centipede.png",
+    "bug_beetle": "actors/bug_beetle.png",
+    "bug_needler": "actors/bug_needler.png",
+    "golem": "actors/golem.png",
+    "stone_turtle": "actors/stone_turtle.png",
+    "stone_magnetCrab": "actors/stone_magnetCrab.png",
+    "stone_crystalEye": "actors/stone_crystalEye.png",
+    "flame": "actors/flame.png",
+    "dragon_serpent": "actors/dragon_serpent.png",
+    "dragon_salamander": "actors/dragon_salamander.png",
+    "dragon_wyvern": "actors/dragon_wyvern.png",
+    "reaper": "actors/reaper.png",
+    "chimera": "actors/chimera.png",
+    "warrior": "actors/warrior.png",
+    "tank": "actors/tank.png",
+    "superwarrior": "actors/superwarrior.png",
+    "ultrawarrior": "actors/ultrawarrior.png",
+    "crossknight": "actors/crossknight.png",
+    "captain": "actors/captain.png",
+    "priest": "actors/priest.png",
+    "saint": "actors/saint.png",
+    "mage": "actors/mage.png",
+    "supermage": "actors/supermage.png",
+    "sage": "actors/sage.png",
+    "max": "actors/max.png",
+    "shon": "actors/shon.png",
+    "hori": "actors/hori.png",
+    "xTerminator": "actors/xTerminator.png"
+  },
+  "paletteVariants": {
+    "superslime": {"base": "slime", "tint": "#46c8ef", "strength": 0.78},
+    "crownslime": {"base": "slime", "tint": "#e2b83e", "strength": 0.82},
+    "moss_mycelia": {"base": "moss_shroom", "tint": "#35bf88", "strength": 0.76},
+    "moss_myceliaKing": {"base": "moss_shroom", "tint": "#a85bd2", "strength": 0.8},
+    "moss_crystalVirus": {"base": "moss_virus", "tint": "#37c7cf", "strength": 0.78},
+    "moss_crownVirus": {"base": "moss_virus", "tint": "#d8a53c", "strength": 0.82},
+    "moss_tangleRoot": {"base": "moss_root", "tint": "#3b9c58", "strength": 0.76},
+    "moss_ancientRoot": {"base": "moss_root", "tint": "#b68c46", "strength": 0.8},
+    "evolved": {"base": "carniv", "tint": "#c4483b", "strength": 0.78},
+    "direfang": {"base": "carniv", "tint": "#6751b8", "strength": 0.82},
+    "meat_shadowWolf": {"base": "meat_wolf", "tint": "#52647f", "strength": 0.78},
+    "meat_nightfangKing": {"base": "meat_wolf", "tint": "#70409b", "strength": 0.82},
+    "meat_fangBoar": {"base": "meat_boar", "tint": "#a3463f", "strength": 0.76},
+    "meat_ironBoar": {"base": "meat_boar", "tint": "#81909a", "strength": 0.82},
+    "meat_steelHedgehog": {"base": "meat_hedgehog", "tint": "#4f73a1", "strength": 0.78},
+    "meat_spineKing": {"base": "meat_hedgehog", "tint": "#c0983e", "strength": 0.82},
+    "tarantula": {"base": "spitter", "tint": "#b53e80", "strength": 0.78},
+    "goldweaver": {"base": "spitter", "tint": "#cf9e32", "strength": 0.84},
+    "bug_steelCentipede": {"base": "bug_centipede", "tint": "#718892", "strength": 0.78},
+    "bug_goldCentipede": {"base": "bug_centipede", "tint": "#c49a3d", "strength": 0.84},
+    "bug_shieldBeetle": {"base": "bug_beetle", "tint": "#3569a1", "strength": 0.78},
+    "bug_fortressBeetle": {"base": "bug_beetle", "tint": "#a26c37", "strength": 0.82},
+    "bug_flyingNeedler": {"base": "bug_needler", "tint": "#3da4a5", "strength": 0.78},
+    "bug_bowNeedler": {"base": "bug_needler", "tint": "#b6414b", "strength": 0.82},
+    "titan": {"base": "golem", "tint": "#536f80", "strength": 0.8},
+    "goldcore": {"base": "golem", "tint": "#cf922d", "strength": 0.84},
+    "stone_ironTurtle": {"base": "stone_turtle", "tint": "#788b9a", "strength": 0.78},
+    "stone_goldTurtle": {"base": "stone_turtle", "tint": "#c3993b", "strength": 0.84},
+    "stone_ironCrab": {"base": "stone_magnetCrab", "tint": "#65858c", "strength": 0.78},
+    "stone_blackCrab": {"base": "stone_magnetCrab", "tint": "#3b314d", "strength": 0.84},
+    "stone_quartzEye": {"base": "stone_crystalEye", "tint": "#a9cbdc", "strength": 0.78},
+    "stone_rainbowEye": {"base": "stone_crystalEye", "tint": "#a356ca", "strength": 0.82},
+    "infernal": {"base": "flame", "tint": "#d43828", "strength": 0.78},
+    "whiteflame": {"base": "flame", "tint": "#c5e6ef", "strength": 0.84},
+    "dragon_flameSerpent": {"base": "dragon_serpent", "tint": "#d63f28", "strength": 0.78},
+    "dragon_whiteSerpent": {"base": "dragon_serpent", "tint": "#bce3ef", "strength": 0.84},
+    "dragon_lavaSalamander": {"base": "dragon_salamander", "tint": "#df4325", "strength": 0.78},
+    "dragon_mirageSalamander": {"base": "dragon_salamander", "tint": "#55b2b9", "strength": 0.82},
+    "dragon_stormWyvern": {"base": "dragon_wyvern", "tint": "#6255b0", "strength": 0.78},
+    "dragon_skyWyvern": {"base": "dragon_wyvern", "tint": "#4b9fc1", "strength": 0.82}
+  },
+  "itemSheets": [
+    {
+      "file": "items/items-01.png",
+      "columns": 4,
+      "rows": 4,
+      "ids": ["rustyPickaxe", "blackSoilBag", "undergroundLantern", "crackedMap", "masonGloves", "deepCompass", "oldIncense", "herdFlute", "warmNest", "eggGuardBell", "boneMeal", "redCollar", "warPaint", "sleepSand", "curseNail", "blackBell"]
+    },
+    {
+      "file": "items/items-02.png",
+      "columns": 4,
+      "rows": 4,
+      "ids": ["stickyMud", "coreShard", "coreBandage", "redSealingWax", "quakeStone", "leftoverMeat", "silverMuzzle", "bloodyPlate", "trainingStick", "victoryBoneFlute", "crybabyBell", "shadowThread", "spareHeart", "ledger", "tornWallet", "demonCoin"]
+    },
+    {
+      "file": "items/items-03.png",
+      "columns": 4,
+      "rows": 4,
+      "ids": ["fakeGold", "wildCard", "thiefBag", "dryBread", "blackSeed", "reversedHourglass", "earlyDrum", "breathingFlute", "gapStake", "moleClaw", "obsidianLid", "wanderingPowder", "trailMark", "charmRope", "angerMask", "nestFlag"]
+    },
+    {
+      "file": "items/items-04.png",
+      "columns": 4,
+      "rows": 4,
+      "ids": ["oldEggshell", "crackedEgg", "royalEggshell", "rottenCrown", "rebelCharm", "crowdMark", "lowestCandle", "blackRaindrop", "redMoonShard", "boneContract", "undergroundStore", "veinBrush", "denLedger", "homeChime", "shopStamp", "corePiggyBank"]
+    }
+  ],
+  "prompts": {
+    "style": "High-density handcrafted pixel art with crisp hard-edged square pixel clusters, strong readable silhouettes at 48x48, high contrast, dark subterranean fantasy palette, no antialiasing, no gradients, no blur.",
+    "actors": "Exact 5 columns by 7 rows. Columns are east, southeast, south, northeast, north. Rows are idle, attack, cast, dig, heal, eat, dodge. One character per cell on a solid chroma-key background, with no text or separators.",
+    "eggs": "Exact 3 by 3 sheet of nine distinct monster eggs, one centered egg per cell on a solid chroma-key background.",
+    "tiles": "Top-down full-bleed dungeon tiles. Environment sheet is earth, tunnel, bedrock, surface and core. Vein sheet is five material rows by normal, evolved and second-evolved columns.",
+    "effects": "Exact 4 by 5 chronological animation sheet for slash, projectile, bite, birth and smoke effects on a solid chroma-key background.",
+    "items": "Exact 4 by 4 isolated inventory icon sheet, row-major in the manifest order, no labels or UI frames, on a solid chroma-key background.",
+    "debuffs": "Exact 5 by 1 compact status icon sheet for rotten rations, cracked core, informant map, sharpened blade and dull feed.",
+    "dialogue": "Exact 2 by 1 chest-up portrait sheet for the Dungeon King's executive and Gorilla Auntie, facing inward on a solid chroma-key background."
+  }
+}
