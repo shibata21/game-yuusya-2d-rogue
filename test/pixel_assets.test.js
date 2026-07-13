@@ -296,17 +296,17 @@ describe("imagegenピクセル素材", () => {
     expect(meta.sourceVersion).toBe("imagegen-v1");
     expect(meta.generator.toLowerCase()).toContain("imagegen");
     expect(manifest.layouts.environmentTiles.trimRatio).toBe(0.03);
-    expect(manifest.layouts.veinTiles.trimRatio).toBe(0.03);
+    expect(manifest.layouts.veinTiles.trimRatio).toBe(0.05);
   });
 
   it("公開アセットURLとフレーム参照が新しい版を使う", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v29-imagegen");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v29-imagegen");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v29-imagegen");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v29-imagegen");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v29-imagegen");
+    expect(PIXEL_ASSET_VERSION).toBe("v30-imagegen");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v30-imagegen");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v30-imagegen");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v30-imagegen");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v30-imagegen");
     expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe(
-      "assets/pixel/actor_venom_spider.png?v=v29-imagegen",
+      "assets/pixel/actor_venom_spider.png?v=v30-imagegen",
     );
 
     const east = pixelActorFrameInfo("slime", "idle", "e", 0);
@@ -500,11 +500,12 @@ describe("imagegenピクセル素材", () => {
     expect(diffStats(executive, gorilla).colorRatio).toBeGreaterThan(0.3);
   });
 
-  it("通常地形と第一進化鉱脈に原画セル境界を焼き込まない", () => {
+  it("全進化段階の鉱脈に原画セル境界や発光外周を焼き込まない", () => {
     const seamSensitiveTiles = [
       "earth", "tunnel", "bedrock",
       "moss", "meat", "venom", "stone", "ember",
       "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo",
+      "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2",
     ];
     for (const name of seamSensitiveTiles) {
       const tile = atlasCell("tiles.png", PIXEL_TILES.indexOf(name));
@@ -514,6 +515,44 @@ describe("imagegenピクセル素材", () => {
         expect(ratio, `${name}:${side}`).toBeLessThanOrEqual(1.8);
       }
     }
+  });
+
+  it("第二進化鉱脈は外周発光ではなく内部模様で第一進化と区別する", () => {
+    for (const kind of manifest.layouts.veinTiles.kinds) {
+      const evolved = atlasCell("tiles.png", PIXEL_TILES.indexOf(`${kind}_evo`));
+      const secondEvolved = atlasCell("tiles.png", PIXEL_TILES.indexOf(`${kind}_evo2`));
+      expect(diffStats(evolved, secondEvolved).colorRatio, kind).toBeGreaterThan(0.24);
+    }
+  });
+
+  it("卵はモンスター固有意匠ではなく土壌種別と進化段階の模様を使う", () => {
+    expect(manifest.layouts.eggs.soilPatternColumns).toEqual(["venom", "stone", "ember"]);
+    expect(manifest.layouts.eggs.soilPatternRows).toEqual(["normal", "evo", "evo2"]);
+    expect(manifest.layouts.eggs.soilPatternSources).toEqual([
+      "venom", "stone", "ember",
+      "venom_evo", "stone_evo", "ember_evo",
+      "venom_evo2", "stone_evo2", "ember_evo2",
+    ]);
+
+    const eggSource = png("assets/pixel/source/imagegen-v1/eggs/eggs.png");
+    const bounds = [];
+    for (let row = 0; row < manifest.layouts.eggs.rows; row++) {
+      for (let column = 0; column < manifest.layouts.eggs.columns; column++) {
+        const cell = gridCell(
+          eggSource,
+          column,
+          row,
+          manifest.layouts.eggs.columns,
+          manifest.layouts.eggs.rows,
+        );
+        expect(hasOpaqueMagenta(cell), `${column},${row}`).toBe(false);
+        bounds.push(alphaBounds(cell));
+      }
+    }
+    const widths = bounds.map(({ minX, maxX }) => maxX - minX + 1);
+    const heights = bounds.map(({ minY, maxY }) => maxY - minY + 1);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThan(eggSource.width * 0.03);
+    expect(Math.max(...heights) - Math.min(...heights)).toBeLessThan(eggSource.height * 0.03);
   });
 
   it("imagegen原画・プロンプト・代替禁止方針を記録している", () => {

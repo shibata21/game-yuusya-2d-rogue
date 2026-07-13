@@ -25,6 +25,8 @@ const {
 } = require("./pixel_asset_common");
 
 const manifestFile = path.join(SOURCE_DIR, "manifest.json");
+const EGG_SOIL_PATTERN_COLUMNS = ["venom", "stone", "ember"];
+const EGG_SOIL_PATTERN_ROWS = ["normal", "evo", "evo2"];
 let failed = false;
 
 function fail(message) {
@@ -197,8 +199,11 @@ function validateImagegenSource(manifest) {
   const actorLayout = manifest.layouts.actors;
   if (!sameList(actorLayout.directions, ACTOR_RENDER_DIRECTIONS)) fail("生成元の方向順が不正です");
   if (!sameList(actorLayout.actions, ACTIONS)) fail("生成元のアクション順が不正です");
-  for (const [label, layout] of [["通常タイル", manifest.layouts.environmentTiles], ["鉱脈タイル", manifest.layouts.veinTiles]]) {
-    if (!Number.isFinite(layout.trimRatio) || layout.trimRatio !== 0.03) {
+  for (const [label, layout, expectedTrim] of [
+    ["通常タイル", manifest.layouts.environmentTiles, 0.03],
+    ["鉱脈タイル", manifest.layouts.veinTiles, 0.05],
+  ]) {
+    if (!Number.isFinite(layout.trimRatio) || layout.trimRatio !== expectedTrim) {
       fail(`${label} のセル境界トリム率が不正です`);
     }
   }
@@ -273,6 +278,18 @@ function validateImagegenSource(manifest) {
   }
 
   if (!sameList(manifest.layouts.eggs.ids, ACTOR_SHEETS.eggs)) fail("卵の順序が不正です");
+  if (!sameList(manifest.layouts.eggs.soilPatternColumns, EGG_SOIL_PATTERN_COLUMNS)) {
+    fail("卵の土壌種別順が不正です");
+  }
+  if (!sameList(manifest.layouts.eggs.soilPatternRows, EGG_SOIL_PATTERN_ROWS)) {
+    fail("卵の進化段階順が不正です");
+  }
+  const eggSoilPatterns = EGG_SOIL_PATTERN_ROWS.flatMap((level) =>
+    EGG_SOIL_PATTERN_COLUMNS.map((kind) => level === "normal" ? kind : `${kind}_${level}`),
+  );
+  if (!sameList(manifest.layouts.eggs.soilPatternSources, eggSoilPatterns)) {
+    fail("卵の土壌模様対応が不正です");
+  }
   if (!sameList(manifest.layouts.environmentTiles.ids, TILES.slice(0, 5))) fail("通常タイルの順序が不正です");
   if (!sameList(manifest.layouts.effects.ids, EFFECTS)) fail("エフェクトの順序が不正です");
   if (!sameList(manifest.layouts.debuffs.ids, DEBUFF_ICONS)) fail("デバフの順序が不正です");
@@ -378,6 +395,7 @@ function validateAtlases() {
     "earth", "tunnel", "bedrock",
     "moss", "meat", "venom", "stone", "ember",
     "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo",
+    "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2",
   ];
   for (const name of seamSensitiveTiles) {
     const tile = crop(tiles, TILES.indexOf(name) * CELL, 0);

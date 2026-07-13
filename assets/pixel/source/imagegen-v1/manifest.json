@@ -17,6 +17,19 @@
       "file": "eggs/eggs.png",
       "columns": 3,
       "rows": 3,
+      "soilPatternColumns": ["venom", "stone", "ember"],
+      "soilPatternRows": ["normal", "evo", "evo2"],
+      "soilPatternSources": [
+        "venom",
+        "stone",
+        "ember",
+        "venom_evo",
+        "stone_evo",
+        "ember_evo",
+        "venom_evo2",
+        "stone_evo2",
+        "ember_evo2"
+      ],
       "ids": [
         "egg_spitter",
         "egg_golem",
@@ -40,7 +53,7 @@
       "file": "tiles/veins.png",
       "columns": 3,
       "rows": 5,
-      "trimRatio": 0.03,
+      "trimRatio": 0.05,
       "kinds": ["moss", "meat", "venom", "stone", "ember"],
       "levels": ["normal", "evo", "evo2"]
     },
@@ -225,8 +238,8 @@
   "prompts": {
     "style": "High-density handcrafted pixel art with crisp hard-edged square pixel clusters, strong readable silhouettes at 48x48, high contrast, dark subterranean fantasy palette, no antialiasing, no gradients, no blur.",
     "actors": "Exact 5 columns by 7 rows. Columns are east, southeast, south, northeast, north. Rows are idle, attack, cast, dig, heal, eat, dodge. One character per cell on a solid chroma-key background, with no text or separators.",
-    "eggs": "Exact 3 by 3 sheet of nine distinct monster eggs, one centered egg per cell on a solid chroma-key background.",
-    "tiles": "Top-down full-bleed dungeon tiles. Environment sheet is earth, tunnel, bedrock, surface and core. Vein sheet is five material rows by normal, evolved and second-evolved columns.",
+    "eggs": "3列x3行。全セルで同じ中立的な卵形を使い、列は毒・石・炎、行は通常・第一進化・第二進化のモンスター土壌模様をそのまま載せる。モンスター固有の姿や部位は加えない。背景は単色クロマキー。",
+    "tiles": "見下ろし全画面タイル。環境シートは土・通路・岩盤・地表・コア。鉱脈シートは5素材行x通常・第一進化・第二進化列。第二進化は外周を発光させず、第一進化とは異なる内部模様で示す。",
     "effects": "Exact 4 by 5 chronological animation sheet for slash, projectile, bite, birth and smoke effects on a solid chroma-key background.",
     "items": "Exact 4 by 4 isolated inventory icon sheet, row-major in the manifest order, no labels or UI frames, on a solid chroma-key background.",
     "debuffs": "Exact 5 by 1 compact status icon sheet for rotten rations, cracked core, informant map, sharpened blade and dull feed.",

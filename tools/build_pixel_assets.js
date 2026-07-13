@@ -34,6 +34,8 @@ const sourceCache = new Map();
 const actorPoseCache = new Map();
 const actorFrameCache = new Map();
 const eggCache = new Map();
+const EGG_SOIL_PATTERN_COLUMNS = ["venom", "stone", "ember"];
+const EGG_SOIL_PATTERN_ROWS = ["normal", "evo", "evo2"];
 
 function assertList(label, actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -46,6 +48,15 @@ function validateManifest() {
   assertList("アクター方向", manifest.layouts.actors.directions, ACTOR_RENDER_DIRECTIONS);
   assertList("アクターアクション", manifest.layouts.actors.actions, ACTIONS);
   assertList("卵", manifest.layouts.eggs.ids, ACTOR_SHEETS.eggs);
+  assertList("卵の土壌種別", manifest.layouts.eggs.soilPatternColumns, EGG_SOIL_PATTERN_COLUMNS);
+  assertList("卵の進化段階", manifest.layouts.eggs.soilPatternRows, EGG_SOIL_PATTERN_ROWS);
+  assertList(
+    "卵の土壌模様",
+    manifest.layouts.eggs.soilPatternSources,
+    EGG_SOIL_PATTERN_ROWS.flatMap((level) =>
+      EGG_SOIL_PATTERN_COLUMNS.map((kind) => level === "normal" ? kind : `${kind}_${level}`),
+    ),
+  );
   assertList("通常タイル", manifest.layouts.environmentTiles.ids, TILES.slice(0, 5));
   assertList("エフェクト", manifest.layouts.effects.ids, EFFECTS);
   assertList("デバフ", manifest.layouts.debuffs.ids, DEBUFF_ICONS);
