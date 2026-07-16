@@ -121,6 +121,23 @@ describe("ゲームルール", () => {
     }
   });
 
+  it("アクション中の描画方向は開始時の対象へ固定する", () => {
+    carveAll();
+    G.spawnMonster("slime", 5, 5);
+    const monster = G.monsters[0];
+    finishBirth(monster);
+    G.setAction(monster, "attack", G.cx(6), G.cy(5), 300);
+    expect(monster.faceDir).toBe("e");
+    expect(monster.actionFaceDir).toBe("e");
+    expect(typeof G.actorDisplayDirection).toBe("function");
+
+    G.faceToward(monster, G.cx(4), G.cy(5));
+    expect(monster.faceDir).toBe("w");
+    expect(G.actorDisplayDirection(monster)).toBe("e");
+    monster.actionTime = 0;
+    expect(G.actorDisplayDirection(monster)).toBe("w");
+  });
+
   it("初期盤面と資源が正しい", () => {
     expect(G.grid).toHaveLength(G.ROWS);
     expect(G.grid[0]).toHaveLength(G.COLS);

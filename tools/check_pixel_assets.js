@@ -400,6 +400,21 @@ function validateMeta(manifest) {
   if (!sameList(Object.keys(meta.items), ITEM_ICONS)) fail("sprites.json のアイテム順が不正です");
   if (!sameList(Object.keys(meta.debuffs), DEBUFF_ICONS)) fail("sprites.json のデバフ順が不正です");
   if (!sameList(Object.keys(meta.dialogue), DIALOGUE_PORTRAITS)) fail("sprites.json の会話立ち絵順が不正です");
+  for (const actor of ACTORS) {
+    const { sheet, row } = actorLocation(actor);
+    const expected = {
+      sheet: `actor_${sheet}`,
+      x: 0,
+      y: row * ACTOR_ATLAS_ROWS_PER_ACTOR * CELL,
+      w: CELL,
+      h: CELL,
+      frames: FRAMES,
+      directions: ACTOR_RENDER_DIRECTIONS.length,
+      actions: ACTIONS.length,
+      anchor: [CELL / 2, Math.round(CELL * 0.75)],
+    };
+    if (!sameList(meta.actors[actor], expected)) fail(`${actor} のアクターメタデータが不正です`);
+  }
   const directActors = ACTORS.filter((actor) => !actor.startsWith("egg_"));
   const normalizationNames = Object.keys(meta.actorNormalization || {});
   if (normalizationNames.length !== directActors.length || directActors.some((actor) => !normalizationNames.includes(actor))) {
@@ -489,6 +504,12 @@ function validateAtlases() {
     }
     if (Math.min(...feet) < 42 || Math.max(...feet) > 45 || Math.max(...feet) - Math.min(...feet) > 2) {
       fail(`${name} の待機本体足元が不安定です: ${Math.min(...feet)}-${Math.max(...feet)}`);
+    }
+  }
+  for (const name of ACTORS) {
+    const feet = ACTOR_RENDER_DIRECTIONS.map((direction) => alphaBounds(actorFrame(name, "idle", direction, 0)).maxY);
+    if (Math.min(...feet) !== 44 || Math.max(...feet) !== 44) {
+      fail(`${name} の共通足元安全境界が不正です: ${Math.min(...feet)}-${Math.max(...feet)}`);
     }
   }
 

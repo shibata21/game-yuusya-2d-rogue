@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import * as GameCore from "../src/gameCore.js";
 import { createGame, MONSTER_FAMILIES, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTOR_SHEETS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -244,7 +245,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v32-equipment");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v33-actor-anchor");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
@@ -323,5 +324,67 @@ describe("Phaserアプリ構成", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     expect(src).toContain("pixelActorFrameInfo");
     expect(src).not.toContain("PIXEL_FRAMES * 8 * 6");
+  });
+
+  it("全アクターが素材メタデータと同じ原点を使う", () => {
+    for (const name of Object.values(PIXEL_ACTOR_SHEETS).flat()) {
+      const info = pixelActorFrameInfo(name, "idle", "s", 0);
+      expect.soft(info.anchorX, `${name}:anchorX`).toBe(24);
+      expect.soft(info.anchorY, `${name}:anchorY`).toBe(36);
+      expect.soft(info.originX, `${name}:originX`).toBe(0.5);
+      expect.soft(info.originY, `${name}:originY`).toBe(0.75);
+      expect.soft(info.footY, `${name}:footY`).toBe(45);
+    }
+
+    const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
+    expect(src).toContain("sprite.setOrigin(frameInfo.originX, frameInfo.originY)");
+    expect(src).toContain("actorDisplayDirection(e)");
+    expect(src).toContain("pixelActorDisplayLayout(e, pose, bornScale)");
+    expect(src).toContain("sprite.setPosition(layout.x, layout.y)");
+    expect(src).toContain("sprite.setScale(layout.scale)");
+    expect(src).not.toContain("entry.hero || entry.egg ? 0.75 : 0.5");
+    expect(src).not.toContain("entry.egg ? 8 : 0");
+  });
+
+  it("誕生縮小中も足元を固定して上方向へ成長する", () => {
+    expect(typeof GameCore.pixelActorDisplayLayout).toBe("function");
+    const actor = { col: 2, row: 3, px: 100, py: 200 };
+    const pose = { x: 3, y: -4, scale: 1, rot: 0 };
+    const frame = pixelActorFrameInfo("slime", "idle", "s", 0);
+    const layouts = [0.4, 0.7, 1].map((bornScale) =>
+      GameCore.pixelActorDisplayLayout(actor, pose, bornScale),
+    );
+
+    for (const [index, layout] of layouts.entries()) {
+      expect(layout.x).toBe(103);
+      expect(layout.scale).toBeCloseTo([0.4, 0.7, 1][index]);
+      expect(layout.originX).toBe(0.5);
+      expect(layout.originY).toBe(0.75);
+      const renderedFootY = layout.y + layout.scale * (frame.footY - frame.anchorY);
+      expect(renderedFootY).toBeCloseTo(205);
+      expect(layout.footY).toBeCloseTo(renderedFootY);
+    }
+    expect(layouts[0].y).toBeGreaterThan(layouts[2].y);
+  });
+
+  it("上下移動中の奥行きは論理行ではなく補間中の表示Yに追従する", () => {
+    expect(typeof GameCore.pixelActorDepth).toBe("function");
+    const down = { row: 6, py: GameCore.cy(5) };
+    const downMiddle = { row: 6, py: (GameCore.cy(5) + GameCore.cy(6)) / 2 };
+    const up = { row: 5, py: GameCore.cy(6) };
+    expect(GameCore.pixelActorDepth(down)).toBe(GameCore.cy(5));
+    expect(GameCore.pixelActorDepth(downMiddle)).toBe((GameCore.cy(5) + GameCore.cy(6)) / 2);
+    expect(GameCore.pixelActorDepth(up)).toBe(GameCore.cy(6));
+    const sameY = { row: 5, py: GameCore.cy(5) };
+    const tieBreaks = [
+      GameCore.pixelActorDepth(sameY, -0.2),
+      GameCore.pixelActorDepth(sameY),
+      GameCore.pixelActorDepth(sameY, 0.2),
+    ];
+    expect(tieBreaks).toEqual([...tieBreaks].sort((a, b) => a - b));
+    expect(new Set(tieBreaks)).toHaveLength(3);
+
+    const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
+    expect(src).toContain("pixelActorDepth(e");
   });
 });

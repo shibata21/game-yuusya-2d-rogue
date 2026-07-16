@@ -25,6 +25,7 @@ import {
   pixelAssetUrl,
   pixelActorFileName,
   pixelActorFrameInfo,
+  pixelActorSheetName,
   pixelItemFrameIndex,
   pixelDebuffFrameIndex,
   pixelDialoguePortraitFrameIndex,
@@ -217,6 +218,25 @@ describe("imagegenピクセル素材", () => {
     expect(Object.keys(meta.items)).toEqual(PIXEL_ITEMS);
     expect(Object.keys(meta.debuffs)).toEqual(PIXEL_DEBUFFS);
     expect(Object.keys(meta.dialogue)).toEqual(PIXEL_DIALOGUE_PORTRAITS);
+    for (const name of PIXEL_ACTORS) {
+      const sheet = pixelActorSheetName(name);
+      const actorIndex = PIXEL_ACTOR_SHEETS[sheet].indexOf(name);
+      const row = meta.actors[name];
+      expect(row, name).toEqual({
+        sheet: `actor_${sheet}`,
+        x: 0,
+        y: actorIndex * PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR * PIXEL_CELL,
+        w: PIXEL_CELL,
+        h: PIXEL_CELL,
+        frames: PIXEL_FRAMES,
+        directions: PIXEL_ACTOR_RENDER_DIRS.length,
+        actions: PIXEL_ACTIONS.length,
+        anchor: [24, 36],
+      });
+      const frame = pixelActorFrameInfo(name, "idle", "s", 0);
+      expect([frame.anchorX, frame.anchorY], `${name}:frame-anchor`).toEqual(row.anchor);
+      expect([frame.originX, frame.originY], `${name}:frame-origin`).toEqual([0.5, 0.75]);
+    }
     const directActors = PIXEL_ACTORS.filter((name) => !name.startsWith("egg_"));
     expect(Object.keys(meta.actorNormalization)).toEqual(directActors);
     for (const name of directActors) {
@@ -238,13 +258,13 @@ describe("imagegenピクセル素材", () => {
   });
 
   it("公開アセットURLとフレーム参照が新しい版を使う", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v32-equipment");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v32-equipment");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v32-equipment");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v32-equipment");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v32-equipment");
+    expect(PIXEL_ASSET_VERSION).toBe("v33-actor-anchor");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v33-actor-anchor");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v33-actor-anchor");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v33-actor-anchor");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v33-actor-anchor");
     expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe(
-      "assets/pixel/actor_venom_spider.png?v=v32-equipment",
+      "assets/pixel/actor_venom_spider.png?v=v33-actor-anchor",
     );
 
     const east = pixelActorFrameInfo("slime", "idle", "e", 0);
@@ -319,6 +339,15 @@ describe("imagegenピクセル素材", () => {
       expect(Math.min(...feet), name).toBeGreaterThanOrEqual(42);
       expect(Math.max(...feet), name).toBeLessThanOrEqual(45);
       expect(Math.max(...feet) - Math.min(...feet), name).toBeLessThanOrEqual(2);
+    }
+  });
+
+  it("卵を含む全アクターが共通の足元安全境界を越えない", () => {
+    for (const name of PIXEL_ACTORS) {
+      for (const direction of PIXEL_ACTOR_RENDER_DIRS) {
+        const bounds = alphaBounds(actorCrop(name, "idle", direction, 0));
+        expect(bounds.maxY, `${name}:${direction}`).toBe(44);
+      }
     }
   });
 

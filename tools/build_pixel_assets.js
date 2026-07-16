@@ -43,6 +43,8 @@ const ACTOR_BODY_LIMIT = 40;
 const ACTOR_SAFE_MIN = 3;
 const ACTOR_SAFE_MAX = 45;
 const ACTOR_FOOT_Y = 45;
+const ACTOR_ANCHOR_X = CELL / 2;
+const ACTOR_ANCHOR_Y = Math.round(CELL * 0.75);
 
 function assertList(label, actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -209,7 +211,7 @@ function normalizeTransparent(src, maxWidth = 42, maxHeight = 42, align = "botto
   const resized = resizeNearest(cropped, width, height);
   const out = image();
   const x = Math.round((CELL - width) / 2);
-  const y = align === "bottom" ? CELL - height - 2 : Math.round((CELL - height) / 2);
+  const y = align === "bottom" ? ACTOR_FOOT_Y - height : Math.round((CELL - height) / 2);
   copyInto(out, resized, x, y);
   return out;
 }
@@ -888,14 +890,14 @@ function writeMeta() {
       frames: FRAMES,
       directions: ACTOR_RENDER_DIRECTIONS.length,
       actions: ACTIONS.length,
-      anchor: [CELL / 2, Math.round(CELL * 0.75)],
+      anchor: [ACTOR_ANCHOR_X, ACTOR_ANCHOR_Y],
     };
     if (!name.startsWith("egg_")) {
       const normalization = actorNormalizationCache.get(name);
       const sourceStats = actorSourceStats.get(name);
       meta.actorNormalization[name] = {
         scale: Number(normalization.scale.toFixed(6)),
-        targetCenterX: CELL / 2,
+        targetCenterX: ACTOR_ANCHOR_X,
         targetFootY: ACTOR_FOOT_Y,
         minEffectScale: Number(normalization.minEffectScale.toFixed(6)),
         sourceWidth: sourceStats.width,

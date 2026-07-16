@@ -462,12 +462,15 @@ function applyMonsterDeckToVeins(veinTable, deck) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v32-equipment";
+export const PIXEL_ASSET_VERSION = "v33-actor-anchor";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
 export const PIXEL_ACTOR_RENDER_DIRS = ["e", "se", "s", "ne", "n"];
 export const PIXEL_ACTIONS = ["idle", "attack", "cast", "dig", "heal", "eat", "dodge"];
+export const PIXEL_ACTOR_ANCHOR_X = PIXEL_CELL / 2;
+export const PIXEL_ACTOR_ANCHOR_Y = Math.round(PIXEL_CELL * 0.75);
+export const PIXEL_ACTOR_FOOT_Y = 45;
 export const PIXEL_ACTOR_FRAMES_PER_ACTOR = PIXEL_FRAMES * PIXEL_ACTOR_RENDER_DIRS.length * PIXEL_ACTIONS.length;
 export const PIXEL_ACTOR_ATLAS_COLUMNS = PIXEL_ACTOR_FRAMES_PER_ACTOR / 2;
 export const PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR = PIXEL_ACTOR_FRAMES_PER_ACTOR / PIXEL_ACTOR_ATLAS_COLUMNS;
@@ -651,7 +654,45 @@ export function pixelActorFrameInfo(name, action, dir, frame) {
     sheetWidth: PIXEL_ACTOR_ATLAS_COLUMNS * PIXEL_CELL,
     sheetHeight: names.length * PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR * PIXEL_CELL,
     flipX: render.flipX,
+    anchorX: PIXEL_ACTOR_ANCHOR_X,
+    anchorY: PIXEL_ACTOR_ANCHOR_Y,
+    originX: PIXEL_ACTOR_ANCHOR_X / PIXEL_CELL,
+    originY: PIXEL_ACTOR_ANCHOR_Y / PIXEL_CELL,
+    footY: PIXEL_ACTOR_FOOT_Y,
   };
+}
+
+export function pixelActorDisplayLayout(actor, pose = {}, bornScale = 1) {
+  const baseX = actor?.px ?? cx(actor?.col || 0);
+  const baseY = actor?.py ?? cy(actor?.row || 0);
+  const poseX = Number.isFinite(pose?.x) ? pose.x : 0;
+  const poseY = Number.isFinite(pose?.y) ? pose.y : 0;
+  const poseScale = Number.isFinite(pose?.scale) ? pose.scale : 1;
+  const growth = Math.max(0, Math.min(1, Number.isFinite(bornScale) ? bornScale : 1));
+  const scale = poseScale * growth;
+  const anchorToFoot = PIXEL_ACTOR_FOOT_Y - PIXEL_ACTOR_ANCHOR_Y;
+  const y = baseY + poseY + (poseScale - scale) * anchorToFoot;
+  return {
+    x: baseX + poseX,
+    y,
+    scale,
+    rot: Number.isFinite(pose?.rot) ? pose.rot : 0,
+    originX: PIXEL_ACTOR_ANCHOR_X / PIXEL_CELL,
+    originY: PIXEL_ACTOR_ANCHOR_Y / PIXEL_CELL,
+    footY: y + scale * anchorToFoot,
+  };
+}
+
+export function pixelActorDepth(actor, tieBreak = 0) {
+  const y = actor?.py ?? cy(actor?.row || 0);
+  return y + (Number.isFinite(tieBreak) ? tieBreak : 0);
+}
+
+export function actorDisplayDirection(actor) {
+  const direction = actor?.actionTime > 0 && actor.actionFaceDir
+    ? actor.actionFaceDir
+    : actor?.faceDir;
+  return PIXEL_DIRS.includes(direction) ? direction : "s";
 }
 
 export function pixelActorFrameIndex(name, action, dir, frame) {
@@ -1313,6 +1354,7 @@ export function createGame(options = {}) {
 
   function setAction(e, type, tx, ty, duration = ATK_ANIM) {
     faceToward(e, tx, ty);
+    e.actionFaceDir = e.faceDir;
     e.actionType = type;
     e.actionTime = duration;
     e.actionMax = duration;
@@ -3274,7 +3316,7 @@ export function createGame(options = {}) {
     update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, buyShopItem, closeShopOffer, chooseTrapDebuff, acknowledgeDebuffNotice, advanceDialogue, clearCoreHitEffects, drainEvents,
     equipItem, validateEquipment, createEquipment, effectiveItemWave, itemRarityWeights, rollItemRarity, hasDebuff, applyDebuff,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
-    dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
+    dirFromDelta, faceToward, actorAction, actorDisplayDirection, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
     isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemRarity, itemShopPrice,
     countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, isBornProtected, canBeEatenBy, canLayEgg, rankOf,
@@ -3284,8 +3326,8 @@ export function createGame(options = {}) {
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
     VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
-    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
@@ -3296,8 +3338,8 @@ export const Core = {
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
   CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
-  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
+  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
 };
 
 export function exposeGameNamespace(currentGame = null) {

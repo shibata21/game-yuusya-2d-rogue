@@ -15,6 +15,9 @@ import {
   pixelActorFileName,
   pixelActorFrameInfo,
   pixelActorFrameIndex,
+  pixelActorDisplayLayout,
+  pixelActorDepth,
+  actorDisplayDirection,
   pixelActorSheetName,
   pixelActorTextureKey,
   pixelItemFrameIndex,
@@ -741,9 +744,9 @@ class MainScene extends Phaser.Scene {
 
   syncActors() {
     const entries = [];
-    for (const e of gameApi.eggs) entries.push({ z: e.row - 0.2, egg: true, e });
-    for (const e of gameApi.monsters) entries.push({ z: e.row, hero: false, e });
-    for (const e of gameApi.heroes) entries.push({ z: e.row + 0.5, hero: true, e });
+    for (const e of gameApi.eggs) entries.push({ z: pixelActorDepth(e, -0.2), egg: true, e });
+    for (const e of gameApi.monsters) entries.push({ z: pixelActorDepth(e), hero: false, e });
+    for (const e of gameApi.heroes) entries.push({ z: pixelActorDepth(e, 0.2), hero: true, e });
     entries.sort((a, b) => a.z - b.z);
     const requiredSheets = entries.map((entry) => {
       const e = entry.e;
@@ -768,7 +771,7 @@ class MainScene extends Phaser.Scene {
       const e = entry.e;
       const name = entry.egg ? `egg_${e.kind}` : (entry.hero ? e.cls : e.kind);
       const action = entry.egg ? "idle" : gameApi.actorAction(e);
-      const dir = entry.egg ? "s" : (e.faceDir || "s");
+      const dir = entry.egg ? "s" : actorDisplayDirection(e);
       const frame = entry.egg ? Math.floor(this.time.now / 220 + e.col) % PIXEL_FRAMES : actorFrame(e, this);
       const frameInfo = pixelActorFrameInfo(name, action, dir, frame);
       if (!sheetsReady || !this.textures.exists(frameInfo.key)) {
@@ -777,14 +780,15 @@ class MainScene extends Phaser.Scene {
       }
       const pose = entry.egg ? { x: 0, y: 0, scale: 1, rot: 0 } : gameApi.actorPose(e);
       const bornScale = e.bornAnim > 0 ? 0.4 + 0.6 * Math.max(0, Math.min(1, 1 - e.bornAnim / gameApi.BORN_ANIM)) : 1;
+      const layout = pixelActorDisplayLayout(e, pose, bornScale);
       sprite.setVisible(true);
       sprite.setTexture(frameInfo.key);
       sprite.setFrame(frameInfo.frame);
       sprite.setFlipX(frameInfo.flipX);
-      sprite.setPosition((e.px ?? gameApi.cx(e.col)) + pose.x, (e.py ?? gameApi.cy(e.row)) + pose.y + (entry.egg ? 8 : 0));
-      sprite.setScale(bornScale * pose.scale);
-      sprite.setRotation(pose.rot || 0);
-      sprite.setOrigin(0.5, entry.hero || entry.egg ? 0.75 : 0.5);
+      sprite.setPosition(layout.x, layout.y);
+      sprite.setScale(layout.scale);
+      sprite.setRotation(layout.rot);
+      sprite.setOrigin(frameInfo.originX, frameInfo.originY);
       sprite.setDepth(100 + i);
     }
   }
