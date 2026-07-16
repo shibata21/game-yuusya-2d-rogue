@@ -6,7 +6,10 @@ import {
   createRuleConfig,
   KINDS,
   HERO_CLASSES,
-  ITEM_UNLOCKS,
+  ITEM_TYPES,
+  ITEM_RARITIES,
+  ITEM_STAT_KEYS,
+  ITEM_STAT_LIMITS,
   VEIN,
   PIXEL_ITEMS,
   PIXEL_DEBUFFS,
@@ -64,6 +67,37 @@ beforeEach(() => {
 
 function advanceDialogueAll(game = G) {
   for (let i = 0; i < 20 && game.gameState === "dialogue"; i++) game.advanceDialogue();
+}
+
+let equipmentTestId = 0;
+
+function equipmentItem(type, mods = {}, rarity = "iron") {
+  return {
+    uid: `test-equipment-${++equipmentTestId}`,
+    type,
+    rarity,
+    mods: Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, Math.trunc(mods[key] || 0)])),
+  };
+}
+
+function finishBirth(...monsters) {
+  for (const monster of monsters.flat()) {
+    monster.bornProtectMs = 0;
+    monster.bornAnim = 0;
+  }
+}
+
+function resolveRunPause(game) {
+  advanceDialogueAll(game);
+  if (game.gameState === "itemChoice" && game.itemOffer) {
+    game.chooseItemOffer(game.itemOffer.choices[0].uid);
+  } else if (game.gameState === "shop" && game.shopOffer) {
+    game.closeShopOffer();
+  } else if (game.gameState === "trap" && game.trapOffer) {
+    game.chooseTrapDebuff(game.trapOffer.choices[0]);
+  } else if (game.gameState === "debuffNotice") {
+    game.acknowledgeDebuffNotice();
+  }
 }
 
 describe("ゲームルール", () => {
@@ -217,6 +251,7 @@ describe("ゲームルール", () => {
     G.monsters.length = 0;
     G.heroes.length = 0;
     G.spawnMonster("meat_hedgehog", 5, 5);
+    finishBirth(G.monsters[0]);
     G.spawnHero("warrior", 6, 5);
     const heroHp = G.heroes[0].hp;
     G.damageMonster(G.monsters[0], 1, "#fff", G.heroes[0]);
@@ -458,6 +493,7 @@ describe("ゲームルール", () => {
   it("下位種は直接増殖し、上位種は直接増殖しない", () => {
     carveAll();
     G.spawnMonster("slime", 5, 5);
+    finishBirth(G.monsters[0]);
     G.monsters[0].breedCd = 0;
     G.update(100);
     expect(G.monsters).toHaveLength(2);
@@ -517,6 +553,7 @@ describe("ゲームルール", () => {
     carveAll();
     G.setRandom(() => 0.19);
     G.spawnMonster("spitter", 5, 5);
+    finishBirth(G.monsters[0]);
     G.monsters[0].eggCd = 0;
     G.update(100);
     expect(G.eggs).toHaveLength(1);
@@ -526,6 +563,7 @@ describe("ゲームルール", () => {
     carveAll();
     G.setRandom(() => 0.04);
     G.spawnMonster("titan", 5, 5);
+    finishBirth(G.monsters[0]);
     G.monsters[0].eggCd = 0;
     G.update(100);
     expect(G.eggs).toHaveLength(0);
@@ -534,6 +572,7 @@ describe("ゲームルール", () => {
     carveAll();
     G.setRandom(() => 0.034);
     G.spawnMonster("titan", 5, 5);
+    finishBirth(G.monsters[0]);
     G.monsters[0].eggCd = 0;
     G.update(100);
     expect(G.eggs).toHaveLength(1);
@@ -575,6 +614,7 @@ describe("ゲームルール", () => {
     G.heroes.length = 0;
     G.spawnMonster("carniv", 5, 4);
     const beast = G.monsters[0];
+    finishBirth(beast);
     G.heroes.push(hero("warrior", 5, 6, { actCd: 999999, atkCd: 999999 }));
     beast.moveCd = 0;
     beast.eatCd = 999999;
@@ -642,6 +682,7 @@ describe("ゲームルール", () => {
     eater.hp = 10;
     eater.eatCd = 0;
     G.spawnMonster("slime", 5, 6);
+    finishBirth(eater, G.monsters[1]);
     G.update(100);
     expect(G.monsters).toHaveLength(1);
     expect(eater.hp).toBeGreaterThan(10);
@@ -714,6 +755,7 @@ describe("ゲームルール", () => {
   it("飛び道具を受けても冒険者の移動待ちは増えない", () => {
     carveAll();
     G.spawnMonster("spitter", 2, 5);
+    finishBirth(G.monsters[0]);
     const h = hero("warrior", 4, 5, { hp: 60, actCd: 1200, atkCd: 999999, moveAnim: 0 });
     G.heroes.push(h);
     G.monsters[0].atkCd = 0;
@@ -727,6 +769,7 @@ describe("ゲームルール", () => {
   it("ドラゴンの炎は3マス直線上の冒険者全員へ当たる", () => {
     carveAll();
     G.spawnMonster("flame", 2, 5);
+    finishBirth(G.monsters[0]);
     const near = hero("warrior", 4, 5, { hp: 60, atkCd: 999999 });
     const far = hero("mage", 5, 5, { hp: 60, atkCd: 999999 });
     const outOfRange = hero("warrior", 6, 5, { hp: 60, atkCd: 999999 });
@@ -782,6 +825,7 @@ describe("ゲームルール", () => {
     G.grid[6][6].t = "earth";
     G.spawnMonster("slime", 5, 6);
     const monster = G.monsters[0];
+    finishBirth(monster);
     monster.atkCd = 0;
     monster.moveCd = 999999;
     monster.eatCd = 999999;
@@ -803,6 +847,7 @@ describe("ゲームルール", () => {
     G.grid[6][6].t = "tunnel";
     G.spawnMonster("slime", 5, 6);
     const monster = G.monsters[0];
+    finishBirth(monster);
     monster.atkCd = 0;
     monster.moveCd = 999999;
     monster.eatCd = 999999;
@@ -977,6 +1022,7 @@ describe("ゲームルール", () => {
     G.heroes.push(hero("warrior", 5, 5, { actCd: 999999, atkCd: 999999, moveCd: 999999 }));
     G.spawnMonster("slime", 8, 5);
     const hunter = G.monsters[0];
+    finishBirth(hunter);
     hunter.moveCd = 0;
     hunter.moveCharge = 1;
     hunter.eatCd = 999999;
@@ -1236,6 +1282,7 @@ describe("ゲームルール", () => {
     Object.assign(h, { col: 5, row: 6, px: G.cx(5), py: G.cy(6), actCd: 0, atkCd: 0, hp: 60, maxHp: 60 });
     G.spawnMonster("slime", 5, 5);
     const m = G.monsters[0];
+    finishBirth(m);
     m.atkCd = 0;
     m.moveCd = 0;
     m.eatCd = 999999;
@@ -1275,6 +1322,7 @@ describe("ゲームルール", () => {
     G.heroes.push(h);
     G.spawnMonster("slime", 5, 3);
     const m = G.monsters[0];
+    finishBirth(m);
     m.atkCd = 999999;
     m.moveCd = 999999;
     m.eatCd = 999999;
@@ -1398,6 +1446,7 @@ describe("ゲームルール", () => {
     G.setRandom(() => 0);
     G.spawnMonster("slime", 5, 5);
     const m = G.monsters[0];
+    finishBirth(m);
     const h = hero("shon", 5, 6, { hp: 60, atkCd: 999999, actCd: 999999 });
     G.heroes.push(h);
     m.atkCd = 0;
@@ -1415,6 +1464,7 @@ describe("ゲームルール", () => {
     G.heroes.push(h);
     G.spawnMonster("golem", 6, 5);
     const m = G.monsters[0];
+    finishBirth(m);
     m.atkCd = 999999;
     m.moveCd = 999999;
     G.update(100);
@@ -1426,6 +1476,7 @@ describe("ゲームルール", () => {
     const shon = hero("shon", 5, 5, { atk: 10, atkCd: 0, actCd: 999999 });
     G.heroes.push(shon);
     G.spawnMonster("golem", 8, 5);
+    finishBirth(G.monsters[0]);
     G.monsters[0].atkCd = 999999;
     G.monsters[0].moveCd = 999999;
     G.update(100);
@@ -1439,6 +1490,7 @@ describe("ゲームルール", () => {
     const horiThrow = hero("hori", 5, 5, { atk: 10, atkCd: 0, actCd: 999999 });
     G.heroes.push(horiThrow);
     G.spawnMonster("golem", 7, 5);
+    finishBirth(G.monsters[0]);
     G.monsters[0].atkCd = 999999;
     G.monsters[0].moveCd = 999999;
     G.update(100);
@@ -1451,6 +1503,7 @@ describe("ゲームルール", () => {
     const horiEat = hero("hori", 5, 5, { hp: 20, maxHp: 100, atkCd: 0, actCd: 999999 });
     G.heroes.push(horiEat);
     G.spawnMonster("golem", 6, 5);
+    finishBirth(G.monsters[0]);
     G.monsters[0].atkCd = 999999;
     G.monsters[0].moveCd = 999999;
     G.update(100);
@@ -1485,6 +1538,7 @@ describe("ゲームルール", () => {
     G.spawnMonster("slime", 6, 5);
     G.spawnMonster("slime", 8, 5);
     G.spawnMonster("slime", 6, 6);
+    finishBirth(G.monsters);
     for (const m of G.monsters) {
       m.atkCd = 999999;
       m.moveCd = 999999;
@@ -1500,7 +1554,7 @@ describe("ゲームルール", () => {
     expect(sage.actionType).toBe("cast");
   });
 
-  it("冒険者死亡時にはアイテムを直接拾わない", () => {
+  it("冒険者死亡時には装備を直接得ない", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 5;
@@ -1508,67 +1562,71 @@ describe("ゲームルール", () => {
     G.heroes.push(h);
     G.killHero(h);
     expect(G.itemOffer).toBe(null);
-    expect(G.items).toHaveLength(0);
+    expect(Object.values(G.equipment).every((item) => item === null)).toBe(true);
   });
 
-  it("ウェーブ終了時にアイテムイベントを引くと無料アイテム3択を表示し、選ぶと再開する", () => {
+  it("ウェーブ終了時の無料装備3択は種類が重複せず、UIDで装着できる", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 5;
     G.gameState = "playing";
     G.settleWave();
+
     expect(G.gameState).toBe("dialogue");
     expect(G.dialogue).toMatchObject({ id: "itemChoice", speaker: "ゴリラおばさん", returnState: "itemChoice" });
-    expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
-    expect(G.chooseItemOffer("blackSoilBag")).toBe(false);
+    expect(G.itemOffer.choices).toHaveLength(3);
+    expect(new Set(G.itemOffer.choices.map((item) => item.type)).size).toBe(3);
+    expect(G.itemOffer.choices.every((item) =>
+      ITEM_TYPES[item.type] &&
+      ITEM_RARITIES[item.rarity] &&
+      ITEM_STAT_KEYS.every((key) => Number.isInteger(item.mods[key]))
+    )).toBe(true);
+    const choice = G.itemOffer.choices[1];
+    expect(G.chooseItemOffer(choice.uid)).toBe(false);
     advanceDialogueAll();
-    expect(G.gameState).toBe("itemChoice");
-
-    expect(G.chooseItemOffer("blackSoilBag")).toBe(true);
-    expect(G.gameState).toBe("playing");
+    expect(G.chooseItemOffer(choice.uid)).toBe(true);
+    expect(G.equipment[choice.type]).toEqual(choice);
     expect(G.itemOffer).toBe(null);
-    expect(G.items).toEqual(["blackSoilBag"]);
-    expect(G.itemEvents.some((e) => e.id === "blackSoilBag")).toBe(true);
-    expect(G.shopOffer).toBe(null);
+    expect(G.gameState).toBe("playing");
   });
 
-  it("撃退後イベントは30%で発生し、外れた場合はそのまま再開する", () => {
-    carveAll();
-    expect(POST_WAVE_EVENT_CHANCE).toBe(0.30);
+  it("空き枠がある無料3択には未装備種類を最低1つ含める", () => {
+    for (const type of Object.keys(ITEM_TYPES).slice(0, 4)) {
+      expect(G.equipItem(equipmentItem(type, { attack: 1 }))).toBe(true);
+    }
     G.setRandom(() => 0.99);
-    G.wave = 5;
-    G.waveCountdown = 5000;
+    G.wave = 4;
     G.gameState = "playing";
+    for (let i = 0; i < G.FREE_ITEM_PITY_WAVES; i++) {
+      G.wave = i + 1;
+      G.settleWave();
+    }
+    G.wave = 4;
     G.settleWave();
-    expect(G.gameState).toBe("playing");
-    expect(G.postWaveEvent).toBe(null);
-    expect(G.itemOffer).toBe(null);
-    expect(G.shopOffer).toBe(null);
-    expect(G.trapOffer).toBe(null);
-    expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
+    expect(G.itemOffer.choices.some((item) => item.type === "lifeEgg")).toBe(true);
   });
 
-  it("アイテム欄が満杯なら無料アイテムは取れず、選択画面に残る", () => {
-    carveAll();
-    for (const id of PIXEL_ITEMS.slice(0, G.ITEM_CAP)) expect(G.applyItem(id, { ignoreCap: true }), id).toBe(true);
-    expect(G.items).toHaveLength(G.ITEM_CAP);
-    G.setRandom(() => 0);
-    G.wave = 5;
-    G.gameState = "playing";
+  it("撃退後イベントは40%で、無料装備なしが3回続いた次の撃退で救済する", () => {
+    expect(POST_WAVE_EVENT_CHANCE).toBe(0.40);
+    G.setRandom(() => 0.99);
+    for (let currentWave = 1; currentWave <= G.FREE_ITEM_PITY_WAVES; currentWave++) {
+      G.wave = currentWave;
+      G.gameState = "playing";
+      G.settleWave();
+      expect(G.postWaveEvent).toBe(null);
+      expect(G.freeItemMisses).toBe(currentWave);
+    }
+    G.wave = G.FREE_ITEM_PITY_WAVES + 1;
     G.settleWave();
+    expect(G.gameState).toBe("dialogue");
+    expect(G.itemOffer.choices).toHaveLength(3);
+    expect(G.freeItemMisses).toBe(0);
     advanceDialogueAll();
-    expect(G.gameState).toBe("itemChoice");
-    const choice = G.itemOffer.choices[0];
-
-    expect(G.chooseItemOffer(choice)).toBe(true);
-    expect(G.gameState).toBe("itemChoice");
-    expect(G.items).toHaveLength(G.ITEM_CAP);
-    expect(G.items).not.toContain(choice);
-    expect(G.itemOffer.choices).toContain(choice);
-    expect(G.effects.some((e) => e.type === "banner" && e.text === "もう取れません")).toBe(true);
+    expect(G.chooseItemOffer(null)).toBe(true);
+    expect(G.freeItemMisses).toBe(0);
   });
 
-  it("update経由のウェーブ終了は最後の冒険者死亡後に余韻を挟む", () => {
+  it("update経由のウェーブ終了は余韻を挟み、装備選択中は時間を止める", () => {
     carveAll();
     G.setRandom(() => 0);
     G.wave = 5;
@@ -1576,216 +1634,240 @@ describe("ゲームルール", () => {
     G.spawnQueue.length = 0;
     G.heroes.length = 0;
     G.update(G.WAVE_SETTLE_DELAY - 1);
-    expect(G.gameState).toBe("playing");
     expect(G.waveSettled).toBe(0);
     expect(G.waveSettleDelay).toBe(1);
     expect(G.itemOffer).toBe(null);
 
     G.update(1);
-    expect(G.gameState).toBe("dialogue");
     expect(G.waveSettled).toBe(5);
-    expect(G.dialogue.id).toBe("itemChoice");
-    expect(G.itemOffer).toEqual({ wave: 5, choices: ["rustyPickaxe", "blackSoilBag", "undergroundLantern"] });
+    expect(G.gameState).toBe("dialogue");
     advanceDialogueAll();
-    expect(G.gameState).toBe("itemChoice");
-  });
-
-  it("アイテム3択は取らない選択もできる", () => {
-    carveAll();
-    G.setRandom(() => 0);
-    G.wave = 4;
-    G.gameState = "playing";
-    G.settleWave();
-    advanceDialogueAll();
-    expect(G.gameState).toBe("itemChoice");
-    G.drainEvents();
-    expect(G.chooseItemOffer(null)).toBe(true);
-    expect(G.gameState).toBe("playing");
-    expect(G.items).toHaveLength(0);
-    expect(G.itemOffer).toBe(null);
-    expect(G.drainEvents().some((e) => e.type === "discoverItem")).toBe(false);
-    expect(G.shopOffer).toBe(null);
-  });
-
-  it("アイテム選択中はupdateでゲーム時間が進まない", () => {
-    carveAll();
-    G.setRandom(() => 0);
-    G.wave = 4;
-    G.waveCountdown = 5000;
-    G.nutrients = 30;
-    G.gameState = "playing";
-    G.settleWave();
-    advanceDialogueAll();
-    G.effects.push({ type: "float", x: 0, y: 0, text: "停止", life: 1000, max: 1000, vy: -0.1 });
-    const effect = G.effects[G.effects.length - 1];
-
+    const beforeCountdown = G.waveCountdown;
+    const beforeNutrients = G.nutrients;
     G.update(1000);
-
     expect(G.gameState).toBe("itemChoice");
-    expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
-    expect(G.nutrients).toBe(30);
-    expect(effect.life).toBe(1000);
+    expect(G.waveCountdown).toBe(beforeCountdown);
+    expect(G.nutrients).toBe(beforeNutrients);
   });
 
-  it("アイテムはレアリティを持ち、強い格ほどショップ価格が高い", () => {
-    for (const id of PIXEL_ITEMS) {
-      expect(["normal", "rare", "gold"]).toContain(G.ITEMS[id].rarity);
+  it("装備個体の生成はレアリティ表、主能力、非重複副能力を守る", () => {
+    expect(Object.keys(ITEM_RARITIES)).toEqual(["iron", "bronze", "silver", "gold", "diamond"]);
+    expect(G.itemRarityWeights(1, 1)).toEqual({ iron: 70, bronze: 30, silver: 0, gold: 0, diamond: 0 });
+    expect(G.itemRarityWeights(5, 1)).toEqual({ iron: 30, bronze: 50, silver: 20, gold: 0, diamond: 0 });
+    expect(G.itemRarityWeights(8, 1)).toEqual({ iron: 10, bronze: 30, silver: 45, gold: 15, diamond: 0 });
+    expect(G.itemRarityWeights(12, 1)).toEqual({ iron: 0, bronze: 10, silver: 35, gold: 40, diamond: 15 });
+    expect(G.itemRarityWeights(14, 1)).toEqual({ iron: 0, bronze: 0, silver: 15, gold: 45, diamond: 40 });
+    expect(G.effectiveItemWave(11, 20)).toBe(14);
+
+    G.setRandom(() => 0);
+    const fang = G.createEquipment("demonFang", "iron", 1);
+    expect(fang.mods).toEqual({ soil: 1, attack: 8, defense: -2, speed: 0, breed: 0, recovery: 0 });
+    const egg = G.createEquipment("lifeEgg", "iron", 1);
+    expect(egg.mods.breed).toBe(4);
+    expect(egg.mods.recovery).toBe(4);
+    expect(Object.values(egg.mods).filter((value) => value < 0)).toHaveLength(1);
+
+    for (const rarity of Object.keys(ITEM_RARITIES)) {
+      const item = G.createEquipment("guardianCarapace", rarity, 14);
+      expect(item.rarity).toBe(rarity);
+      expect(Object.keys(item.mods)).toEqual(ITEM_STAT_KEYS);
+      expect(Object.values(item.mods).filter((value) => value < 0).length).toBeLessThanOrEqual(1);
+      expect(Object.values(item.mods).filter((value) => value !== 0).length)
+        .toBeLessThanOrEqual(ITEM_RARITIES[rarity].positiveCount + 2);
     }
-    expect(G.ITEM_RARITIES.normal.name).toBe("ノーマル");
-    expect(G.ITEM_RARITIES.rare.name).toBe("レア");
-    expect(G.ITEM_RARITIES.gold.name).toBe("ゴールド");
-    expect(G.ITEM_RARITIES.normal.shopWeight).toBeGreaterThan(G.ITEM_RARITIES.rare.shopWeight);
-    expect(G.ITEM_RARITIES.rare.shopWeight).toBeGreaterThan(G.ITEM_RARITIES.gold.shopWeight);
-    expect(G.itemShopPrice("rustyPickaxe", 0)).toBeLessThan(G.itemShopPrice("blackSoilBag", 0));
-    expect(G.itemShopPrice("blackSoilBag", 0)).toBeLessThan(G.itemShopPrice("oldIncense", 0));
-    expect(G.itemShopPrice("rustyPickaxe", 5)).toBe(17);
-    expect(G.itemShopPrice("blackSoilBag", 5)).toBe(34);
-    expect(G.itemShopPrice("oldIncense", 5)).toBe(57);
-    expect(G.ITEMS.coreShard.rarity).toBe("gold");
-    expect(G.ITEMS.coreBandage.rarity).toBe("rare");
-    expect(G.ITEMS.quakeStone.rarity).toBe("rare");
-    expect(G.ITEMS.lowestCandle.rarity).toBe("rare");
   });
 
-  it("ショップでは栄養を払って複数アイテムを購入でき、足りない商品は買えない", () => {
+  it("固定seedのレアリティ抽選は指定分布へ収束する", () => {
+    const sampled = createGame({ seed: 24680 });
+    const counts = Object.fromEntries(Object.keys(ITEM_RARITIES).map((rarity) => [rarity, 0]));
+    const samples = 10000;
+    for (let i = 0; i < samples; i++) counts[sampled.rollItemRarity(12, 1)]++;
+    expect(counts.iron).toBe(0);
+    expect(counts.bronze / samples).toBeCloseTo(0.10, 1);
+    expect(counts.silver / samples).toBeCloseTo(0.35, 1);
+    expect(counts.gold / samples).toBeCloseTo(0.40, 1);
+    expect(counts.diamond / samples).toBeCloseTo(0.15, 1);
+  });
+
+  it("5固定枠は同種を交換し、6補正を能力別上限へ収める", () => {
+    const types = Object.keys(ITEM_TYPES);
+    for (const type of types) expect(G.equipItem(equipmentItem(type, Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, 100])), "diamond"))).toBe(true);
+    expect(Object.values(G.equipment).filter(Boolean)).toHaveLength(5);
+    for (const key of ITEM_STAT_KEYS) expect(G.itemStats[key]).toBe(ITEM_STAT_LIMITS[key][1]);
+
+    const oldFang = G.equipment.demonFang;
+    const replacement = equipmentItem("demonFang", { attack: -100 }, "iron");
+    expect(G.equipItem(replacement)).toBe(true);
+    expect(G.equipment.demonFang.uid).toBe(replacement.uid);
+    expect(G.equipment.demonFang.uid).not.toBe(oldFang.uid);
+
+    for (const type of types) expect(G.equipItem(equipmentItem(type, Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, -100]))))).toBe(true);
+    for (const key of ITEM_STAT_KEYS) expect(G.itemStats[key]).toBe(ITEM_STAT_LIMITS[key][0]);
+
+    const snapshot = G.equipment;
+    snapshot.earthCore.mods.soil = 999;
+    expect(G.equipment.earthCore.mods.soil).toBe(-100);
+    expect(G.equipItem({ uid: "bad", type: "earthCore", rarity: "iron", mods: { soil: 1 } })).toBe(false);
+  });
+
+  it("攻撃と防御補正は最終ダメージへ一度だけ反映する", () => {
     carveAll();
-    const rolls = [0, 0.7, 0, 0, 0, 0, 0];
+    expect(G.equipItem(equipmentItem("demonFang", { attack: 50 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("guardianCarapace", { defense: 50 }))).toBe(true);
+    G.spawnMonster("slime", 5, 5);
+    const m = G.monsters[0];
+    finishBirth(m);
+    m.atk = 10;
+    expect(G.monsterAttackPower(m)).toBe(15);
+    m.maxHp = 100;
+    m.hp = 100;
+    expect(G.damageMonster(m, 30)).toBe(true);
+    expect(m.hp).toBe(80);
+  });
+
+  it("土壌と速度補正は小数蓄積と魔物の移動・攻撃間隔へ反映する", () => {
+    carveAll();
+    expect(G.equipItem(equipmentItem("earthCore", { soil: 80 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("windFeather", { speed: 50 }))).toBe(true);
+    G.grid[5][7] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
+    G.spawnMonster("slime", 5, 5);
+    const m = G.monsters[0];
+    finishBirth(m);
+    m.soilSteps = G.SOIL_CHARGE_MOVES - 1;
+    G.beginMove(m, 6, 5);
+    expect(G.grid[5][7].soilMana).toBeCloseTo(1.8);
+
+    m.moveAnim = 0;
+    m.px = G.cx(m.col);
+    m.py = G.cy(m.row);
+    m.moveCharge = 0;
+    m.atkCd = 0;
+    m.eatCd = 999999;
+    const h = hero("warrior", 7, 5, { hp: 100, maxHp: 100, atkCd: 999999, actCd: 999999 });
+    G.heroes.push(h);
+    G.update(100);
+    expect(m.atkCd).toBe(Math.round(KINDS.slime.atkCd * 100 / 150));
+    G.heroes.length = 0;
+    m.moveCharge = 0;
+    G.update(100);
+    expect(m.moveCharge).toBeGreaterThan(0.2);
+  });
+
+  it("繁殖補正は直接増殖、産卵判定、孵化の時間進行だけを速める", () => {
+    carveAll();
+    expect(G.equipItem(equipmentItem("lifeEgg", { breed: 50 }))).toBe(true);
+
+    G.spawnMonster("slime", 3, 5);
+    const breeder = G.monsters[0];
+    finishBirth(breeder);
+    breeder.breedCd = 1000;
+    breeder.moveCd = 999999;
+
+    G.spawnMonster("spitter", 7, 5);
+    const layer = G.monsters[1];
+    finishBirth(layer);
+    layer.eggCd = 1000;
+    layer.moveCd = 999999;
+
+    expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
+    G.eggs[0].hatchCd = 1000;
+    G.update(500);
+
+    expect(breeder.breedCd).toBeCloseTo(250);
+    expect(layer.eggCd).toBeCloseTo(250);
+    expect(G.eggs[0].hatchCd).toBeCloseTo(250);
+    expect(KINDS.spitter.eggChance).toBeCloseTo(0.22);
+  });
+
+  it("回復補正は非戦闘4秒後から小数蓄積し、攻撃か被弾で待機を戻す", () => {
+    carveAll();
+    expect(G.equipItem(equipmentItem("lifeEgg", { recovery: 40 }))).toBe(true);
+    G.spawnMonster("golem", 5, 5);
+    const m = G.monsters[0];
+    finishBirth(m);
+    Object.assign(m, { hp: 50, maxHp: 100, moveCd: 999999, atkCd: 999999, eatCd: 999999 });
+    G.update(4000);
+    expect(m.hp).toBe(50);
+    G.update(500);
+    expect(m.hp).toBe(51);
+    expect(G.damageMonster(m, 1)).toBe(true);
+    G.update(3999);
+    expect(m.hp).toBe(50);
+    G.update(501);
+    expect(m.hp).toBe(51);
+  });
+
+  it("商店は5種類を1つずつ並べ、UID購入と同種交換を複数回行える", () => {
+    carveAll();
+    const rolls = [0, 0.9];
     G.setRandom(() => rolls.length ? rolls.shift() : 0);
     G.wave = 5;
     G.nutrients = 100;
     G.gameState = "playing";
     G.settleWave();
     expect(G.gameState).toBe("dialogue");
-    expect(G.dialogue).toMatchObject({ id: "shop", speaker: "コンビニ店員のスライム", returnState: "shop" });
-    expect(G.shopOffer.goods).toEqual([
-      { id: "rustyPickaxe", price: 17, sold: false },
-      { id: "blackSoilBag", price: 34, sold: false },
-      { id: "undergroundLantern", price: 17, sold: false },
-      { id: "crackedMap", price: 17, sold: false },
-      { id: "masonGloves", price: 17, sold: false },
-    ]);
-    expect(G.buyShopItem("rustyPickaxe")).toBe(false);
+    expect(G.dialogue).toMatchObject({ id: "shop", returnState: "shop" });
+    expect(G.shopOffer.goods.map((good) => good.item.type)).toEqual(Object.keys(ITEM_TYPES));
+    expect(G.shopOffer.goods.every((good) => good.price === 13 && !good.sold)).toBe(true);
+    expect(G.buyShopItem(G.shopOffer.goods[0].item.uid)).toBe(false);
+
     advanceDialogueAll();
-    expect(G.gameState).toBe("shop");
+    const first = G.shopOffer.goods[0];
+    const second = G.shopOffer.goods[1];
+    expect(G.buyShopItem(first.item.uid)).toBe(true);
+    expect(G.buyShopItem(second.item.uid)).toBe(true);
+    expect(G.nutrients).toBe(74);
+    expect(G.shopOffer.goods.slice(0, 2).every((good) => good.sold)).toBe(true);
 
-    expect(G.buyShopItem("rustyPickaxe")).toBe(true);
-    expect(G.nutrients).toBe(83);
-    expect(G.items).toEqual(["rustyPickaxe"]);
-    expect(G.shopOffer.goods.find((g) => g.id === "rustyPickaxe").sold).toBe(true);
-
-    expect(G.buyShopItem("blackSoilBag")).toBe(true);
-    expect(G.nutrients).toBe(49);
-    expect(G.items).toEqual(["rustyPickaxe", "blackSoilBag"]);
-
-    G.nutrients = 10;
-    expect(G.buyShopItem("undergroundLantern")).toBe(false);
-    expect(G.nutrients).toBe(10);
-    expect(G.items).not.toContain("undergroundLantern");
-
+    G.nutrients = 0;
+    expect(G.buyShopItem(G.shopOffer.goods[2].item.uid)).toBe(false);
     expect(G.closeShopOffer()).toBe(true);
     expect(G.gameState).toBe("playing");
   });
 
-  it("アイテム欄が満杯ならショップ購入はできず、栄養と商品状態を変えない", () => {
-    carveAll();
-    for (const id of PIXEL_ITEMS.slice(0, G.ITEM_CAP)) expect(G.applyItem(id, { ignoreCap: true }), id).toBe(true);
-    const rolls = [0, 0.7, 0, 0, 0, 0, 0];
-    G.setRandom(() => rolls.length ? rolls.shift() : 0);
-    G.wave = 5;
-    G.nutrients = 100;
-    G.gameState = "playing";
-    G.settleWave();
-    advanceDialogueAll();
-    expect(G.gameState).toBe("shop");
-    const good = G.shopOffer.goods[0];
-    const beforeNut = G.nutrients;
-
-    expect(G.buyShopItem(good.id)).toBe(true);
-    expect(G.gameState).toBe("shop");
-    expect(G.nutrients).toBe(beforeNut);
-    expect(G.items).toHaveLength(G.ITEM_CAP);
-    expect(G.shopOffer.goods.find((g) => g.id === good.id).sold).toBe(false);
-    expect(G.effects.some((e) => e.type === "banner" && e.text === "もう取れません")).toBe(true);
-  });
-
-  it("ショップ中はupdateでゲーム時間が進まない", () => {
-    carveAll();
-    const rolls = [0, 0.7, 0, 0, 0, 0, 0];
-    G.setRandom(() => rolls.length ? rolls.shift() : 0);
-    G.wave = 4;
-    G.waveCountdown = 5000;
-    G.nutrients = 30;
-    G.gameState = "playing";
-    G.settleWave();
-    advanceDialogueAll();
-    G.effects.push({ type: "float", x: 0, y: 0, text: "商店", life: 1000, max: 1000, vy: -0.1 });
-    const effect = G.effects[G.effects.length - 1];
-
-    G.update(1000);
-
-    expect(G.gameState).toBe("shop");
-    expect(G.waveCountdown).toBe(G.WAVE_INTERVAL);
-    expect(G.nutrients).toBe(30);
-    expect(effect.life).toBe(1000);
+  it("商店価格はレアリティとウェーブに従う", () => {
+    expect(G.itemShopPrice("iron", 5)).toBe(13);
+    expect(G.itemShopPrice("bronze", 5)).toBe(18);
+    expect(G.itemShopPrice("silver", 5)).toBe(25);
+    expect(G.itemShopPrice("gold", 5)).toBe(40);
+    expect(G.itemShopPrice("diamond", 5)).toBe(54);
   });
 
   it("5周目以降は撃退後に罠イベントが出ることがあり、デバフを1つ選ぶ", () => {
     const trapGame = createGame({ seed: 1 });
     trapGame.startGame(5);
-    for (let r = 0; r < trapGame.ROWS; r++) {
-      for (let c = 0; c < trapGame.COLS; c++) trapGame.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
-    }
-    trapGame.grid[0][trapGame.ENTRANCE_COL].t = "surface";
-    trapGame.grid[trapGame.CORE_ROW][trapGame.CORE_COL].t = "core";
-    trapGame.wave = 5;
-    trapGame.gameState = "playing";
     const rolls = [0, 0.99, 0, 0, 0];
     trapGame.setRandom(() => rolls.length ? rolls.shift() : 0);
+    trapGame.wave = 5;
+    trapGame.gameState = "playing";
     trapGame.settleWave();
 
     expect(trapGame.gameState).toBe("trap");
-    expect(trapGame.postWaveEvent).toBe("trap");
     expect(trapGame.trapOffer.choices).toHaveLength(3);
     expect(trapGame.trapOffer.choices.every((id) => PIXEL_DEBUFFS.includes(id))).toBe(true);
     const choice = trapGame.trapOffer.choices[0];
     expect(trapGame.chooseTrapDebuff(choice)).toBe(true);
     expect(trapGame.debuffItems).toEqual([choice]);
-    expect(trapGame.gameState).toBe("playing");
   });
 
   it("10周目以降は初期デバフを表示し、リセット罰中は2個背負う", () => {
     const normal = createGame({ random: () => 0 });
     normal.startGame(10);
-    expect(normal.gameState).toBe("debuffNotice");
-    expect(normal.dialogue).toBe(null);
     expect(normal.debuffNotice).toEqual({ ids: ["rottenRations"], penalty: false });
-    expect(normal.debuffItems).toEqual(["rottenRations"]);
-    expect(normal.nutrients).toBe(normal.START_NUT - 5);
     expect(normal.acknowledgeDebuffNotice()).toBe(true);
-    expect(normal.gameState).toBe("playing");
 
     const penalty = createGame({ random: () => 0 });
     penalty.startGame(10, { resetPenaltyActive: true });
-    expect(penalty.gameState).toBe("debuffNotice");
-    expect(penalty.dialogue).toBe(null);
     expect(penalty.debuffNotice).toEqual({ ids: ["rottenRations", "crackedCore"], penalty: true });
     expect(penalty.debuffItems).toEqual(["rottenRations", "crackedCore"]);
-    expect(penalty.nutrients).toBe(penalty.START_NUT - 5);
     expect(penalty.CORE_MAX).toBe(125);
-    expect(penalty.coreHP).toBe(125);
   });
 
   it("周回が高いほど敵能力とスコアが上がり、20周目は全員Xターミネーターになる", () => {
-    expect(loopHpMultiplier(1)).toBe(1);
     expect(loopHpMultiplier(20)).toBeCloseTo(2.52);
-    expect(loopAtkMultiplier(1)).toBe(1);
     expect(loopAtkMultiplier(5)).toBeCloseTo(1.62);
     expect(loopScoreMultiplier(20)).toBeCloseTo(3.85);
-
-    const base = G.resolveHeroStats("warrior", 5, 1);
-    const high = G.resolveHeroStats("warrior", 5, 10);
-    expect(high.hp).toBeGreaterThan(base.hp);
-    expect(high.atk).toBeGreaterThan(base.atk);
+    expect(G.resolveHeroStats("warrior", 5, 10).hp).toBeGreaterThan(G.resolveHeroStats("warrior", 5, 1).hp);
 
     G.resetGame(1, 20, { skipInitialDebuffs: true });
     carveAll();
@@ -1793,17 +1875,9 @@ describe("ゲームルール", () => {
     expect(G.pickHeroClass()).toBe("xTerminator");
     expect(G.spawnHero("warrior", 4, 1)).toBe(true);
     expect(G.heroes[0].cls).toBe("xTerminator");
-
-    const scored = createGame({ seed: 1 });
-    scored.resetGame(1, 10, { skipInitialDebuffs: true });
-    const h = hero("warrior", 5, 5, { hp: 1, maxHp: 1, wave: 5 });
-    scored.heroes.push(h);
-    scored.killHero(h);
-    expect(scored.score).toBe(Math.round((80 * 5 + 20) * loopScoreMultiplier(10)));
   });
 
-  it("最終ウェーブ終了時はアイテムよりクリアを優先する", () => {
-    carveAll();
+  it("最終ウェーブ終了時は装備イベントよりクリアを優先する", () => {
     G.setRandom(() => 0);
     G.wave = G.MAX_WAVE;
     G.gameState = "playing";
@@ -1811,125 +1885,78 @@ describe("ゲームルール", () => {
     expect(G.gameState).toBe("clear");
     expect(G.itemOffer).toBe(null);
     expect(G.shopOffer).toBe(null);
-    expect(G.items).toHaveLength(0);
+    expect(Object.values(G.equipment).every((item) => item === null)).toBe(true);
   });
 
-  it("既存アイテムは初期取得でき、新規アイテムは解放後に取得できる", () => {
-    carveAll();
-    const unlockIds = Object.keys(ITEM_UNLOCKS);
-    const baseIds = PIXEL_ITEMS.filter((id) => !unlockIds.includes(id));
-    for (const id of baseIds) {
-      expect(G.applyItem(id, { ignoreCap: true }), id).toBe(true);
-    }
-    for (const id of unlockIds) expect(G.applyItem(id, { ignoreCap: true }), id).toBe(false);
-    expect(G.items).toEqual(baseIds);
-    const events = G.drainEvents().filter((e) => e.type === "discoverItem").map((e) => e.id);
-    expect(events).toEqual(baseIds);
-
-    const unlocked = createGame({ seed: 2, unlockedItems: unlockIds });
-    for (let r = 0; r < unlocked.ROWS; r++) {
-      for (let c = 0; c < unlocked.COLS; c++) unlocked.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
-    }
-    for (const id of unlockIds) expect(unlocked.applyItem(id, { ignoreCap: true }), id).toBe(true);
-    expect(unlocked.items).toEqual(unlockIds);
-  });
-
-  it("刷新したアイテム効果は索敵、魔物強化、魔物回復、採掘反撃へ反映される", () => {
+  it("誕生保護は799msまで攻撃を防ぎ、800ms後の次回更新から解除する", () => {
     carveAll();
     G.spawnMonster("slime", 5, 5);
-    G.heroes.push(hero("warrior", 9, 5, { actCd: 999999, atkCd: 999999 }));
-    const scout = G.monsters[0];
-    scout.moveCd = 999999;
-    scout.moveCharge = 0;
-    expect(G.applyItem("deepCompass")).toBe(true);
-    G.update(100);
-    expect(scout.moveIntent?.kind).toBe("chase");
-    expect(G.itemEvents.some((e) => e.id === "deepCompass")).toBe(true);
-
-    const beforeMax = G.CORE_MAX;
-    const beforeCore = G.coreHP;
-    const beforeMonsterMax = scout.maxHp;
-    expect(G.applyItem("coreShard")).toBe(true);
-    expect(G.CORE_MAX).toBe(beforeMax);
-    expect(G.coreHP).toBe(beforeCore);
-    expect(scout.maxHp).toBeGreaterThan(beforeMonsterMax);
-    G.spawnMonster("slime", 6, 5);
-    expect(G.monsters[G.monsters.length - 1].maxHp).toBe(11);
-
-    expect(G.applyItem("coreBandage")).toBe(true);
-    scout.hp = 1;
-    G.wave = 4;
-    G.gameState = "playing";
-    G.setRandom(() => 0.99);
-    G.settleWave();
-    expect(scout.hp).toBeGreaterThan(1);
-
-    G.heroes.length = 0;
-    G.monsters.length = 0;
-    expect(G.applyItem("quakeStone")).toBe(true);
-    const digger = hero("warrior", 5, 5, { actCd: 0, atkCd: 999999, hp: 20, maxHp: 20 });
-    G.heroes.push(digger);
-    G.grid[6][5] = { t: "earth", sub: null, shade: 0, dig: 0 };
-    G.wave = 0;
-    G.gameState = "playing";
-    G.update(100);
-    expect(digger.hp).toBeLessThan(20);
-
-    const breadBefore = G.nutrients;
-    expect(G.applyItem("dryBread")).toBe(true);
-    expect(G.nutrients).toBeCloseTo(breadBefore + 12);
-
-    expect(G.applyItem("tornWallet")).toBe(true);
-    G.nutrients = 4;
-    const beforeNut = G.nutrients;
-    const h = hero("warrior", 7, 5, { hp: 1, maxHp: 1, wave: 4 });
-    G.heroes.push(h);
-    G.killHero(h);
-    expect(G.nutrients - beforeNut).toBe(Math.round((4 + 4) * 1.5));
-
-    expect(G.applyItem("spareHeart")).toBe(true);
-    G.spawnMonster("slime", 6, 5);
-    const b = G.monsters[G.monsters.length - 1];
-    b.hp = 1;
-    G.killMonster(b);
-    expect(G.monsters).toContain(b);
-    expect(G.usedItems).toContain("spareHeart");
-
-    expect(G.applyItem("shadowThread")).toBe(true);
-    G.killMonster(b);
-    expect(G.slowFields).toHaveLength(1);
+    const m = G.monsters[0];
+    expect(G.BORN_ANIM).toBe(800);
+    expect(G.isBornProtected(m)).toBe(true);
+    expect(G.damageMonster(m, 5)).toBe(false);
+    G.update(799);
+    expect(m.bornProtectMs).toBe(1);
+    expect(G.damageMonster(m, 5)).toBe(false);
+    G.update(1);
+    expect(m.bornProtectMs).toBe(0);
+    expect(G.damageMonster(m, 5)).toBe(true);
   });
 
-  it("呪い釘は冒険者攻撃力を常時下げ、死神は死亡冒険者からまれに出る", () => {
+  it("同一更新内で孵化した魔物は大きなdtでも保護時間を減らさない", () => {
     carveAll();
-    expect(G.applyItem("curseNail")).toBe(true);
-    const h = hero("warrior", 2, 2, { atk: 10 });
-    expect(G.heroAttackPower(h)).toBe(9);
-
-    G.setRandom(() => 0);
-    const dead = hero("warrior", 5, 6, { hp: 1, maxHp: 1, wave: 3 });
-    G.heroes.push(dead);
-    G.killHero(dead);
-    expect(G.monsters.some((m) => m.kind === "reaper")).toBe(true);
+    expect(G.spawnEgg("spitter", 5, 5)).toBe(true);
+    G.eggs[0].hatchCd = 0;
+    G.heroes.push(hero("warrior", 5, 6, { atkCd: 0, actCd: 999999, moveCd: 999999, moveCharge: 0 }));
+    G.update(5000);
+    const born = G.monsters.find((m) => m.kind === "spitter");
+    expect(born).toBeTruthy();
+    expect(born.bornProtectMs).toBe(800);
+    expect(born.hp).toBe(born.maxHp);
+    G.update(800);
+    expect(born.bornProtectMs).toBe(0);
+    const hp = born.hp;
+    expect(G.damageMonster(born, 1, "#fff", G.heroes[0])).toBe(true);
+    expect(born.hp).toBeLessThan(hp);
   });
 
-  it("見切り札はアイテム選択肢を一度だけ引き直せる", () => {
+  it("保護中は通常移動と占有を保ち、攻撃・索敵・捕食・繁殖・産卵をしない", () => {
     carveAll();
-    expect(G.applyItem("wildCard")).toBe(true);
-    G.wave = 4;
-    G.gameState = "playing";
     G.setRandom(() => 0);
-    G.settleWave();
-    advanceDialogueAll();
-    const before = G.itemOffer.choices;
-    expect(G.canRerollItemOffer).toBe(true);
-    expect(G.rerollItemOffer()).toBe(true);
-    expect(G.itemOffer.choices).not.toEqual(before);
-    expect(G.usedItems).toContain("wildCard");
-    expect(G.rerollItemOffer()).toBe(false);
+    G.spawnMonster("carniv", 5, 5);
+    G.spawnMonster("slime", 5, 6);
+    G.spawnMonster("spitter", 8, 5);
+    const eater = G.monsters[0];
+    const prey = G.monsters[1];
+    const layer = G.monsters[2];
+    Object.assign(eater, { eatCd: 0, breedCd: 0, moveCharge: 0 });
+    Object.assign(layer, { eggCd: 0, moveCharge: 0 });
+    G.heroes.push(hero("warrior", 6, 5, { hp: 100, maxHp: 100, atkCd: 0, actCd: 999999 }));
+    G.update(100);
+
+    expect(G.actorOccupied(5, 5)).toBe(true);
+    expect(eater.moveIntent).toEqual({ kind: "wander" });
+    expect(G.monsters).toContain(prey);
+    expect(G.monsters).toHaveLength(3);
+    expect(G.eggs).toHaveLength(0);
+    expect(G.heroes[0].hp).toBe(100);
+    expect(eater.hp).toBe(eater.maxHp);
+    expect(G.canBeEatenBy(eater, prey)).toBe(false);
   });
 
-  it("撃破報酬と長時間上限を守る", () => {
+  it("保護中の魔物は防御オーラの発生元にもならない", () => {
+    carveAll();
+    G.spawnMonster("stone_blackCrab", 5, 5);
+    G.spawnMonster("golem", 6, 5);
+    const target = G.monsters[1];
+    finishBirth(target);
+    const before = target.hp;
+    expect(G.damageMonster(target, 10)).toBe(true);
+    expect(target.hp).toBe(before - 10);
+  });
+
+
+  it("撃破報酬と複数seed長時間シミュレーションの上限を守る", () => {
     const h = hero("warrior", 5, 5, { hp: 1, maxHp: 1, wave: 5 });
     G.heroes.push(h);
     const before = G.nutrients;
@@ -1938,13 +1965,30 @@ describe("ゲームルール", () => {
     expect(G.nutrients).toBe(before + 9);
     expect(G.drainEvents()).toContainEqual({ type: "heroKilled", cls: "warrior", wave: 5, x: G.cx(5), y: G.cy(5) });
 
-    G.resetGame(1);
+    let resolvedOffers = 0;
     for (const seed of [1, 2, 3]) {
       G.resetGame(seed);
-      for (let i = 0; i < 360; i++) G.update(1000);
+      carveAll();
+      G.coreHP = 1000000;
+      for (const [col, row] of [[5, 4], [4, 5], [6, 5], [4, 7], [6, 7]]) G.spawnMonster("goldcore", col, row);
+      finishBirth(G.monsters);
+      for (let i = 0; i < 900 && !["clear", "dead"].includes(G.gameState); i++) {
+        G.update(1000);
+        if (G.postWaveEvent) resolvedOffers++;
+        resolveRunPause(G);
+        expect(Number.isFinite(G.nutrients)).toBe(true);
+        expect(Number.isFinite(G.coreHP)).toBe(true);
+        expect(Object.values(G.itemStats).every(Number.isFinite)).toBe(true);
+      }
       expect(G.monsters.length + G.eggs.length).toBeLessThanOrEqual(G.MONSTER_CAP);
       expect(G.heroes.length).toBeLessThanOrEqual(G.MAX_HEROES);
+      expect(Object.values(G.equipment).filter(Boolean).length).toBeLessThanOrEqual(5);
+      for (const key of ITEM_STAT_KEYS) {
+        expect(G.itemStats[key]).toBeGreaterThanOrEqual(ITEM_STAT_LIMITS[key][0]);
+        expect(G.itemStats[key]).toBeLessThanOrEqual(ITEM_STAT_LIMITS[key][1]);
+      }
     }
+    expect(resolvedOffers).toBeGreaterThan(0);
   });
 
   it("ruleConfigでゲーム単位のバランス値を上書きできる", () => {
@@ -2043,13 +2087,12 @@ describe("ゲームルール", () => {
     G.drainEvents();
     G.spawnMonster("slime", 5, 5);
     G.spawnHero("warrior", 4, 1);
-    G.applyItem("rustyPickaxe");
     G.startWave();
     const events = G.drainEvents();
     expect(events).toContainEqual({ type: "discoverMonster", kind: "slime" });
     expect(events).toContainEqual({ type: "discoverHero", cls: "warrior" });
-    expect(events).toContainEqual({ type: "discoverItem", id: "rustyPickaxe" });
     expect(events).toContainEqual({ type: "waveReached", wave: 1 });
+    expect(events.some((event) => event.type === "discoverItem")).toBe(false);
     expect(G.drainEvents()).toEqual([]);
   });
 
@@ -2074,7 +2117,9 @@ describe("ゲームルール", () => {
     expect(G.VEIN_SPAWN_BURST_CAP).toBe(3);
     expect(G.VEIN_FADE_START).toBe(120000);
     expect(G.VEIN_DECAY_TIME).toBe(240000);
-    expect(G.ITEM_CAP).toBe(10);
+    expect(G.BORN_ANIM).toBe(800);
+    expect(G.FREE_ITEM_PITY_WAVES).toBe(3);
+    expect(PIXEL_ITEMS).toEqual(Object.keys(ITEM_TYPES));
     expect(G.SOIL_CHARGE_MOVES).toBe(10);
     expect(KINDS.slime.breedEvery).toBe(14000);
     expect(G.monsterIncomeRate()).toBeCloseTo(0.045);

@@ -146,103 +146,27 @@ function alphaBounds(img, threshold = 12) {
   return { minX, minY, maxX, maxY };
 }
 
-function resizeNearest(img, width, height) {
-  const out = new PNG({ width, height });
-  for (let y = 0; y < height; y++) {
-    const sy = Math.min(img.height - 1, Math.floor(((y + 0.5) * img.height) / height));
-    for (let x = 0; x < width; x++) {
-      const sx = Math.min(img.width - 1, Math.floor(((x + 0.5) * img.width) / width));
-      const si = (sy * img.width + sx) * 4;
-      const di = (y * width + x) * 4;
-      out.data[di] = img.data[si];
-      out.data[di + 1] = img.data[si + 1];
-      out.data[di + 2] = img.data[si + 2];
-      out.data[di + 3] = img.data[si + 3] <= 8 ? 0 : img.data[si + 3];
-    }
-  }
-  return out;
-}
-
-function flipHorizontal(img) {
-  const out = new PNG({ width: img.width, height: img.height });
+function opaqueEdgeCount(img) {
+  let count = 0;
   for (let y = 0; y < img.height; y++) {
     for (let x = 0; x < img.width; x++) {
-      const si = (y * img.width + x) * 4;
-      const di = (y * out.width + out.width - x - 1) * 4;
-      out.data[di] = img.data[si];
-      out.data[di + 1] = img.data[si + 1];
-      out.data[di + 2] = img.data[si + 2];
-      out.data[di + 3] = img.data[si + 3];
+      if (x > 0 && y > 0 && x < img.width - 1 && y < img.height - 1) continue;
+      if (img.data[(y * img.width + x) * 4 + 3] > 12) count++;
     }
   }
-  return out;
+  return count;
 }
 
-function normalizeActorCell(img) {
-  const bounds = alphaBounds(img);
-  const cropped = crop(img, bounds.minX, bounds.minY, bounds.maxX - bounds.minX + 1, bounds.maxY - bounds.minY + 1);
-  const scale = Math.min(42 / cropped.width, 42 / cropped.height);
-  const width = Math.max(1, Math.round(cropped.width * scale));
-  const height = Math.max(1, Math.round(cropped.height * scale));
-  const resized = resizeNearest(cropped, width, height);
-  const out = new PNG({ width: PIXEL_CELL, height: PIXEL_CELL });
-  const x = Math.round((PIXEL_CELL - width) / 2);
-  const y = PIXEL_CELL - height - 2;
-  PNG.bitblt(resized, out, 0, 0, width, height, x, y);
-  return out;
-}
-
-function shifted(img, dx, dy) {
-  const out = new PNG({ width: img.width, height: img.height });
-  for (let y = 0; y < img.height; y++) {
-    const ty = y + dy;
-    if (ty < 0 || ty >= out.height) continue;
-    for (let x = 0; x < img.width; x++) {
-      const tx = x + dx;
-      if (tx < 0 || tx >= out.width) continue;
-      const si = (y * img.width + x) * 4;
-      const di = (ty * out.width + tx) * 4;
-      out.data[di] = img.data[si];
-      out.data[di + 1] = img.data[si + 1];
-      out.data[di + 2] = img.data[si + 2];
-      out.data[di + 3] = img.data[si + 3];
-    }
+function alphaJaccardDiff(a, b) {
+  let intersection = 0;
+  let union = 0;
+  for (let i = 3; i < a.data.length; i += 4) {
+    const aa = a.data[i] > 12;
+    const ba = b.data[i] > 12;
+    if (aa && ba) intersection++;
+    if (aa || ba) union++;
   }
-  return out;
-}
-
-function frameOffset(action, direction, frame) {
-  const vectors = { e: [1, 0], se: [1, 1], s: [0, 1], ne: [1, -1], n: [0, -1] };
-  const [vx, vy] = vectors[direction];
-  const side = vx === 0 ? 1 : vx;
-  const motions = {
-    idle: [[0, 0], [0, -1], [0, 0], [0, 1]],
-    attack: [[-vx, -vy], [0, 0], [vx * 2, vy * 2], [vx, vy]],
-    cast: [[0, 1], [0, 0], [0, -2], [0, -1]],
-    dig: [[0, -1], [side, 0], [side * 2, 2], [0, 1]],
-    heal: [[0, 1], [0, 0], [0, -2], [0, -1]],
-    eat: [[-side, 0], [0, 1], [side, 0], [0, 0]],
-    dodge: [[0, 0], [-side * 2, 0], [side * 2, -1], [0, 0]],
-  };
-  return motions[action][frame];
-}
-
-function expectedActorFrame(name, action, direction, frame) {
-  const override = manifest.actorPoseOverrides?.[name]?.[direction]?.[action];
-  const src = png(`assets/pixel/source/imagegen-v1/${override || manifest.actorSources[name]}`);
-  const cell = override
-    ? src
-    : gridCell(
-      src,
-      PIXEL_ACTOR_RENDER_DIRS.indexOf(direction),
-      PIXEL_ACTIONS.indexOf(action),
-      manifest.layouts.actors.columns,
-      manifest.layouts.actors.rows,
-    );
-  const transforms = manifest.actorSourceFlipX[name]?.[direction] || [];
-  const corrected = transforms.includes("*") || transforms.includes(action) ? flipHorizontal(cell) : cell;
-  const [dx, dy] = frameOffset(action, direction, frame);
-  return shifted(normalizeActorCell(corrected), dx, dy);
+  return union ? 1 - intersection / union : 0;
 }
 
 function luminance(img, x, y) {
@@ -293,6 +217,20 @@ describe("imagegenピクセル素材", () => {
     expect(Object.keys(meta.items)).toEqual(PIXEL_ITEMS);
     expect(Object.keys(meta.debuffs)).toEqual(PIXEL_DEBUFFS);
     expect(Object.keys(meta.dialogue)).toEqual(PIXEL_DIALOGUE_PORTRAITS);
+    const directActors = PIXEL_ACTORS.filter((name) => !name.startsWith("egg_"));
+    expect(Object.keys(meta.actorNormalization)).toEqual(directActors);
+    for (const name of directActors) {
+      expect(meta.actorNormalization[name]).toMatchObject({
+        targetCenterX: PIXEL_CELL / 2,
+        targetFootY: 45,
+      });
+      expect(meta.actorNormalization[name].scale, name).toBeGreaterThan(0);
+      expect(meta.actorNormalization[name].minEffectScale, name).toBeGreaterThan(0);
+      expect(meta.actorNormalization[name].minEffectScale, name).toBeLessThanOrEqual(1);
+      expect(meta.actorNormalization[name].assignedComponents, name).toBe(
+        meta.actorNormalization[name].sourceComponents,
+      );
+    }
     expect(meta.sourceVersion).toBe("imagegen-v1");
     expect(meta.generator.toLowerCase()).toContain("imagegen");
     expect(manifest.layouts.environmentTiles.trimRatio).toBe(0.03);
@@ -300,13 +238,13 @@ describe("imagegenピクセル素材", () => {
   });
 
   it("公開アセットURLとフレーム参照が新しい版を使う", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v30-imagegen");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v30-imagegen");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v30-imagegen");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v30-imagegen");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v30-imagegen");
+    expect(PIXEL_ASSET_VERSION).toBe("v32-equipment");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v32-equipment");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v32-equipment");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v32-equipment");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v32-equipment");
     expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe(
-      "assets/pixel/actor_venom_spider.png?v=v30-imagegen",
+      "assets/pixel/actor_venom_spider.png?v=v32-equipment",
     );
 
     const east = pixelActorFrameInfo("slime", "idle", "e", 0);
@@ -315,7 +253,8 @@ describe("imagegenピクセル素材", () => {
     expect(west.frame).toBe(east.frame);
     expect(west.flipX).toBe(true);
     expect(east.flipX).toBe(false);
-    expect(pixelItemFrameIndex(PIXEL_ITEMS[7])).toBe(7);
+    expect(PIXEL_ITEMS).toEqual(["earthCore", "demonFang", "guardianCarapace", "windFeather", "lifeEgg"]);
+    expect(pixelItemFrameIndex("lifeEgg")).toBe(4);
     expect(pixelDebuffFrameIndex("sharpenedBlade")).toBe(3);
     expect(pixelDialoguePortraitFrameIndex("gorilla")).toBe(1);
   });
@@ -358,9 +297,28 @@ describe("imagegenピクセル素材", () => {
             (_, frame) => actorCrop(name, action, direction, frame),
           );
           expect(Math.min(...frames.map(opaqueCount)), `${name}:${action}:${direction}`).toBeGreaterThan(20);
+          expect(Math.max(...frames.map(opaqueEdgeCount)), `${name}:${action}:${direction}`).toBe(0);
           expect(new Set(frames.map(imageHash)).size, `${name}:${action}:${direction}`).toBeGreaterThanOrEqual(3);
         }
       }
+    }
+  });
+
+  it("全アクターの待機本体が共通中心・足元・占有サイズを保つ", () => {
+    for (const name of PIXEL_ACTORS.filter((actor) => !actor.startsWith("egg_"))) {
+      const bounds = PIXEL_ACTOR_RENDER_DIRS.map((direction) => alphaBounds(actorCrop(name, "idle", direction, 0)));
+      const sizes = bounds.map((row) => Math.max(row.maxX - row.minX + 1, row.maxY - row.minY + 1));
+      const centers = bounds.map((row) => (row.minX + row.maxX) / 2);
+      const feet = bounds.map((row) => row.maxY);
+      expect(Math.min(...sizes), name).toBeGreaterThanOrEqual(20);
+      expect(Math.max(...sizes), name).toBeLessThanOrEqual(40);
+      expect(Math.max(...sizes) / Math.min(...sizes), name).toBeLessThanOrEqual(1.75);
+      expect(Math.min(...centers), name).toBeGreaterThanOrEqual(22);
+      expect(Math.max(...centers), name).toBeLessThanOrEqual(26);
+      expect(Math.max(...centers) - Math.min(...centers), name).toBeLessThanOrEqual(3);
+      expect(Math.min(...feet), name).toBeGreaterThanOrEqual(42);
+      expect(Math.max(...feet), name).toBeLessThanOrEqual(45);
+      expect(Math.max(...feet) - Math.min(...feet), name).toBeLessThanOrEqual(2);
     }
   });
 
@@ -380,91 +338,66 @@ describe("imagegenピクセル素材", () => {
   });
 
   it("原画ごとの左右補正は監査結果を保持する", () => {
-    expect(manifest.actorSourceFlipX).toEqual({
-      slime: { se: ["*"], ne: ["cast", "heal", "eat", "dodge"] },
-      carniv: { e: ["*"], se: ["*"] },
-      moss_shroom: { ne: ["*"] },
-      moss_virus: { e: ["*"], se: ["*"] },
-      moss_root: { e: ["*"], se: ["*"] },
-      meat_wolf: { e: ["*"], se: ["*"] },
-      meat_boar: { e: ["*"], se: ["*"] },
-      meat_hedgehog: { e: ["*"], se: ["*"] },
-      spitter: { e: ["*"], se: ["*"] },
-      bug_centipede: { e: ["*"], se: ["*"] },
-      bug_beetle: { e: ["*"], se: ["*"] },
-      bug_needler: { e: ["*"], se: ["*"] },
-      golem: { e: ["*"], se: ["*"] },
-      stone_turtle: { e: ["*"], se: ["*"] },
-      stone_magnetCrab: { e: ["*"], se: ["*"] },
-      stone_crystalEye: { ne: ["cast", "eat", "dodge"] },
-      flame: { e: ["*"], se: ["*"] },
-      dragon_serpent: { se: ["*"], ne: ["*"] },
-      dragon_salamander: { se: ["*"] },
-      dragon_wyvern: { se: ["*"], ne: ["*"] },
-      reaper: { e: ["*"], se: ["*"] },
-      chimera: { se: ["*"], ne: ["*"] },
-      warrior: { e: ["*"], se: ["*"] },
-      tank: { e: ["*"], se: ["*"] },
-      superwarrior: { e: ["*"], se: ["*"], ne: ["*"] },
-      ultrawarrior: { e: ["*"], se: ["*"] },
-      crossknight: { e: ["*"], se: ["*"], ne: ["*"] },
-      captain: { e: ["*"], se: ["*"] },
-      priest: { e: ["*"], se: ["*"] },
-      saint: {},
-      mage: { e: ["*"], se: ["*"] },
-      supermage: { e: ["*"], se: ["*"], ne: ["*"] },
-      sage: { e: ["*"], se: ["*"], ne: ["*"] },
-      max: { e: ["*"], se: ["*"] },
-      shon: { ne: ["*"] },
-      hori: { ne: ["*"] },
-      xTerminator: { e: ["*"], se: ["*"], ne: ["*"] },
-    });
-    expect(manifest.actorSourceFlipX.moss_virus.ne).toBeUndefined();
+    const expected = Object.fromEntries(Object.keys(manifest.actorSources).map((name) => [name, {}]));
+    const set = (names, directions) => names.forEach((name) => { expected[name] = directions; });
+    set(["slime", "superslime", "crownslime"], { se: ["*"], ne: ["cast", "heal", "eat", "dodge"] });
+    set(["carniv", "evolved", "direfang"], { e: ["*"], se: ["*"] });
+    set(["moss_shroom", "moss_mycelia", "moss_myceliaKing"], { ne: ["*"] });
+    set(["moss_virus", "moss_crystalVirus", "moss_crownVirus"], { e: ["*"], se: ["*"], ne: ["heal", "eat"] });
+    set(["moss_root", "moss_tangleRoot", "moss_ancientRoot"], { e: ["*"], se: ["*"] });
+    set(["meat_wolf", "meat_shadowWolf", "meat_nightfangKing"], { e: ["*"], se: ["*"], ne: ["*"] });
+    set([
+      "meat_boar", "meat_fangBoar", "meat_ironBoar",
+      "meat_hedgehog", "meat_steelHedgehog", "meat_spineKing",
+      "spitter", "tarantula", "goldweaver",
+      "bug_centipede", "bug_steelCentipede", "bug_goldCentipede",
+      "bug_beetle", "bug_shieldBeetle", "bug_fortressBeetle",
+      "bug_needler", "bug_flyingNeedler", "bug_bowNeedler",
+      "golem", "titan", "goldcore",
+      "stone_turtle", "stone_ironTurtle", "stone_goldTurtle",
+      "stone_magnetCrab", "stone_ironCrab", "stone_blackCrab",
+      "flame", "infernal", "whiteflame",
+    ], { e: ["*"], se: ["*"] });
+    set(["stone_crystalEye", "stone_quartzEye", "stone_rainbowEye"], { ne: ["cast", "eat", "dodge"] });
+    set(["dragon_serpent", "dragon_flameSerpent", "dragon_whiteSerpent"], { se: ["*"], ne: ["*"] });
+    set(["dragon_salamander", "dragon_lavaSalamander", "dragon_mirageSalamander"], { se: ["*"] });
+    set(["dragon_wyvern", "dragon_stormWyvern", "dragon_skyWyvern"], { se: ["*"], ne: ["*"] });
+    set(["reaper"], { e: ["*"], se: ["*"] });
+    set(["chimera"], { se: ["*"], ne: ["*"] });
+    set(["warrior", "tank", "ultrawarrior", "captain", "priest", "mage", "max", "shon"], { e: ["*"], se: ["*"] });
+    set(["superwarrior", "crossknight", "supermage", "sage", "xTerminator"], { e: ["*"], se: ["*"], ne: ["*"] });
+    set(["hori"], { ne: ["*"] });
+    expect(manifest.actorSourceFlipX).toEqual(expected);
+    expect(Object.entries(expected).filter(([, directions]) => Object.keys(directions).length === 0)).toEqual([["saint", {}]]);
   });
 
-  it("方向補正済み原画セルがアトラスへ反映される", () => {
-    for (const [name, directions] of Object.entries(manifest.actorSourceFlipX)) {
-      for (const [direction, actions] of Object.entries(directions)) {
-        const targets = actions.includes("*") ? PIXEL_ACTIONS : actions;
-        for (const action of targets) {
-          const expected = expectedActorFrame(name, action, direction, 0);
-          const actual = actorCrop(name, action, direction, 0);
-          expect(imageHash(actual), `${name}:${action}:${direction}`).toBe(imageHash(expected));
-        }
-      }
-    }
-  });
-
-  it("北東向きの個別ポーズ原画が透過化されアトラスへ反映される", () => {
-    const poses = manifest.actorPoseOverrides;
-    expect(poses).toEqual({
-      moss_virus: {
-        ne: Object.fromEntries(
-          PIXEL_ACTIONS.map((action) => [action, `actors/moss_virus_ne/${action}.png`]),
-        ),
-      },
-    });
+  it("旧個別ポーズを使わずNEとNWを新しい本体シートから描画する", () => {
+    expect(manifest.actorPoseOverrides).toEqual({});
+    expect(manifest.actorSourceFlipX.moss_virus.ne).toEqual(["heal", "eat"]);
     for (const action of PIXEL_ACTIONS) {
-      const source = png(`assets/pixel/source/imagegen-v1/${poses.moss_virus.ne[action]}`);
-      const corners = [0, source.width - 1, (source.height - 1) * source.width, source.width * source.height - 1];
-      expect(corners.map((pixel) => source.data[pixel * 4 + 3])).toEqual([0, 0, 0, 0]);
-      expect(hasOpaqueMagenta(source), action).toBe(false);
-      const expected = expectedActorFrame("moss_virus", action, "ne", 0);
-      expect(imageHash(actorCrop("moss_virus", action, "ne", 0)), action).toBe(imageHash(expected));
+      const northeast = pixelActorFrameInfo("moss_virus", action, "ne", 0);
+      const northwest = pixelActorFrameInfo("moss_virus", action, "nw", 0);
+      expect(northwest.frame, action).toBe(northeast.frame);
+      expect(northeast.flipX, action).toBe(false);
+      expect(northwest.flipX, action).toBe(true);
+      expect(opaqueCount(actorCrop("moss_virus", action, "ne", 0)), action).toBeGreaterThan(20);
     }
   });
 
-  it("第一・第二進化は通常種と同じ形状の色違いである", () => {
-    for (const [variant, spec] of Object.entries(manifest.paletteVariants)) {
-      for (const action of ["idle", "attack", "cast"]) {
-        for (const direction of PIXEL_ACTOR_RENDER_DIRS) {
-          const stats = diffStats(
-            actorCrop(spec.base, action, direction, 2),
-            actorCrop(variant, action, direction, 2),
-          );
-          expect(stats.alphaDiff, `${spec.base}/${variant}:${action}:${direction}`).toBe(0);
-          expect(stats.colorRatio, `${spec.base}/${variant}:${action}:${direction}`).toBeGreaterThan(0.18);
-        }
+  it("全進化種が独立原画と異なる形状を使う", () => {
+    expect(manifest.paletteVariants).toEqual({});
+    const directActors = PIXEL_ACTORS.filter((name) => !name.startsWith("egg_"));
+    expect(Object.keys(manifest.actorSources).sort()).toEqual([...directActors].sort());
+    for (const name of directActors) expect(manifest.actorSources[name]).toBe(`actors/${name}.png`);
+    for (const [sheet, names] of Object.entries(PIXEL_ACTOR_SHEETS)) {
+      if (names.length !== 3 || sheet === "eggs") continue;
+      for (const [leftIndex, rightIndex] of [[0, 1], [0, 2], [1, 2]]) {
+        const differences = PIXEL_ACTOR_RENDER_DIRS.map((direction) => alphaJaccardDiff(
+          actorCrop(names[leftIndex], "idle", direction, 1),
+          actorCrop(names[rightIndex], "idle", direction, 1),
+        ));
+        const average = differences.reduce((sum, value) => sum + value, 0) / differences.length;
+        expect(average, `${names[leftIndex]}/${names[rightIndex]}`).toBeGreaterThan(0.04);
       }
     }
   });
@@ -489,6 +422,16 @@ describe("imagegenピクセル素材", () => {
       return imageHash(item);
     });
     expect(new Set(itemHashes).size).toBe(PIXEL_ITEMS.length);
+
+    expect(manifest.itemSheets).toHaveLength(PIXEL_ITEMS.length);
+    manifest.itemSheets.forEach((sheet, index) => {
+      expect(sheet).toMatchObject({ columns: 1, rows: 1, ids: [PIXEL_ITEMS[index]] });
+      const source = png(`assets/pixel/source/imagegen-v1/${sheet.file}`);
+      const corners = [0, source.width - 1, (source.height - 1) * source.width, source.width * source.height - 1];
+      expect(corners.map((pixel) => source.data[pixel * 4 + 3]), sheet.file).toEqual([0, 0, 0, 0]);
+      expect(hasOpaqueMagenta(source), sheet.file).toBe(false);
+      expect(opaqueEdgeCount(source), sheet.file).toBe(0);
+    });
 
     PIXEL_DEBUFFS.forEach((_, index) => {
       expect(opaqueCount(atlasCell("debuffs.png", index))).toBeGreaterThan(60);

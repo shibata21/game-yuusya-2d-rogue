@@ -15,9 +15,7 @@ export const EMPTY_PROGRESS = {
   activeRun: null,
   discoveredMonsters: [],
   discoveredHeroes: [],
-  discoveredItems: [],
   unlockedMonsterFamilies: [],
-  unlockedItems: [],
   monsterDeck: {},
 };
 
@@ -180,9 +178,7 @@ function cleanProgress(progress) {
     activeRun: cleanActiveRun(progress && progress.activeRun),
     discoveredMonsters: uniqueStrings(progress && progress.discoveredMonsters),
     discoveredHeroes: uniqueStrings(progress && progress.discoveredHeroes),
-    discoveredItems: uniqueStrings(progress && progress.discoveredItems),
     unlockedMonsterFamilies: uniqueStrings(progress && progress.unlockedMonsterFamilies),
-    unlockedItems: uniqueStrings(progress && progress.unlockedItems),
     monsterDeck: cleanStringRecord(progress && progress.monsterDeck),
   };
 }
@@ -217,7 +213,6 @@ export function applyProgressEvents(progress, events) {
   let changed = false;
   const monsters = new Set(next.discoveredMonsters);
   const heroes = new Set(next.discoveredHeroes);
-  const items = new Set(next.discoveredItems);
   for (const event of Array.isArray(events) ? events : []) {
     if (event.type === "waveReached") {
       const wave = Math.max(0, Math.floor(Number(event.wave) || 0));
@@ -253,14 +248,9 @@ export function applyProgressEvents(progress, events) {
       heroes.add(event.cls);
       changed = true;
     }
-    if (event.type === "discoverItem" && typeof event.id === "string" && !items.has(event.id)) {
-      items.add(event.id);
-      changed = true;
-    }
   }
   next.discoveredMonsters = [...monsters];
   next.discoveredHeroes = [...heroes];
-  next.discoveredItems = [...items];
   return { progress: next, changed };
 }
 

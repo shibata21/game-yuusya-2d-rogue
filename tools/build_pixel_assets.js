@@ -32,10 +32,17 @@ const MANIFEST_FILE = path.join(SOURCE_DIR, "manifest.json");
 const manifest = JSON.parse(fs.readFileSync(MANIFEST_FILE, "utf8"));
 const sourceCache = new Map();
 const actorPoseCache = new Map();
-const actorFrameCache = new Map();
+const actorNormalizationCache = new Map();
+const actorSourcePoseCache = new Map();
+const actorSourceStats = new Map();
 const eggCache = new Map();
 const EGG_SOIL_PATTERN_COLUMNS = ["venom", "stone", "ember"];
 const EGG_SOIL_PATTERN_ROWS = ["normal", "evo", "evo2"];
+const ACTOR_BODY_TARGET = 36;
+const ACTOR_BODY_LIMIT = 40;
+const ACTOR_SAFE_MIN = 3;
+const ACTOR_SAFE_MAX = 45;
+const ACTOR_FOOT_Y = 45;
 
 function assertList(label, actual, expected) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) {
@@ -107,9 +114,20 @@ function validateManifest() {
   }
   for (const name of ACTORS) {
     if (name.startsWith("egg_")) continue;
-    if (!manifest.actorSources[name] && !manifest.paletteVariants[name]) {
+    if (!manifest.actorSources[name]) {
       throw new Error(`アクター ${name} のimagegen生成元がありません。`);
     }
+  }
+  const directActors = ACTORS.filter((name) => !name.startsWith("egg_"));
+  const sourceNames = Object.keys(manifest.actorSources);
+  if (sourceNames.length !== directActors.length || directActors.some((name) => !sourceNames.includes(name))) {
+    throw new Error("全アクターを独立したimagegen原画へ対応させてください。");
+  }
+  if (Object.keys(manifest.paletteVariants || {}).length !== 0) {
+    throw new Error("旧色違い進化定義は使用できません。");
+  }
+  if (Object.keys(manifest.actorPoseOverrides || {}).length !== 0) {
+    throw new Error("旧アクター個別ポーズ差し替えは使用できません。");
   }
 }
 
@@ -208,6 +226,421 @@ function flipHorizontal(src) {
       out.data[di + 3] = src.data[si + 3];
     }
   }
+  if (src.actorBodyReference) {
+    out.actorBodyReference = {
+      cx: 1 - src.actorBodyReference.cx,
+      cy: src.actorBodyReference.cy,
+    };
+  }
+  if (src.actorJoinDistance) out.actorJoinDistance = src.actorJoinDistance;
+  return out;
+}
+
+function componentBounds(component) {
+  return {
+    minX: component.minX,
+    minY: component.minY,
+    maxX: component.maxX,
+    maxY: component.maxY,
+  };
+}
+
+function mergeBounds(a, b) {
+  if (!a) return { ...b };
+  return {
+    minX: Math.min(a.minX, b.minX),
+    minY: Math.min(a.minY, b.minY),
+    maxX: Math.max(a.maxX, b.maxX),
+    maxY: Math.max(a.maxY, b.maxY),
+  };
+}
+
+function boundsGap(a, b) {
+  const dx = Math.max(0, a.minX - b.maxX - 1, b.minX - a.maxX - 1);
+  const dy = Math.max(0, a.minY - b.maxY - 1, b.minY - a.maxY - 1);
+  return Math.hypot(dx, dy);
+}
+
+function segmentOpaque(src) {
+  const labels = new Int32Array(src.width * src.height);
+  const queue = new Int32Array(src.width * src.height);
+  const components = [];
+  let nextId = 1;
+  for (let start = 0; start < labels.length; start++) {
+    if (labels[start] || src.data[start * 4 + 3] <= 12) continue;
+    let head = 0;
+    let tail = 0;
+    queue[tail++] = start;
+    labels[start] = nextId;
+    const component = {
+      id: nextId,
+      count: 0,
+      minX: src.width,
+      minY: src.height,
+      maxX: -1,
+      maxY: -1,
+    };
+    while (head < tail) {
+      const pixel = queue[head++];
+      const x = pixel % src.width;
+      const y = Math.floor(pixel / src.width);
+      component.count++;
+      component.minX = Math.min(component.minX, x);
+      component.minY = Math.min(component.minY, y);
+      component.maxX = Math.max(component.maxX, x);
+      component.maxY = Math.max(component.maxY, y);
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          if (ox === 0 && oy === 0) continue;
+          const nx = x + ox;
+          const ny = y + oy;
+          if (nx < 0 || ny < 0 || nx >= src.width || ny >= src.height) continue;
+          const neighbor = ny * src.width + nx;
+          if (labels[neighbor] || src.data[neighbor * 4 + 3] <= 12) continue;
+          labels[neighbor] = nextId;
+          queue[tail++] = neighbor;
+        }
+      }
+    }
+    components.push(component);
+    nextId++;
+  }
+  if (!components.length) throw new Error("imagegen生成画像のセルが空です。");
+  return { labels, components };
+}
+
+function componentCenter(component) {
+  return {
+    x: (component.minX + component.maxX + 1) / 2,
+    y: (component.minY + component.maxY + 1) / 2,
+  };
+}
+
+function extractActorSourcePoses(baseName) {
+  if (!actorSourcePoseCache.has(baseName)) {
+    actorSourcePoseCache.clear();
+    const file = manifest.actorSources[baseName];
+    if (!file) throw new Error(`${baseName} のimagegenアクター画像がありません。`);
+    const src = sourceImage(file);
+    const columns = manifest.layouts.actors.columns;
+    const rows = manifest.layouts.actors.rows;
+    const cellWidth = src.width / columns;
+    const cellHeight = src.height / rows;
+    const segmented = segmentOpaque(src);
+    const slots = [];
+    for (let row = 0; row < rows; row++) {
+      for (let column = 0; column < columns; column++) {
+        slots.push({
+          index: row * columns + column,
+          row,
+          column,
+          centerX: (column + 0.5) * cellWidth,
+          centerY: (row + 0.5) * cellHeight,
+        });
+      }
+    }
+
+    const candidates = segmented.components.filter((component) => component.count >= 24);
+    const assignments = [];
+    for (const slot of slots) {
+      for (const component of candidates) {
+        const center = componentCenter(component);
+        const distance = Math.hypot(
+          (center.x - slot.centerX) / cellWidth,
+          (center.y - slot.centerY) / cellHeight,
+        );
+        if (distance > 0.8) continue;
+        assignments.push({
+          slot: slot.index,
+          component,
+          score: Math.log1p(component.count) - distance * 2.5,
+        });
+      }
+    }
+    assignments.sort((a, b) => b.score - a.score);
+    const seedBySlot = new Map();
+    const seededComponents = new Set();
+    for (const assignment of assignments) {
+      if (seedBySlot.has(assignment.slot) || seededComponents.has(assignment.component.id)) continue;
+      seedBySlot.set(assignment.slot, assignment.component);
+      seededComponents.add(assignment.component.id);
+    }
+    for (const slot of slots) {
+      if (seedBySlot.has(slot.index)) continue;
+      let fallback = null;
+      let bestScore = -Infinity;
+      for (const component of candidates) {
+        if (seededComponents.has(component.id)) continue;
+        const center = componentCenter(component);
+        const distance = Math.hypot(
+          (center.x - slot.centerX) / cellWidth,
+          (center.y - slot.centerY) / cellHeight,
+        );
+        const score = Math.log1p(component.count) - distance * 2.5;
+        if (score <= bestScore) continue;
+        fallback = component;
+        bestScore = score;
+      }
+      if (!fallback) throw new Error(`${baseName}:${slot.column},${slot.row} の本体を特定できません。`);
+      seedBySlot.set(slot.index, fallback);
+      seededComponents.add(fallback.id);
+    }
+
+    const ownerById = new Int32Array(segmented.components.length + 1);
+    for (const slot of slots) ownerById[seedBySlot.get(slot.index).id] = slot.index + 1;
+    for (const component of segmented.components) {
+      if (ownerById[component.id]) continue;
+      const center = componentCenter(component);
+      let owner = slots[0];
+      let bestMetric = Infinity;
+      for (const slot of slots) {
+        const seed = seedBySlot.get(slot.index);
+        const gap = boundsGap(component, seed) / Math.min(cellWidth, cellHeight);
+        const nominalDistance = Math.hypot(
+          (center.x - slot.centerX) / cellWidth,
+          (center.y - slot.centerY) / cellHeight,
+        ) / Math.SQRT2;
+        const metric = gap + nominalDistance * 0.35;
+        if (metric >= bestMetric) continue;
+        owner = slot;
+        bestMetric = metric;
+      }
+      ownerById[component.id] = owner.index + 1;
+    }
+    actorSourceStats.set(baseName, {
+      width: src.width,
+      height: src.height,
+      sourceComponents: segmented.components.length,
+      assignedComponents: segmented.components.filter((component) => ownerById[component.id] > 0).length,
+    });
+
+    const poses = new Map();
+    for (const slot of slots) {
+      const owned = segmented.components.filter((component) => ownerById[component.id] === slot.index + 1);
+      let ownedBounds = null;
+      for (const component of owned) ownedBounds = mergeBounds(ownedBounds, component);
+      if (!ownedBounds) throw new Error(`${baseName}:${slot.column},${slot.row} の生成画像が空です。`);
+      const pose = image(
+        ownedBounds.maxX - ownedBounds.minX + 1,
+        ownedBounds.maxY - ownedBounds.minY + 1,
+      );
+      for (let y = ownedBounds.minY; y <= ownedBounds.maxY; y++) {
+        for (let x = ownedBounds.minX; x <= ownedBounds.maxX; x++) {
+          const sourcePixel = y * src.width + x;
+          if (ownerById[segmented.labels[sourcePixel]] !== slot.index + 1) continue;
+          const targetPixel = (y - ownedBounds.minY) * pose.width + x - ownedBounds.minX;
+          const si = sourcePixel * 4;
+          const di = targetPixel * 4;
+          pose.data[di] = src.data[si];
+          pose.data[di + 1] = src.data[si + 1];
+          pose.data[di + 2] = src.data[si + 2];
+          pose.data[di + 3] = src.data[si + 3];
+        }
+      }
+      const seed = seedBySlot.get(slot.index);
+      pose.actorBodyReference = {
+        cx: ((seed.minX + seed.maxX + 1) / 2 - ownedBounds.minX) / pose.width,
+        cy: ((seed.minY + seed.maxY + 1) / 2 - ownedBounds.minY) / pose.height,
+      };
+      pose.actorJoinDistance = Math.max(2, Math.round(Math.min(cellWidth, cellHeight) * 0.03));
+      const direction = ACTOR_RENDER_DIRECTIONS[slot.column];
+      const action = ACTIONS[slot.row];
+      poses.set(`${action}:${direction}`, pose);
+    }
+    actorSourcePoseCache.set(baseName, poses);
+    sourceCache.delete(file);
+  }
+  return actorSourcePoseCache.get(baseName);
+}
+
+function actorBodyAnalysis(src, reference = null) {
+  const segmented = segmentOpaque(src);
+  let primary = segmented.components[0];
+  let bestScore = -Infinity;
+  for (const component of segmented.components) {
+    const cx = (component.minX + component.maxX + 1) / 2 / src.width;
+    const cy = (component.minY + component.maxY + 1) / 2 / src.height;
+    const distancePenalty = reference
+      ? 1 + (cx - reference.cx) ** 2 * 80 + (cy - reference.cy) ** 2 * 60
+      : 1;
+    const score = component.count / distancePenalty;
+    if (score > bestScore) {
+      primary = component;
+      bestScore = score;
+    }
+  }
+  const bodyIds = new Set([primary.id]);
+  let bodyBounds = componentBounds(primary);
+  const joinDistance = src.actorJoinDistance
+    || Math.max(2, Math.round(Math.min(src.width, src.height) * 0.03));
+  let joined = true;
+  while (joined) {
+    joined = false;
+    for (const component of segmented.components) {
+      if (bodyIds.has(component.id)) continue;
+      if (boundsGap(bodyBounds, component) > joinDistance) continue;
+      bodyIds.add(component.id);
+      bodyBounds = mergeBounds(bodyBounds, component);
+      joined = true;
+    }
+  }
+  return {
+    ...segmented,
+    bodyIds,
+    bodyBounds,
+    reference: {
+      cx: (bodyBounds.minX + bodyBounds.maxX + 1) / 2 / src.width,
+      cy: (bodyBounds.minY + bodyBounds.maxY + 1) / 2 / src.height,
+    },
+  };
+}
+
+function actorSourceCell(baseName, action, direction) {
+  const override = manifest.actorPoseOverrides?.[baseName]?.[direction]?.[action];
+  let cell;
+  if (override) {
+    cell = sourceImage(override);
+  } else {
+    cell = extractActorSourcePoses(baseName).get(`${action}:${direction}`);
+  }
+  return shouldFlipActorSource(baseName, action, direction) ? flipHorizontal(cell) : cell;
+}
+
+function actorNormalization(baseName) {
+  if (!actorNormalizationCache.has(baseName)) {
+    const references = {};
+    const analyses = [];
+    for (const direction of ACTOR_RENDER_DIRECTIONS) {
+      const cell = actorSourceCell(baseName, "idle", direction);
+      const analysis = actorBodyAnalysis(cell, cell.actorBodyReference);
+      references[direction] = analysis.reference;
+      analyses.push({ action: "idle", direction, analysis });
+    }
+    for (const action of ACTIONS.slice(1)) {
+      for (const direction of ACTOR_RENDER_DIRECTIONS) {
+        const cell = actorSourceCell(baseName, action, direction);
+        analyses.push({
+          action,
+          direction,
+          analysis: actorBodyAnalysis(cell, references[direction]),
+        });
+      }
+    }
+    const idleAnalyses = analyses.filter(({ action }) => action === "idle");
+    const width = ({ analysis }) => analysis.bodyBounds.maxX - analysis.bodyBounds.minX + 1;
+    const height = ({ analysis }) => analysis.bodyBounds.maxY - analysis.bodyBounds.minY + 1;
+    const idleMaxWidth = Math.max(...idleAnalyses.map(width));
+    const idleMaxHeight = Math.max(...idleAnalyses.map(height));
+    const poseMaxWidth = Math.max(...analyses.map(width));
+    const poseMaxHeight = Math.max(...analyses.map(height));
+    const scale = Math.min(
+      ACTOR_BODY_TARGET / idleMaxWidth,
+      ACTOR_BODY_TARGET / idleMaxHeight,
+      ACTOR_BODY_LIMIT / poseMaxWidth,
+      ACTOR_BODY_LIMIT / poseMaxHeight,
+    );
+    actorNormalizationCache.set(baseName, { references, scale, minEffectScale: 1 });
+  }
+  return actorNormalizationCache.get(baseName);
+}
+
+function componentLayer(src, labels, ids) {
+  const out = image(src.width, src.height);
+  for (let pixel = 0; pixel < labels.length; pixel++) {
+    if (!ids.has(labels[pixel])) continue;
+    const offset = pixel * 4;
+    out.data[offset] = src.data[offset];
+    out.data[offset + 1] = src.data[offset + 1];
+    out.data[offset + 2] = src.data[offset + 2];
+    out.data[offset + 3] = src.data[offset + 3];
+  }
+  return out;
+}
+
+function copyOpaqueInto(dst, src, dx, dy) {
+  for (let y = 0; y < src.height; y++) {
+    const ty = dy + y;
+    if (ty < 0 || ty >= dst.height) continue;
+    for (let x = 0; x < src.width; x++) {
+      const tx = dx + x;
+      if (tx < 0 || tx >= dst.width) continue;
+      const si = (y * src.width + x) * 4;
+      if (src.data[si + 3] <= 8) continue;
+      const di = (ty * dst.width + tx) * 4;
+      dst.data[di] = src.data[si];
+      dst.data[di + 1] = src.data[si + 1];
+      dst.data[di + 2] = src.data[si + 2];
+      dst.data[di + 3] = src.data[si + 3];
+    }
+  }
+}
+
+function resizedLayer(src, bounds, scale) {
+  const cropped = crop(
+    src,
+    bounds.minX,
+    bounds.minY,
+    bounds.maxX - bounds.minX + 1,
+    bounds.maxY - bounds.minY + 1,
+  );
+  const width = Math.max(1, Math.round(cropped.width * scale));
+  const height = Math.max(1, Math.round(cropped.height * scale));
+  return resizeNearest(cropped, width, height);
+}
+
+function touchesSourceCorner(component, src) {
+  const horizontal = component.minX === 0 || component.maxX === src.width - 1;
+  const vertical = component.minY === 0 || component.maxY === src.height - 1;
+  return horizontal && vertical;
+}
+
+function normalizeActorPose(baseName, action, direction, src) {
+  const normalization = actorNormalization(baseName);
+  const analysis = actorBodyAnalysis(src, normalization.references[direction]);
+  const bodyAnchorX = (analysis.bodyBounds.minX + analysis.bodyBounds.maxX + 1) / 2;
+  const bodyAnchorY = analysis.bodyBounds.maxY + 1;
+  const out = image();
+  const bodyLayer = componentLayer(src, analysis.labels, analysis.bodyIds);
+  const body = resizedLayer(bodyLayer, analysis.bodyBounds, normalization.scale);
+  const bodyX = Math.round((CELL - body.width) / 2);
+  const bodyY = ACTOR_FOOT_Y - body.height;
+  copyOpaqueInto(out, body, bodyX, bodyY);
+
+  const effectIds = new Set();
+  let effectBounds = null;
+  for (const component of analysis.components) {
+    if (analysis.bodyIds.has(component.id) || touchesSourceCorner(component, src)) continue;
+    effectIds.add(component.id);
+    effectBounds = mergeBounds(effectBounds, component);
+  }
+  if (effectBounds) {
+    const effectLayer = componentLayer(src, analysis.labels, effectIds);
+    const effectWidth = effectBounds.maxX - effectBounds.minX + 1;
+    const effectHeight = effectBounds.maxY - effectBounds.minY + 1;
+    const effectScale = Math.min(
+      normalization.scale,
+      (ACTOR_SAFE_MAX - ACTOR_SAFE_MIN) / effectWidth,
+      (ACTOR_SAFE_MAX - ACTOR_SAFE_MIN) / effectHeight,
+    );
+    normalization.minEffectScale = Math.min(
+      normalization.minEffectScale,
+      effectScale / normalization.scale,
+    );
+    const effect = resizedLayer(effectLayer, effectBounds, effectScale);
+    const sourceCenterX = (effectBounds.minX + effectBounds.maxX + 1) / 2;
+    const sourceCenterY = (effectBounds.minY + effectBounds.maxY + 1) / 2;
+    const desiredCenterX = CELL / 2 + (sourceCenterX - bodyAnchorX) * normalization.scale;
+    const desiredCenterY = ACTOR_FOOT_Y + (sourceCenterY - bodyAnchorY) * normalization.scale;
+    const effectX = Math.max(
+      ACTOR_SAFE_MIN,
+      Math.min(ACTOR_SAFE_MAX - effect.width, Math.round(desiredCenterX - effect.width / 2)),
+    );
+    const effectY = Math.max(
+      ACTOR_SAFE_MIN,
+      Math.min(ACTOR_SAFE_MAX - effect.height, Math.round(desiredCenterY - effect.height / 2)),
+    );
+    copyOpaqueInto(out, effect, effectX, effectY);
+  }
   return out;
 }
 
@@ -263,57 +696,15 @@ function shouldFlipActorSource(baseName, action, direction) {
 function actorPose(baseName, action, direction) {
   const key = `${baseName}:${action}:${direction}`;
   if (!actorPoseCache.has(key)) {
-    const override = manifest.actorPoseOverrides?.[baseName]?.[direction]?.[action];
-    let cell;
-    if (override) {
-      cell = sourceImage(override);
-    } else {
-      const file = manifest.actorSources[baseName];
-      if (!file) throw new Error(`${baseName} のimagegenアクター画像がありません。`);
-      const src = sourceImage(file);
-      const column = ACTOR_RENDER_DIRECTIONS.indexOf(direction);
-      const row = ACTIONS.indexOf(action);
-      cell = gridCell(src, column, row, manifest.layouts.actors.columns, manifest.layouts.actors.rows);
-    }
-    const corrected = shouldFlipActorSource(baseName, action, direction) ? flipHorizontal(cell) : cell;
-    actorPoseCache.set(key, normalizeTransparent(corrected, 42, 42, "bottom"));
+    const corrected = actorSourceCell(baseName, action, direction);
+    actorPoseCache.set(key, normalizeActorPose(baseName, action, direction, corrected));
   }
   return actorPoseCache.get(key);
 }
 
 function baseActorFrame(baseName, action, direction, frame) {
-  const key = `${baseName}:${action}:${direction}:${frame}`;
-  if (!actorFrameCache.has(key)) {
-    const [dx, dy] = frameOffset(action, direction, frame);
-    actorFrameCache.set(key, shifted(actorPose(baseName, action, direction), dx, dy));
-  }
-  return actorFrameCache.get(key);
-}
-
-function parseHex(hex) {
-  return {
-    r: Number.parseInt(hex.slice(1, 3), 16),
-    g: Number.parseInt(hex.slice(3, 5), 16),
-    b: Number.parseInt(hex.slice(5, 7), 16),
-  };
-}
-
-function tintImage(src, tint, strength) {
-  const target = parseHex(tint);
-  const out = image(src.width, src.height);
-  for (let i = 0; i < src.data.length; i += 4) {
-    const alpha = src.data[i + 3];
-    if (alpha === 0) continue;
-    const luminance = (src.data[i] * 0.2126 + src.data[i + 1] * 0.7152 + src.data[i + 2] * 0.0722) / 255;
-    const shade = 0.32 + luminance * 1.2;
-    const highlight = Math.max(0, luminance - 0.72) / 0.28;
-    for (const [offset, channel] of [[0, "r"], [1, "g"], [2, "b"]]) {
-      const colored = Math.min(255, target[channel] * shade + 255 * highlight * 0.32);
-      out.data[i + offset] = Math.round(src.data[i + offset] * (1 - strength) + colored * strength);
-    }
-    out.data[i + 3] = alpha;
-  }
-  return out;
+  const [dx, dy] = frameOffset(action, direction, frame);
+  return shifted(actorPose(baseName, action, direction), dx, dy);
 }
 
 function eggCell(name) {
@@ -337,10 +728,7 @@ function actorFrame(name, action, direction, frame) {
     const [dx, dy] = frameOffset("idle", direction, frame);
     return shifted(eggCell(name), dx, dy);
   }
-  const variant = manifest.paletteVariants[name];
-  const base = variant ? variant.base : name;
-  const rendered = baseActorFrame(base, action, direction, frame);
-  return variant ? tintImage(rendered, variant.tint, variant.strength) : rendered;
+  return baseActorFrame(name, action, direction, frame);
 }
 
 function actorAtlasPosition(actorRow, actionIndex, directionIndex, frame) {
@@ -473,6 +861,7 @@ function writeMeta() {
     actorAtlasColumns: ACTOR_ATLAS_COLUMNS,
     actorAtlasRowsPerActor: ACTOR_ATLAS_ROWS_PER_ACTOR,
     actorSheets: ACTOR_SHEETS,
+    actorNormalization: {},
     actors: {},
     tiles: {},
     effects: {},
@@ -501,6 +890,20 @@ function writeMeta() {
       actions: ACTIONS.length,
       anchor: [CELL / 2, Math.round(CELL * 0.75)],
     };
+    if (!name.startsWith("egg_")) {
+      const normalization = actorNormalizationCache.get(name);
+      const sourceStats = actorSourceStats.get(name);
+      meta.actorNormalization[name] = {
+        scale: Number(normalization.scale.toFixed(6)),
+        targetCenterX: CELL / 2,
+        targetFootY: ACTOR_FOOT_Y,
+        minEffectScale: Number(normalization.minEffectScale.toFixed(6)),
+        sourceWidth: sourceStats.width,
+        sourceHeight: sourceStats.height,
+        sourceComponents: sourceStats.sourceComponents,
+        assignedComponents: sourceStats.assignedComponents,
+      };
+    }
   });
   TILES.forEach((name, column) => {
     meta.tiles[name] = { sheet: "tiles", x: column * CELL, y: 0, w: CELL, h: CELL };

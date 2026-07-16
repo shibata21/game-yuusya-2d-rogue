@@ -1,5 +1,7 @@
 "use strict";
 
+import { assetUrl } from "./assetUrl.js";
+
 export const COLS = 11;
 export const ROWS = 16;
 export const TILE = 48;
@@ -46,14 +48,15 @@ export const ATK_ANIM = 190;
 export const MOVE_ANIM = 220;
 export const DIG_BREAK = 140;
 export const DIG_CD = 780;
-export const BORN_ANIM = 320;
+export const BORN_ANIM = 800;
 export const EVO_TIME = 65000;
 export const VEIN_FADE_START = 120000;
 export const VEIN_DECAY_TIME = 240000;
 export const OPEN = new Set(["tunnel", "core", "surface"]);
 export const ITEM_OFFER_CHOICES = 3;
-export const ITEM_CAP = 10;
 export const SHOP_STOCK_COUNT = 5;
+export const FREE_ITEM_PITY_WAVES = 3;
+export const ITEM_RECOVERY_DELAY = 4000;
 export const MAX_LOOP = 20;
 export const LOOP_HP_STEP = 0.08;
 export const LOOP_ATK_STEP = 0.05;
@@ -64,11 +67,11 @@ export const TRAP_EVENT_START_LOOP = 5;
 export const DEBUFF_START_LOOP = 10;
 export const TERMINATOR_LOOP = 20;
 export const REAPER_SPAWN_CHANCE = 0.002;
-export const POST_WAVE_EVENT_CHANCE = 0.30;
+export const POST_WAVE_EVENT_CHANCE = 0.40;
 
 export const POST_WAVE_EVENT_WEIGHTS = {
-  item: 60,
-  shop: 35,
+  item: 65,
+  shop: 30,
   trap: 5,
 };
 
@@ -112,7 +115,6 @@ export const RULE_CONSTANT_KEYS = [
   "EVO_TIME",
   "VEIN_FADE_START",
   "VEIN_DECAY_TIME",
-  "ITEM_CAP",
   "REAPER_SPAWN_CHANCE",
 ];
 
@@ -122,11 +124,40 @@ export const RULE_TABLE_NUMBER_KEYS = {
   heroes: ["rank", "hpMul", "atkMul", "defense", "range", "moveMul", "atkCd", "weight", "unlock", "healCd", "healRange", "healMul", "areaScale", "areaMax", "maxPerWave", "dodgeChance", "critChance", "critMul"],
 };
 
-export const ITEM_RARITIES = {
-  normal: { name: "ノーマル", priceBase: 12, priceWave: 1, shopWeight: 6 },
-  rare: { name: "レア", priceBase: 24, priceWave: 2, shopWeight: 3 },
-  gold: { name: "ゴールド", priceBase: 42, priceWave: 3, shopWeight: 1 },
+export const ITEM_STAT_KEYS = ["soil", "attack", "defense", "speed", "breed", "recovery"];
+
+export const ITEM_STAT_LIMITS = {
+  soil: [-30, 80],
+  attack: [-30, 60],
+  defense: [-30, 60],
+  speed: [-30, 50],
+  breed: [-30, 70],
+  recovery: [-30, 40],
 };
+
+export const ITEM_TYPES = {
+  earthCore: { name: "地脈石", primary: ["soil"], profile: "土壌の力を高め、鉱脈が育つ流れを強める。" },
+  demonFang: { name: "魔牙", primary: ["attack"], profile: "魔物の攻撃力を高める鋭い牙。" },
+  guardianCarapace: { name: "守護甲", primary: ["defense"], profile: "魔物が受ける傷を抑える厚い甲殻。" },
+  windFeather: { name: "風羽", primary: ["speed"], profile: "魔物の移動と攻撃を速める軽い羽。" },
+  lifeEgg: { name: "命卵", primary: ["breed", "recovery"], profile: "繁殖を促し、戦いを離れた魔物を癒やす生命の卵。" },
+};
+
+export const ITEM_RARITIES = {
+  iron: { name: "アイアン", main: 6, positiveCount: 1, positive: [1, 3], negative: [2, 4], negativeChance: 0.45, priceBase: 8, priceWave: 1 },
+  bronze: { name: "ブロンズ", main: 10, positiveCount: 1, positive: [2, 4], negative: [3, 5], negativeChance: 0.40, priceBase: 13, priceWave: 1 },
+  silver: { name: "シルバー", main: 14, positiveCount: 2, positive: [3, 5], negative: [4, 6], negativeChance: 0.35, priceBase: 20, priceWave: 1 },
+  gold: { name: "ゴールド", main: 19, positiveCount: 2, positive: [4, 7], negative: [5, 7], negativeChance: 0.30, priceBase: 30, priceWave: 2 },
+  diamond: { name: "ダイヤ", main: 25, positiveCount: 3, positive: [5, 8], negative: [6, 8], negativeChance: 0.25, priceBase: 44, priceWave: 2 },
+};
+
+export const ITEM_RARITY_WAVE_WEIGHTS = [
+  { minWave: 1, maxWave: 3, weights: { iron: 70, bronze: 30, silver: 0, gold: 0, diamond: 0 } },
+  { minWave: 4, maxWave: 6, weights: { iron: 30, bronze: 50, silver: 20, gold: 0, diamond: 0 } },
+  { minWave: 7, maxWave: 10, weights: { iron: 10, bronze: 30, silver: 45, gold: 15, diamond: 0 } },
+  { minWave: 11, maxWave: 13, weights: { iron: 0, bronze: 10, silver: 35, gold: 40, diamond: 15 } },
+  { minWave: 14, maxWave: Infinity, weights: { iron: 0, bronze: 0, silver: 15, gold: 45, diamond: 40 } },
+];
 
 export const DEBUFF_ITEMS = {
   rottenRations: { name: "腐った配給", profile: "開始栄養が減り、時間経過で得る栄養も減る。" },
@@ -134,151 +165,6 @@ export const DEBUFF_ITEMS = {
   informantMap: { name: "密告地図", profile: "冒険者の移動と採掘が速くなる。" },
   sharpenedBlade: { name: "研がれた刃", profile: "冒険者の攻撃力が上がる。" },
   dullFeed: { name: "くすんだ飼料", profile: "新しく出る魔物の最大HPが下がる。" },
-};
-
-export const ITEMS = {
-  rustyPickaxe: { name: "錆びたつるはし", passive: true, profile: "採掘成功時、低確率で消費した栄養が戻る。" },
-  blackSoilBag: { name: "黒土の袋", passive: true, profile: "採掘した周囲の土壌養分が増え、鉱脈が育ちやすくなる。" },
-  undergroundLantern: { name: "地底ランタン", passive: true, profile: "鉱脈を含む未掘削マスが淡く光る。" },
-  crackedMap: { name: "ひび割れ地図", passive: true, profile: "冒険者がいない間、魔物の移動が少し速くなる。" },
-  masonGloves: { name: "石工の手袋", passive: true, profile: "冒険者が土を掘る力を少し下げる。" },
-  deepCompass: { name: "深層コンパス", passive: true, profile: "魔物の索敵範囲が少し広がる。" },
-  oldIncense: { name: "古い香炉", passive: true, profile: "鉱脈の接触進化に必要な回数が少し減る。" },
-  herdFlute: { name: "群れ笛", passive: true, profile: "直接増殖する魔物の繁殖が少し早くなる。" },
-  warmNest: { name: "温かな巣材", passive: true, profile: "卵が孵化するまでの時間が短くなる。" },
-  eggGuardBell: { name: "卵守りの鈴", passive: true, profile: "新しく産まれた卵が最初の危機に一度だけ耐える。" },
-  boneMeal: { name: "骨粉", passive: true, profile: "卵から孵った魔物の最大HPが増える。" },
-  redCollar: { name: "赤い首輪", passive: true, profile: "魔物が発生地点へ戻りやすくなる。" },
-  warPaint: { name: "戦化粧", passive: true, profile: "ウェーブ開始直後、魔物の攻撃力が上がる。" },
-  sleepSand: { name: "眠り砂", passive: true, profile: "ウェーブ開始直後、冒険者の移動が少し遅くなる。" },
-  curseNail: { name: "呪い釘", passive: true, profile: "冒険者の攻撃力を常時少し下げる。" },
-  blackBell: { name: "黒い鐘", passive: true, profile: "同じウェーブ内の冒険者出現間隔が長くなる。" },
-  stickyMud: { name: "こびりつく泥", passive: true, profile: "冒険者が通路で時々足を取られる。" },
-  coreShard: { name: "迷宮コア片", passive: false, profile: "取得時、現存魔物の最大HPが増え、以後に出る魔物も少し頑丈になる。" },
-  coreBandage: { name: "コア包帯", passive: true, profile: "ウェーブ撃退後、傷ついた魔物を数体回復する。" },
-  redSealingWax: { name: "赤い封蝋", passive: true, profile: "最初のコア被弾を一度だけ無効化する。" },
-  quakeStone: { name: "地鳴り石", passive: true, profile: "冒険者が土を掘るたび、地鳴りで小ダメージを与える。" },
-  leftoverMeat: { name: "食べかけ肉", passive: true, profile: "捕食した魔物の回復量が増える。" },
-  silverMuzzle: { name: "銀の口輪", passive: true, profile: "味方同士の捕食が起きにくくなる。" },
-  bloodyPlate: { name: "血染めの皿", passive: true, profile: "捕食した魔物の攻撃力がしばらく上がる。" },
-  trainingStick: { name: "しつけ棒", passive: true, profile: "低ランク魔物が捕食されにくくなる。" },
-  victoryBoneFlute: { name: "勝利の骨笛", passive: true, profile: "冒険者撃破時、近くの魔物が回復する。" },
-  crybabyBell: { name: "泣き虫の鈴", passive: true, profile: "魔物死亡時、近くの魔物の攻撃力がしばらく上がる。" },
-  shadowThread: { name: "影縫い糸", passive: true, profile: "魔物死亡地点に短時間の減速床を残す。" },
-  spareHeart: { name: "予備の心臓", passive: true, profile: "最初に倒れる魔物を一度だけ復帰させる。" },
-  ledger: { name: "帳簿", passive: true, profile: "時間経過で得る栄養が増える。" },
-  tornWallet: { name: "穴あき財布", passive: true, profile: "栄養が少ない時、冒険者撃破報酬が増える。" },
-  demonCoin: { name: "魔王印の硬貨", passive: true, profile: "アイテム選択肢が一つ増える。" },
-  fakeGold: { name: "偽金貨", passive: true, profile: "未所持アイテムを選択肢へ優先して並べる。" },
-  wildCard: { name: "見切り札", passive: true, profile: "アイテム選択肢を一度だけ引き直せる。" },
-  thiefBag: { name: "盗賊の袋", passive: true, profile: "アイテムを取らずに見送ると栄養を得る。" },
-  dryBread: { name: "乾いたパン", passive: false, profile: "取得時、栄養をすぐ得る。" },
-  blackSeed: { name: "黒い種", passive: false, profile: "取得時、ランダムな土マスに鉱脈を生やす。" },
-  reversedHourglass: { name: "逆巻き砂時計", passive: true, profile: "次の襲来までの待ち時間が長くなる。" },
-  earlyDrum: { name: "早鳴り太鼓", passive: true, profile: "襲来は早まるが、冒険者撃破報酬が増える。" },
-  breathingFlute: { name: "深呼吸の笛", passive: true, profile: "しばらく戦っていない魔物の攻撃間隔が短くなる。" },
-  gapStake: { name: "狭間の杭", passive: true, profile: "通路上の冒険者の移動が少し遅くなる。" },
-  moleClaw: { name: "土竜の爪", passive: true, profile: "採掘時、隣接する土にもひびを入れる。" },
-  obsidianLid: { name: "黒曜の蓋", passive: true, profile: "掘った直後の通路で生まれた魔物の被ダメージが短時間下がる。" },
-  wanderingPowder: { name: "迷い粉", passive: true, profile: "冒険者が時々遠回りを選ぶ。" },
-  trailMark: { name: "獣道の印", passive: true, profile: "魔物がホーム周辺を巡回しやすくなる。" },
-  charmRope: { name: "まじない縄", passive: true, profile: "低HPの魔物が敵から離れやすくなる。" },
-  angerMask: { name: "怒りの面", passive: true, profile: "HPに余裕のある魔物が前へ出やすくなる。" },
-  nestFlag: { name: "巣穴の旗", passive: true, profile: "ホーム付近では直接繁殖の周辺上限が少し増える。" },
-  oldEggshell: { name: "古卵の殻", passive: true, profile: "上位種の産卵率が上がる。" },
-  crackedEgg: { name: "ひび割れ卵", passive: true, profile: "卵の孵化は早くなるが、孵化直後のHPが下がる。" },
-  royalEggshell: { name: "王の卵殻", passive: true, profile: "卵から孵る魔物が低確率で強化される。" },
-  rottenCrown: { name: "朽ちた冠", passive: true, profile: "第二進化魔物の出現時HPが増える。" },
-  rebelCharm: { name: "反骨の札", passive: true, profile: "魔物が少ないほど魔物の攻撃力が上がる。" },
-  crowdMark: { name: "大所帯の印", passive: true, profile: "魔物が多い時、魔物の最大HPが上がる。" },
-  lowestCandle: { name: "最下層の蝋燭", passive: true, profile: "ウェーブ後半、魔物の攻撃力が上がる。" },
-  blackRaindrop: { name: "黒い雨粒", passive: true, profile: "ウェーブ中、敵味方全員の移動が遅くなる。" },
-  redMoonShard: { name: "赤月の破片", passive: true, profile: "ウェーブ後半ほど魔物の攻撃力が上がる。" },
-  boneContract: { name: "白骨の契約書", passive: false, profile: "取得時にコアHPを消費し、現存魔物を強化する。" },
-  undergroundStore: { name: "地下倉庫", passive: true, profile: "アイテムを持てる数が増える。" },
-  veinBrush: { name: "鉱脈刷毛", passive: true, profile: "自然に生まれる鉱脈が少し増えやすくなる。" },
-  denLedger: { name: "巣番台帳", passive: true, profile: "新しく出る魔物の最大HPが少し増える。" },
-  homeChime: { name: "帰巣チャイム", passive: true, profile: "魔物が発生地点へ戻りやすくなる。" },
-  shopStamp: { name: "商店スタンプ", passive: true, profile: "アイテム商店の価格が少し下がる。" },
-  corePiggyBank: { name: "コア貯金箱", passive: true, profile: "ウェーブ撃退時、迷宮コアが無傷なら栄養を得る。" },
-};
-
-const ITEM_RARITY_BY_ID = {
-  rustyPickaxe: "normal",
-  blackSoilBag: "rare",
-  undergroundLantern: "normal",
-  crackedMap: "normal",
-  masonGloves: "normal",
-  deepCompass: "rare",
-  oldIncense: "gold",
-  herdFlute: "gold",
-  warmNest: "rare",
-  eggGuardBell: "rare",
-  boneMeal: "rare",
-  redCollar: "normal",
-  warPaint: "normal",
-  sleepSand: "normal",
-  curseNail: "rare",
-  blackBell: "normal",
-  stickyMud: "normal",
-  coreShard: "gold",
-  coreBandage: "rare",
-  redSealingWax: "rare",
-  quakeStone: "rare",
-  leftoverMeat: "normal",
-  silverMuzzle: "normal",
-  bloodyPlate: "rare",
-  trainingStick: "normal",
-  victoryBoneFlute: "rare",
-  crybabyBell: "normal",
-  shadowThread: "normal",
-  spareHeart: "rare",
-  ledger: "rare",
-  tornWallet: "normal",
-  demonCoin: "gold",
-  fakeGold: "rare",
-  wildCard: "rare",
-  thiefBag: "normal",
-  dryBread: "normal",
-  blackSeed: "rare",
-  reversedHourglass: "normal",
-  earlyDrum: "normal",
-  breathingFlute: "normal",
-  gapStake: "normal",
-  moleClaw: "rare",
-  obsidianLid: "rare",
-  wanderingPowder: "rare",
-  trailMark: "normal",
-  charmRope: "normal",
-  angerMask: "normal",
-  nestFlag: "normal",
-  oldEggshell: "normal",
-  crackedEgg: "normal",
-  royalEggshell: "rare",
-  rottenCrown: "gold",
-  rebelCharm: "rare",
-  crowdMark: "rare",
-  lowestCandle: "rare",
-  blackRaindrop: "rare",
-  redMoonShard: "gold",
-  boneContract: "gold",
-  undergroundStore: "rare",
-  veinBrush: "normal",
-  denLedger: "rare",
-  homeChime: "normal",
-  shopStamp: "rare",
-  corePiggyBank: "gold",
-};
-
-for (const id of Object.keys(ITEMS)) ITEMS[id].rarity = ITEM_RARITY_BY_ID[id] || "normal";
-
-export const ITEM_UNLOCKS = {
-  undergroundStore: { price: 80, unlockClears: 0 },
-  veinBrush: { price: 110, unlockClears: 1 },
-  denLedger: { price: 150, unlockClears: 2 },
-  homeChime: { price: 220, unlockClears: 3 },
-  shopStamp: { price: 300, unlockClears: 5 },
-  corePiggyBank: { price: 420, unlockClears: 8 },
 };
 
 export const KINDS = {
@@ -443,7 +329,6 @@ const RULE_CONSTANT_DEFAULTS = {
   EVO_TIME,
   VEIN_FADE_START,
   VEIN_DECAY_TIME,
-  ITEM_CAP,
   REAPER_SPAWN_CHANCE,
 };
 
@@ -576,13 +461,8 @@ function applyMonsterDeckToVeins(veinTable, deck) {
   }
 }
 
-function normalizeUnlockedItems(value) {
-  if (!Array.isArray(value)) return new Set();
-  return new Set(value.filter((id) => typeof id === "string" && ITEM_UNLOCKS[id]));
-}
-
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v30-imagegen";
+export const PIXEL_ASSET_VERSION = "v32-equipment";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -633,7 +513,7 @@ export const PIXEL_ACTOR_SHEETS = {
 };
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
-export const PIXEL_ITEMS = Object.keys(ITEMS);
+export const PIXEL_ITEMS = Object.keys(ITEM_TYPES);
 export const PIXEL_DEBUFFS = Object.keys(DEBUFF_ITEMS);
 export const PIXEL_DIALOGUE_PORTRAITS = ["executive", "gorilla"];
 const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
@@ -654,17 +534,17 @@ const DIALOGUES = {
   itemChoice: {
     speaker: "ゴリラおばさん",
     portrait: "gorilla",
-    topic: "アイテム選択",
+    topic: "装備選択",
     lines: [
-      "あら、ここで品を選ぶのね。ゴリラおばさんが見ててあげる。",
-      "選べるものは一つだけよ。すぐ効くものも、あとで効くものもあるわ。",
+      "あら、ここで装備を選ぶのね。ゴリラおばさんが見ててあげる。",
+      "選べるものは一つだけよ。同じ種類なら今の装備と比べなさい。",
       "見送るのも手だけど、迷宮は遠慮だけでは守れないわよ。",
     ],
   },
   shop: {
     speaker: "コンビニ店員のスライム",
     portrait: "slime",
-    topic: "アイテム商店",
+    topic: "装備商店",
     lines: [
       "いらっしゃいませ。コンビニ店員のスライムです。お支払いは栄養でお願いします。",
       "買える商品は明るく、栄養が足りない商品は暗くしてあります。",
@@ -674,7 +554,7 @@ const DIALOGUES = {
 };
 
 export function pixelAssetUrl(name) {
-  return `${PIXEL_ASSET_PATH}${name}?v=${PIXEL_ASSET_VERSION}`;
+  return assetUrl(`${PIXEL_ASSET_PATH}${name}`, PIXEL_ASSET_VERSION);
 }
 
 export function cx(col) {
@@ -813,7 +693,6 @@ export function createGame(options = {}) {
   const runtimeTables = createRuntimeTables(ruleConfig);
   const monsterDeck = resolveMonsterDeck(options.monsterDeck);
   applyMonsterDeckToVeins(runtimeTables.VEIN, monsterDeck);
-  const unlockedItemIds = normalizeUnlockedItems(options.unlockedItems);
   const {
     DIG_COST,
     START_NUT,
@@ -854,7 +733,6 @@ export function createGame(options = {}) {
     EVO_TIME,
     VEIN_FADE_START,
     VEIN_DECAY_TIME,
-    ITEM_CAP,
     REAPER_SPAWN_CHANCE,
   } = ruleConfig.constants;
   const { KINDS, VEIN, HERO_CLASSES } = runtimeTables;
@@ -865,14 +743,13 @@ export function createGame(options = {}) {
   let effects = [];
   let spawnQueue = [];
   let pickups = [];
-  let items = [];
+  let equipment = Object.fromEntries(Object.keys(ITEM_TYPES).map((type) => [type, null]));
+  let itemStats = Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, 0]));
   let debuffItems = [];
   let itemOffer = null;
   let shopOffer = null;
   let trapOffer = null;
   let debuffNotice = null;
-  let itemEvents = [];
-  let usedItems = new Set();
   let slowFields = [];
   let unlocked = new Set();
   let nutrients = START_NUT;
@@ -891,6 +768,9 @@ export function createGame(options = {}) {
   let veinSpawnTimer = 0;
   let events = [];
   let idc = 0;
+  let equipmentIdc = 0;
+  let updateSerial = 0;
+  let freeItemMisses = 0;
   let gameState = "title";
   let activeDialogue = null;
   let dialogueReturnState = null;
@@ -1001,27 +881,104 @@ export function createGame(options = {}) {
   }
 
   function monsterIncomeRate() {
-    return 0.045 * (hasItem("ledger") ? 1.25 : 1) * (hasDebuff("rottenRations") ? 0.85 : 1);
+    return 0.045 * (hasDebuff("rottenRations") ? 0.85 : 1);
   }
 
-  function hasItem(id) {
-    return items.includes(id);
+  function cloneEquipmentItem(item) {
+    return item ? { uid: item.uid, type: item.type, rarity: item.rarity, mods: { ...item.mods } } : null;
   }
 
-  function itemUnlocked(id) {
-    return !!ITEMS[id] && (!ITEM_UNLOCKS[id] || unlockedItemIds.has(id));
+  function recalculateItemStats() {
+    const next = Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, 0]));
+    for (const item of Object.values(equipment)) {
+      if (!item) continue;
+      for (const key of ITEM_STAT_KEYS) next[key] += item.mods[key];
+    }
+    for (const key of ITEM_STAT_KEYS) {
+      const [min, max] = ITEM_STAT_LIMITS[key];
+      next[key] = clamp(next[key], min, max);
+    }
+    itemStats = next;
+    return { ...itemStats };
   }
 
-  function availableItemIds() {
-    return Object.keys(ITEMS).filter(itemUnlocked);
+  function validateEquipment(item) {
+    if (!item || typeof item !== "object" || !ITEM_TYPES[item.type] || !ITEM_RARITIES[item.rarity]) return null;
+    if (typeof item.uid !== "string" || item.uid.length === 0 || item.uid.length > 80) return null;
+    if (!item.mods || typeof item.mods !== "object") return null;
+    const mods = {};
+    for (const key of ITEM_STAT_KEYS) {
+      const value = item.mods[key];
+      if (!Number.isInteger(value) || value < -100 || value > 100) return null;
+      mods[key] = value;
+    }
+    return { uid: item.uid, type: item.type, rarity: item.rarity, mods };
   }
 
-  function effectiveItemCap() {
-    return ITEM_CAP + (hasItem("undergroundStore") ? 2 : 0);
+  function equipItem(item) {
+    const validated = validateEquipment(item);
+    if (!validated) return false;
+    for (const [type, current] of Object.entries(equipment)) {
+      if (type !== validated.type && current && current.uid === validated.uid) return false;
+    }
+    equipment[validated.type] = validated;
+    recalculateItemStats();
+    return true;
   }
 
-  function itemCapacityReached() {
-    return items.length >= effectiveItemCap();
+  function effectiveItemWave(targetWave = wave, targetLoop = loop) {
+    const baseWave = Math.max(1, Math.floor(Number(targetWave) || 1));
+    const loopBonus = Math.min(3, Math.floor((clampLoop(targetLoop) - 1) / 5));
+    return baseWave + loopBonus;
+  }
+
+  function itemRarityWeights(targetWave = wave, targetLoop = loop) {
+    const effectiveWave = effectiveItemWave(targetWave, targetLoop);
+    const row = ITEM_RARITY_WAVE_WEIGHTS.find((entry) => effectiveWave >= entry.minWave && effectiveWave <= entry.maxWave)
+      || ITEM_RARITY_WAVE_WEIGHTS[ITEM_RARITY_WAVE_WEIGHTS.length - 1];
+    return { ...row.weights };
+  }
+
+  function rollItemRarity(targetWave = wave, targetLoop = loop) {
+    const weights = itemRarityWeights(targetWave, targetLoop);
+    let total = 0;
+    for (const rarity of Object.keys(ITEM_RARITIES)) total += weights[rarity] || 0;
+    let pick = random() * total;
+    for (const rarity of Object.keys(ITEM_RARITIES)) {
+      pick -= weights[rarity] || 0;
+      if (pick < 0) return rarity;
+    }
+    return "iron";
+  }
+
+  function createEquipment(type, rarityOverride = null, targetWave = wave, targetLoop = loop) {
+    const typeRow = ITEM_TYPES[type];
+    if (!typeRow) return null;
+    const rarity = ITEM_RARITIES[rarityOverride] ? rarityOverride : rollItemRarity(targetWave, targetLoop);
+    const rarityRow = ITEM_RARITIES[rarity];
+    const mods = Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, 0]));
+    const primary = new Set(typeRow.primary);
+    const candidates = ITEM_STAT_KEYS.filter((key) => !primary.has(key));
+    for (let i = 0; i < rarityRow.positiveCount && candidates.length; i++) {
+      const index = ri(0, candidates.length - 1);
+      const key = candidates.splice(index, 1)[0];
+      mods[key] = ri(rarityRow.positive[0], rarityRow.positive[1]);
+    }
+    let mainBudget = rarityRow.main;
+    if (candidates.length && random() < rarityRow.negativeChance) {
+      const index = ri(0, candidates.length - 1);
+      const key = candidates.splice(index, 1)[0];
+      const penalty = ri(rarityRow.negative[0], rarityRow.negative[1]);
+      mods[key] = -penalty;
+      mainBudget += penalty;
+    }
+    if (type === "lifeEgg") {
+      mods.breed = Math.ceil(mainBudget / 2);
+      mods.recovery = Math.floor(mainBudget / 2);
+    } else {
+      mods[typeRow.primary[0]] = mainBudget;
+    }
+    return { uid: `equipment-${++equipmentIdc}`, type, rarity, mods };
   }
 
   function hasDebuff(id) {
@@ -1054,28 +1011,18 @@ export function createGame(options = {}) {
     return wave > 0 && waveSettled < wave;
   }
 
-  function waveOpeningActive() {
-    return waveIsActive() && waveElapsed < 8000;
-  }
-
   function monsterAttackPower(m) {
     if (!m) return 1;
     const k = KINDS[m.kind] || {};
     let power = m.atk || 1;
-    if (hasItem("warPaint") && waveOpeningActive()) power *= 1.15;
-    if (hasItem("rebelCharm") && monsters.length <= 3) power *= 1.2;
-    if (hasItem("lowestCandle") && waveIsActive() && waveElapsed >= 30000) power *= 1.1;
-    if (hasItem("redMoonShard") && waveIsActive()) power *= 1 + Math.min(0.3, Math.max(0, waveElapsed - 15000) / 45000 * 0.3);
-    if ((m.bloodyPlateMs || 0) > 0) power *= 1.2;
-    if ((m.crybabyBellMs || 0) > 0) power *= 1.15;
     if (k.packBoost) power *= 1 + Math.min(3, sameFamilyNear(m, 2)) * k.packBoost;
     if (k.chargeMul && (m.chargeMs || 0) > 0) power *= k.chargeMul;
+    power *= (100 + itemStats.attack) / 100;
     return Math.max(1, Math.round(power));
   }
 
   function heroAttackPower(h) {
     let power = h.atk || 1;
-    if (hasItem("curseNail")) power *= 0.92;
     if (hasDebuff("sharpenedBlade")) power *= 1.12;
     if ((h.weakenMs || 0) > 0) power *= h.weakenMul || 0.9;
     return Math.max(1, Math.round(power));
@@ -1099,17 +1046,6 @@ export function createGame(options = {}) {
 
   function soilManaEvoBonus(tile) {
     return Math.min(SOIL_MANA_EVO_MAX, Math.floor(soilManaOf(tile) / SOIL_MANA_EVO_STEP));
-  }
-
-  function itemHighlights() {
-    if (!hasItem("undergroundLantern")) return [];
-    const cells = [];
-    for (let r = 1; r < ROWS - 1; r++) for (let c = 1; c < COLS - 1; c++) {
-      const tile = grid[r][c];
-      if (tile.t === "earth" && tile.sub) cells.push({ col: c, row: r, stage: evoStageOf(tile), soil: soilManaOf(tile), type: tile.sub });
-    }
-    cells.sort((a, b) => b.stage - a.stage || b.soil - a.soil || a.row - b.row || a.col - b.col);
-    return cells.slice(0, 5);
   }
 
   function clearVein(tile, clearSoil = false) {
@@ -1228,7 +1164,7 @@ export function createGame(options = {}) {
     if (!tile || tile.t !== "earth" || tile.sub) return 0;
     const stage = soilManaOf(tile);
     const chance = VEIN_SPAWN_SOIL_CHANCES[stage] ?? VEIN_SPAWN_SOIL_CHANCES[VEIN_SPAWN_SOIL_CHANCES.length - 1];
-    return chance * (hasItem("veinBrush") ? 1.15 : 1);
+    return chance;
   }
 
   function runVeinSpawnTick() {
@@ -1323,8 +1259,13 @@ export function createGame(options = {}) {
     return (KINDS[kind] && KINDS[kind].evoLevel) || 0;
   }
 
+  function isBornProtected(monster) {
+    return !!monster && (monster.bornProtectMs || 0) > 0;
+  }
+
   function canBeEatenBy(eater, prey) {
     if (!eater || !prey || !KINDS[eater.kind] || !KINDS[prey.kind]) return false;
+    if (isBornProtected(eater) || isBornProtected(prey)) return false;
     if (evoLevelOf(prey.kind) >= 2) return false;
     if (isElite(prey.kind) && !isElite(eater.kind)) return false;
     return rankOf(eater.kind) > rankOf(prey.kind);
@@ -1406,17 +1347,18 @@ export function createGame(options = {}) {
     effects.push({ type: "bite", sx, sy, tx, ty, x: tx, y: ty, color, life: 260, max: 260 });
   }
 
-  function itemOfferChoiceCount() {
-    return ITEM_OFFER_CHOICES + (hasItem("demonCoin") ? 1 : 0);
-  }
-
   function chooseItemOfferChoices() {
-    const pool = availableItemIds().filter((id) => !hasItem(id));
-    if (hasItem("fakeGold")) pool.sort((a, b) => PIXEL_ITEMS.indexOf(a) - PIXEL_ITEMS.indexOf(b));
+    const remainingTypes = Object.keys(ITEM_TYPES);
     const choices = [];
-    while (pool.length && choices.length < itemOfferChoiceCount()) {
-      const idx = ri(0, pool.length - 1);
-      choices.push(pool.splice(idx, 1)[0]);
+    const emptyTypes = remainingTypes.filter((type) => !equipment[type]);
+    if (emptyTypes.length) {
+      const type = emptyTypes[ri(0, emptyTypes.length - 1)];
+      choices.push(createEquipment(type));
+      remainingTypes.splice(remainingTypes.indexOf(type), 1);
+    }
+    while (remainingTypes.length && choices.length < ITEM_OFFER_CHOICES) {
+      const index = ri(0, remainingTypes.length - 1);
+      choices.push(createEquipment(remainingTypes.splice(index, 1)[0]));
     }
     return choices;
   }
@@ -1431,127 +1373,56 @@ export function createGame(options = {}) {
     return choices;
   }
 
-  function itemRarity(id) {
-    return (ITEMS[id] && ITEM_RARITIES[ITEMS[id].rarity]) ? ITEMS[id].rarity : "normal";
-  }
-
-  function itemShopPrice(id, shopWave = wave) {
-    const rarity = ITEM_RARITIES[itemRarity(id)];
-    const base = rarity.priceBase + Math.max(0, shopWave || 0) * rarity.priceWave;
-    return Math.round(base * (hasItem("shopStamp") ? 0.9 : 1));
-  }
-
-  function chooseShopGoods(excludedIds = []) {
-    const excluded = new Set(excludedIds);
-    const pool = availableItemIds().filter((id) => !hasItem(id) && !excluded.has(id));
-    const goods = [];
-    while (pool.length && goods.length < SHOP_STOCK_COUNT) {
-      let total = 0;
-      for (const id of pool) total += ITEM_RARITIES[itemRarity(id)].shopWeight;
-      let pick = random() * total;
-      let idx = pool.length - 1;
-      for (let i = 0; i < pool.length; i++) {
-        pick -= ITEM_RARITIES[itemRarity(pool[i])].shopWeight;
-        if (pick <= 0) {
-          idx = i;
-          break;
-        }
-      }
-      const id = pool.splice(idx, 1)[0];
-      goods.push({ id, price: itemShopPrice(id, wave), sold: false });
+  function itemRarity(value) {
+    if (value && typeof value === "object" && ITEM_RARITIES[value.rarity]) return value.rarity;
+    if (typeof value === "string" && ITEM_RARITIES[value]) return value;
+    if (typeof value !== "string") return null;
+    for (const item of Object.values(equipment)) if (item && item.uid === value) return item.rarity;
+    if (itemOffer) {
+      const item = itemOffer.choices.find((choice) => choice.uid === value);
+      if (item) return item.rarity;
     }
-    return goods;
+    if (shopOffer) {
+      const good = shopOffer.goods.find((entry) => entry.item.uid === value);
+      if (good) return good.item.rarity;
+    }
+    return null;
+  }
+
+  function itemShopPrice(itemOrRarity, shopWave = wave) {
+    const rarity = ITEM_RARITIES[itemRarity(itemOrRarity)] || ITEM_RARITIES.iron;
+    return rarity.priceBase + Math.max(0, Math.floor(Number(shopWave) || 0)) * rarity.priceWave;
+  }
+
+  function chooseShopGoods() {
+    return Object.keys(ITEM_TYPES).map((type) => {
+      const item = createEquipment(type);
+      return { item, price: itemShopPrice(item, wave), sold: false };
+    });
   }
 
   function choosePostWaveEventKind() {
-    const candidates = [];
-    if (availableItemIds().some((id) => !hasItem(id))) candidates.push({ kind: "item", weight: POST_WAVE_EVENT_WEIGHTS.item });
-    if (availableItemIds().some((id) => !hasItem(id))) candidates.push({ kind: "shop", weight: POST_WAVE_EVENT_WEIGHTS.shop });
-    if (loop >= TRAP_EVENT_START_LOOP && Object.keys(DEBUFF_ITEMS).some((id) => !hasDebuff(id))) candidates.push({ kind: "trap", weight: POST_WAVE_EVENT_WEIGHTS.trap });
+    const candidates = [
+      { kind: "item", weight: POST_WAVE_EVENT_WEIGHTS.item },
+      { kind: "shop", weight: POST_WAVE_EVENT_WEIGHTS.shop },
+    ];
+    if (loop >= TRAP_EVENT_START_LOOP && Object.keys(DEBUFF_ITEMS).some((id) => !hasDebuff(id))) {
+      candidates.push({ kind: "trap", weight: POST_WAVE_EVENT_WEIGHTS.trap });
+    }
     let total = 0;
-    for (const c of candidates) total += c.weight;
-    if (total <= 0) return null;
+    for (const candidate of candidates) total += candidate.weight;
     let pick = random() * total;
-    for (const c of candidates) {
-      pick -= c.weight;
-      if (pick <= 0) return c.kind;
+    for (const candidate of candidates) {
+      pick -= candidate.weight;
+      if (pick < 0) return candidate.kind;
     }
     return candidates[candidates.length - 1].kind;
   }
 
-  function triggerItem(id, life = 1200) {
-    if (!ITEMS[id]) return;
-    itemEvents.push({ id, life, max: life });
-  }
-
   function nextWaveInterval() {
-    let interval = WAVE_INTERVAL;
-    if (hasItem("reversedHourglass")) interval += 5000;
-    if (hasItem("earlyDrum")) interval *= 0.75;
-    return Math.max(2500, Math.round(interval));
+    return WAVE_INTERVAL;
   }
 
-  function strengthenMonsterHp(m, mul, healMul = mul) {
-    const oldMax = Math.max(1, m.maxHp || m.hp || 1);
-    m.maxHp = Math.max(1, Math.round(oldMax * mul));
-    m.hp = Math.min(m.maxHp, Math.max(1, Math.round((m.hp || oldMax) * healMul)));
-  }
-
-  function spawnRandomVeins(count) {
-    const candidates = [];
-    for (let r = 1; r < ROWS - 1; r++) for (let c = 1; c < COLS - 1; c++) {
-      const tile = grid[r][c];
-      if (canHostVein(c, r, tile)) candidates.push({ c, r, tile });
-    }
-    let made = 0;
-    while (candidates.length && made < count && veinCount() < VEIN_CAP) {
-      const idx = ri(0, candidates.length - 1);
-      const spot = candidates.splice(idx, 1)[0];
-      const type = pickVeinTypeForSpawn(spot.tile);
-      if (!type || !placeVein(spot.tile, type)) continue;
-      made++;
-      effects.push({ type: "puff", x: cx(spot.c), y: cy(spot.r), life: 320, max: 320, color: VEIN[type].color });
-    }
-    return made;
-  }
-
-  function applyItem(id, opts = {}) {
-    if (!ITEMS[id] || !itemUnlocked(id) || hasItem(id)) return false;
-    if (!opts.ignoreCap && itemCapacityReached()) {
-      banner("もう取れません");
-      return false;
-    }
-    items.push(id);
-    emitEvent("discoverItem", { id });
-    triggerItem(id);
-    if (id === "coreShard") {
-      for (const m of monsters) {
-        strengthenMonsterHp(m, 1.1);
-        popDmg(m.px, m.py, "体↑", "#ffcf4d");
-      }
-      triggerItem(id, 1500);
-    } else if (id === "dryBread") {
-      nutrients += 12;
-      triggerItem(id, 1500);
-    } else if (id === "blackSeed") {
-      const made = spawnRandomVeins(3);
-      if (made > 0) banner(`黒い種 ─ 鉱脈${made}個`);
-    } else if (id === "boneContract") {
-      if (coreHP > 20) coreHP = Math.max(1, coreHP - 20);
-      for (const m of monsters) {
-        strengthenMonsterHp(m, 1.2);
-        m.atk = Math.max(1, Math.round((m.atk || 1) * 1.15));
-        popDmg(m.px, m.py, "契", "#ffcf4d");
-      }
-    } else if (id === "crowdMark" && monsters.length >= 12) {
-      for (const m of monsters) {
-        strengthenMonsterHp(m, 1.15);
-        popDmg(m.px, m.py, "体↑", "#ffcf4d");
-      }
-    }
-    waveCountdown = nextWaveInterval();
-    return true;
-  }
 
   function applyDebuff(id) {
     if (!DEBUFF_ITEMS[id] || hasDebuff(id)) return false;
@@ -1593,43 +1464,41 @@ export function createGame(options = {}) {
     return true;
   }
 
-  function openShopOffer(excludedIds = [], withDialogue = true) {
-    const goods = chooseShopGoods(excludedIds);
-    if (!goods.length) {
-      shopOffer = null;
-      return false;
-    }
-    shopOffer = { wave, goods };
-    if (withDialogue) openDialogue("shop", "shop");
-    else gameState = "shop";
-    banner("アイテム商店が開いた");
+  function openItemOffer(withDialogue = true) {
+    const choices = chooseItemOfferChoices();
+    if (!choices.length) return false;
+    itemOffer = { wave, choices };
+    freeItemMisses = 0;
+    if (withDialogue) openDialogue("itemChoice", "itemChoice");
+    else gameState = "itemChoice";
+    banner("装備を見つけた");
     return true;
   }
 
-  function buyShopItem(id) {
-    if (gameState === "dialogue") return false;
-    if (!shopOffer || !ITEMS[id]) return false;
-    const good = shopOffer.goods.find((g) => g.id === id);
-    if (!good || good.sold || hasItem(id)) return false;
-    if (itemCapacityReached()) {
-      banner("もう取れません");
-      return true;
-    }
-    const price = Math.max(0, Math.floor(good.price || itemShopPrice(id, shopOffer.wave)));
-    if (nutrients < price) return false;
+  function openShopOffer(withDialogue = true) {
+    const goods = chooseShopGoods();
+    shopOffer = { wave, goods };
+    if (withDialogue) openDialogue("shop", "shop");
+    else gameState = "shop";
+    banner("装備商店が開いた");
+    return true;
+  }
+
+  function buyShopItem(uid) {
+    if (gameState === "dialogue" || !shopOffer || typeof uid !== "string") return false;
+    const good = shopOffer.goods.find((entry) => entry.item.uid === uid);
+    if (!good || good.sold) return false;
+    const price = Math.max(0, Math.floor(good.price || itemShopPrice(good.item, shopOffer.wave)));
+    if (nutrients < price || !validateEquipment(good.item)) return false;
+    if (!equipItem(good.item)) return false;
     nutrients -= price;
-    if (!applyItem(id)) {
-      nutrients += price;
-      return false;
-    }
     good.sold = true;
-    banner(`アイテム『${ITEMS[id].name}』を購入`);
+    banner(`装備『${ITEM_TYPES[good.item.type].name}』を購入`);
     return true;
   }
 
   function closeShopOffer() {
-    if (gameState === "dialogue") return false;
-    if (!shopOffer) return false;
+    if (gameState === "dialogue" || !shopOffer) return false;
     shopOffer = null;
     waveCountdown = nextWaveInterval();
     if (gameState === "shop") gameState = "playing";
@@ -1647,36 +1516,13 @@ export function createGame(options = {}) {
       emitEvent("loopCleared", { loop, score, wave });
       return;
     }
-    if (hasItem("coreBandage")) {
-      const wounded = monsters
-        .filter((m) => m.hp < m.maxHp)
-        .sort((a, b) => hpRatio(a) - hpRatio(b) || a.id - b.id)
-        .slice(0, 3);
-      for (const m of wounded) {
-        const amount = Math.max(1, Math.round(m.maxHp * 0.18));
-        m.hp = Math.min(m.maxHp, m.hp + amount);
-        popDmg(m.px, m.py - 10, `+${amount}`, "#9effa0");
-      }
-      if (wounded.length) {
-        banner(`コア包帯 ─ 魔物${wounded.length}体を回復`);
-        triggerItem("coreBandage");
-      }
-    }
-    if (hasItem("corePiggyBank") && coreHP >= coreMax) {
-      nutrients += 6;
-      triggerItem("corePiggyBank");
-      banner("コア貯金箱 ─ 栄養+6");
-    }
     waveCountdown = nextWaveInterval();
-    if (random() >= POST_WAVE_EVENT_CHANCE) return;
-    const eventKind = choosePostWaveEventKind();
-    if (eventKind === "item") {
-      const choices = chooseItemOfferChoices();
-      if (!choices.length) return;
-      itemOffer = { wave, choices };
-      openDialogue("itemChoice", "itemChoice");
-      banner("アイテムを見つけた");
-    } else if (eventKind === "shop") {
+    let eventKind = null;
+    if (freeItemMisses >= FREE_ITEM_PITY_WAVES) eventKind = "item";
+    else if (random() < POST_WAVE_EVENT_CHANCE) eventKind = choosePostWaveEventKind();
+    if (eventKind === "item" && openItemOffer()) return;
+    freeItemMisses++;
+    if (eventKind === "shop") {
       openShopOffer();
     } else if (eventKind === "trap") {
       const choices = chooseDebuffChoices();
@@ -1687,49 +1533,22 @@ export function createGame(options = {}) {
     }
   }
 
-  function chooseItemOffer(id = null) {
-    if (gameState === "dialogue") return false;
-    if (!itemOffer) return false;
-    if (id === null) {
-      if (hasItem("thiefBag")) {
-        nutrients += 8;
-        triggerItem("thiefBag");
-        banner("盗賊の袋 ─ 栄養+8");
-      }
+  function chooseItemOffer(uid = null) {
+    if (gameState === "dialogue" || !itemOffer) return false;
+    if (uid === null) {
       itemOffer = null;
-      banner("アイテムを見送った");
+      banner("装備を見送った");
       if (gameState === "itemChoice") gameState = "playing";
       return true;
     }
-    if (!itemOffer.choices.includes(id) || hasItem(id)) return false;
-    if (itemCapacityReached()) {
-      banner("もう取れません");
-      return true;
-    }
-    if (!applyItem(id)) return false;
-    banner(`アイテム『${ITEMS[id].name}』を入手`);
+    const item = itemOffer.choices.find((choice) => choice.uid === uid);
+    if (!item || !equipItem(item)) return false;
+    banner(`装備『${ITEM_TYPES[item.type].name}』を装着`);
     itemOffer = null;
     if (gameState === "itemChoice") gameState = "playing";
     return true;
   }
 
-  function rerollItemOffer() {
-    if (gameState === "dialogue") return false;
-    if (!itemOffer || !hasItem("wildCard") || usedItems.has("wildCard")) return false;
-    const previous = new Set(itemOffer.choices);
-    const pool = availableItemIds().filter((id) => !hasItem(id) && !previous.has(id));
-    const choices = [];
-    while (pool.length && choices.length < itemOfferChoiceCount()) {
-      const idx = ri(0, pool.length - 1);
-      choices.push(pool.splice(idx, 1)[0]);
-    }
-    if (!choices.length) return false;
-    itemOffer = { wave: itemOffer.wave, choices };
-    usedItems.add("wildCard");
-    triggerItem("wildCard", 1500);
-    banner("見切り札 ─ 選択肢を引き直した");
-    return true;
-  }
 
   function isDigTarget(col, row) {
     if (!inBounds(col, row)) return false;
@@ -1773,11 +1592,6 @@ export function createGame(options = {}) {
       return false;
     }
     nutrients -= cost;
-    if (hasItem("rustyPickaxe") && random() < 0.25) {
-      nutrients += cost;
-      triggerItem("rustyPickaxe");
-      toast(col, row, "返還", "#ffcf4d");
-    }
     if (tile.sub) {
       const vein = tile.sub;
       const kind = kindToSpawn;
@@ -1788,27 +1602,12 @@ export function createGame(options = {}) {
         const mo = monsters[monsters.length - 1];
         if (mo && mo.col === col && mo.row === row) {
           mo.bornAnim = BORN_ANIM;
-          if (hasItem("obsidianLid")) mo.obsidianLidMs = 6000;
           effects.push({ type: "birth", x: cx(col), y: cy(row), life: 380, max: 380, color: KINDS[mo.kind].col });
         }
       }
     } else {
       tile.t = "tunnel";
       clearVein(tile, true);
-    }
-    if (hasItem("blackSoilBag")) {
-      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) chargeSoilAt(col + dc, row + dr, 2);
-      triggerItem("blackSoilBag");
-    }
-    if (hasItem("moleClaw")) {
-      for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const nc = col + dc;
-        const nr = row + dr;
-        if (!inBounds(nc, nr)) continue;
-        const n = grid[nr][nc];
-        if (n.t === "earth") n.dig = Math.min(DIG_BREAK - 1, (n.dig || 0) + 55);
-      }
-      triggerItem("moleClaw");
     }
     playerDigCount++;
     effects.push({ type: "dig", x: cx(col), y: cy(row), life: 340, max: 340 });
@@ -1824,27 +1623,14 @@ export function createGame(options = {}) {
       homeCol: col, homeRow: row, hp: k.hp, maxHp: k.hp, atk: k.atk, range: k.range,
       moveCd: k.moveCd, moveCharge: rnd(0, 0.35), moveWait: 0, moveIntent: null, atkCd: 0, eggCd: EGG_CHECK * rnd(0.7, 1.3), eatCd: EAT_CHECK * rnd(0.6, 1.2),
       breedCd: k.breedEvery ? k.breedEvery * rnd(0.6, 1.2) : 0, breedLeft: k.breedEvery ? BREED_LIMIT : 0,
-      prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
-      nonCombatMs: 0,
+      prevCol: null, prevRow: null, soilSteps: 0, bornAnim: BORN_ANIM, bornProtectMs: BORN_ANIM, bornUpdate: updateSerial,
+      atkAnim: 0, atkTX: 0, atkTY: 0, actionType: "idle", actionTime: 0, moveAnim: 0,
+      nonCombatMs: 0, combatUpdate: -1, recoveryCarry: 0,
     };
-    if (hasItem("coreShard")) strengthenMonsterHp(monster, 1.06);
-    if (hasItem("denLedger")) strengthenMonsterHp(monster, 1.08);
-    if (hasDebuff("dullFeed")) strengthenMonsterHp(monster, 0.92);
-    if (opts.fromEgg) {
-      if (hasItem("boneMeal")) strengthenMonsterHp(monster, 1.25);
-      if (hasItem("crackedEgg")) {
-        monster.hp = Math.max(1, Math.round(monster.hp * 0.75));
-        monster.maxHp = Math.max(monster.hp, monster.maxHp);
-      }
-      if (hasItem("royalEggshell") && random() < 0.12) {
-        strengthenMonsterHp(monster, 1.25);
-        monster.atk = Math.max(1, Math.round(monster.atk * 1.25));
-        monster.royalEggBorn = true;
-        triggerItem("royalEggshell");
-      }
+    if (hasDebuff("dullFeed")) {
+      monster.maxHp = Math.max(1, Math.round(monster.maxHp * 0.92));
+      monster.hp = monster.maxHp;
     }
-    if (hasItem("rottenCrown") && evoLevelOf(kind) >= 2) strengthenMonsterHp(monster, 1.2);
-    if (hasItem("crowdMark") && monsters.length >= 12) strengthenMonsterHp(monster, 1.15);
     monsters.push(monster);
     emitEvent("discoverMonster", { kind });
   }
@@ -1868,10 +1654,7 @@ export function createGame(options = {}) {
   function spawnEgg(kind, col, row) {
     if (monsters.length + eggs.length >= MONSTER_CAP) return false;
     if (!canLayEgg(kind) || !inBounds(col, row) || isMonsterForbiddenCell(col, row) || !OPEN.has(grid[row][col].t) || eggOccupied(col, row)) return false;
-    let hatchCd = EGG_HATCH;
-    if (hasItem("warmNest")) hatchCd *= 0.8;
-    if (hasItem("crackedEgg")) hatchCd *= 0.65;
-    eggs.push({ kind, col, row, hatchCd: Math.max(1000, Math.round(hatchCd)), bornAnim: BORN_ANIM, guarded: hasItem("eggGuardBell") });
+    eggs.push({ kind, col, row, hatchCd: EGG_HATCH, bornAnim: BORN_ANIM });
     effects.push({ type: "birth", x: cx(col), y: cy(row), life: 380, max: 380, color: KINDS[kind].col });
     return true;
   }
@@ -1915,7 +1698,7 @@ export function createGame(options = {}) {
   function updateEggs(dt) {
     for (let i = eggs.length - 1; i >= 0; i--) {
       const e = eggs[i];
-      e.hatchCd -= dt;
+      e.hatchCd -= dt * (100 + itemStats.breed) / 100;
       e.bornAnim = Math.max(0, (e.bornAnim || 0) - dt);
       if (e.hatchCd > 0) continue;
       if (monsters.length >= MONSTER_CAP) {
@@ -1935,12 +1718,13 @@ export function createGame(options = {}) {
   }
 
   function updateEliteEggBreeding(dt) {
-    for (const m of monsters) if (canLayEgg(m.kind)) m.eggCd = (m.eggCd === undefined ? EGG_CHECK : m.eggCd) - dt;
     for (const m of monsters) {
-      if (!canLayEgg(m.kind) || m.eggCd > 0) continue;
+      if (!canLayEgg(m.kind) || isBornProtected(m)) continue;
+      m.eggCd = (m.eggCd === undefined ? EGG_CHECK : m.eggCd) - dt * (100 + itemStats.breed) / 100;
+      if (m.eggCd > 0) continue;
       m.eggCd = EGG_CHECK * rnd(0.9, 1.25);
       if (eggCount(m.kind) >= EGG_KIND_CAP) continue;
-      const chance = Math.min(0.95, (KINDS[m.kind].eggChance || 0) + (hasItem("oldEggshell") ? 0.04 : 0));
+      const chance = Math.min(0.95, KINDS[m.kind].eggChance || 0);
       if (random() < chance) {
         const spot = eggSpot(m);
         if (spot) spawnEgg(m.kind, spot.col, spot.row);
@@ -1955,8 +1739,7 @@ export function createGame(options = {}) {
   function veinNextTouchNeed(type, tile) {
     const stage = evoStageOf(tile);
     const vein = VEIN[type] || {};
-    let base = stage >= 1 ? (vein.finalTouchNeed || veinTouchNeed(type) + 4) : veinTouchNeed(type);
-    if (hasItem("oldIncense")) base = Math.round(base * 0.85);
+    const base = stage >= 1 ? (vein.finalTouchNeed || veinTouchNeed(type) + 4) : veinTouchNeed(type);
     return Math.max(3, base - soilManaEvoBonus(tile));
   }
 
@@ -2022,21 +1805,17 @@ export function createGame(options = {}) {
     if (m.hp >= m.maxHp) return false;
     const found = lowerPreyNear(m);
     if (!found) return false;
-    let chance = clamp(EAT_CHANCE_STEP * found.gap, 0.08, 0.55);
-    if (hasItem("silverMuzzle")) chance *= 0.6;
-    if (hasItem("trainingStick") && rankOf(found.prey.kind) <= 2) chance *= 0.5;
+    const chance = clamp(EAT_CHANCE_STEP * found.gap, 0.08, 0.55);
     if (random() >= chance) return false;
     const prey = found.prey;
     const px0 = prey.px;
     const py0 = prey.py;
+    m.nonCombatMs = 0;
+    m.combatUpdate = updateSerial;
+    m.recoveryCarry = 0;
     setAction(m, "eat", px0, py0, 320);
     killMonster(prey);
-    const healRate = hasItem("leftoverMeat") ? 0.28 : 0.18;
-    m.hp = Math.min(m.maxHp, m.hp + Math.max(3, Math.round(prey.maxHp * healRate)));
-    if (hasItem("bloodyPlate")) {
-      m.bloodyPlateMs = 10000;
-      triggerItem("bloodyPlate");
-    }
+    m.hp = Math.min(m.maxHp, m.hp + Math.max(3, Math.round(prey.maxHp * 0.18)));
     bite(m.px, m.py, px0, py0, "#ffcf4d");
     popDmg(m.px, m.py, "喰", "#ffcf4d");
     return true;
@@ -2130,7 +1909,7 @@ export function createGame(options = {}) {
     let count = Math.min(1 + Math.floor(wave / 2), HEROES_PER_WAVE_CAP);
     const room = Math.min(MAX_HEROES - heroes.length - spawnQueue.length, heroEntryCells().length - spawnQueue.length);
     count = Math.max(0, Math.min(count, room));
-    const stagger = Math.round(HERO_STAGGER * (hasItem("blackBell") ? 1.25 : 1));
+    const stagger = HERO_STAGGER;
     for (let i = 0; i < count; i++) spawnQueue.push({ delay: i * stagger, cls: pickHeroClass() });
     waveElapsed = 0;
     waveCountdown = nextWaveInterval();
@@ -2146,7 +1925,8 @@ export function createGame(options = {}) {
     if (!inBounds(col, row)) return;
     const tile = grid[row][col];
     if (tile.t !== "earth") return;
-    tile.soilMana = Math.min(SOIL_MANA_MAX_STAGE, soilManaOf(tile) + amount);
+    const current = Math.max(0, Math.min(SOIL_MANA_MAX_STAGE, Number(tile.soilMana) || 0));
+    tile.soilMana = Math.min(SOIL_MANA_MAX_STAGE, current + amount * (100 + itemStats.soil) / 100);
   }
 
   function chargeSoilAround(col, row, amount) {
@@ -2282,12 +2062,6 @@ export function createGame(options = {}) {
     if (e.dirX === Math.sign(n.col - e.col) && e.dirY === Math.sign(n.row - e.row)) score -= 1;
     if (isPrevCell(e, n) && d >= currentD && card >= currentCard) score += 44;
     if (opts.homeLimit && e.homeCol !== undefined && cheb(n, { col: e.homeCol, row: e.homeRow }) > opts.homeLimit) score += 12;
-    if (e.kind && e.homeCol !== undefined) {
-      const homeDist = cheb(n, { col: e.homeCol, row: e.homeRow });
-      if (hasItem("redCollar")) score += homeDist * 4;
-      if (hasItem("homeChime")) score += homeDist * 3;
-      if (hasItem("trailMark") && homeDist <= 4) score -= 8;
-    }
     return score;
   }
 
@@ -2471,7 +2245,7 @@ export function createGame(options = {}) {
   }
 
   function monsterHasAttackableHero(m) {
-    if (!m || !monsters.includes(m) || isMoving(m)) return false;
+    if (!m || !monsters.includes(m) || isMoving(m) || isBornProtected(m)) return false;
     const k = KINDS[m.kind];
     if (!k) return false;
     return k.lineFire ? !!bestDragonFireAttack(m) : !!bestHeroInRange(m);
@@ -2481,6 +2255,8 @@ export function createGame(options = {}) {
     const end = attack.cells[attack.cells.length - 1];
     m.atkCd = monsterAttackInterval(m, k);
     m.nonCombatMs = 0;
+    m.combatUpdate = updateSerial;
+    m.recoveryCarry = 0;
     setAction(m, "cast", cx(end.col), cy(end.row), ATK_ANIM);
     effects.push({ type: "flameLine", sx: m.px, sy: m.py - 4, tx: cx(end.col), ty: cy(end.row), x: cx(end.col), y: cy(end.row), color: k.col, life: 500, max: 500, cells: attack.cells });
     for (const h of [...attack.victims]) {
@@ -2498,7 +2274,7 @@ export function createGame(options = {}) {
     let best = null;
     let bestScore = Infinity;
     for (const m of monsters) {
-      if (isMoving(m)) continue;
+      if (isMoving(m) || isBornProtected(m)) continue;
       if (!canAttackFrom(h.col, h.row, h.range, m)) continue;
       const score = monsterTargetScoreForHero(h, m);
       if (score < bestScore) {
@@ -2536,7 +2312,7 @@ export function createGame(options = {}) {
   }
 
   function hasAdjacentMonster(h) {
-    return monsters.some((m) => !isMoving(m) && canAttackFrom(h.col, h.row, 1, m));
+    return monsters.some((m) => !isMoving(m) && !isBornProtected(m) && canAttackFrom(h.col, h.row, 1, m));
   }
 
   function heroDamageTaken(raw, h) {
@@ -2591,7 +2367,7 @@ export function createGame(options = {}) {
   function guardAuraReduction(m) {
     let reduction = 0;
     for (const o of monsters) {
-      if (o === m || cheb(o, m) > 2) continue;
+      if (o === m || isBornProtected(o) || cheb(o, m) > 2) continue;
       const k = KINDS[o.kind] || {};
       reduction = Math.max(reduction, k.guardAura || 0);
     }
@@ -2599,14 +2375,16 @@ export function createGame(options = {}) {
   }
 
   function damageMonster(m, amount, color = "#fff", source = null) {
-    if (!monsters.includes(m)) return false;
+    if (!monsters.includes(m) || isBornProtected(m)) return false;
     m.nonCombatMs = 0;
+    m.combatUpdate = updateSerial;
+    m.recoveryCarry = 0;
     const k = KINDS[m.kind] || {};
     let dmg = amount;
-    if ((m.obsidianLidMs || 0) > 0) dmg = Math.max(1, Math.round(dmg * 0.85));
     if (source && source.cls && k.frontGuard && frontGuardApplies(m, source)) dmg = Math.max(1, Math.round(dmg * (1 - k.frontGuard)));
     const aura = guardAuraReduction(m);
     if (aura > 0) dmg = Math.max(1, Math.round(dmg * (1 - aura)));
+    dmg = Math.max(1, Math.round(dmg * 100 / (100 + itemStats.defense)));
     m.hp -= dmg;
     popDmg(m.px, m.py, `-${dmg}`, color);
     if (source && source.cls && k.thorns && cheb(m, source) <= 1 && heroes.includes(source)) {
@@ -2630,47 +2408,19 @@ export function createGame(options = {}) {
 
   function killMonster(m) {
     const i = monsters.indexOf(m);
-    if (i >= 0 && hasItem("spareHeart") && !usedItems.has("spareHeart")) {
-      m.hp = Math.max(1, Math.round((m.maxHp || 1) * 0.4));
-      usedItems.add("spareHeart");
-      triggerItem("spareHeart", 1500);
-      popDmg(m.px, m.py - 10, "復帰", "#9effa0");
-      effects.push({ type: "birth", x: m.px, y: m.py, life: 360, max: 360, color: "#9effa0" });
-      return;
-    }
     if (i >= 0) monsters.splice(i, 1);
-    if (i >= 0 && hasItem("crybabyBell")) {
-      for (const o of monsters) if (cheb(o, m) <= 2) o.crybabyBellMs = Math.max(o.crybabyBellMs || 0, 8000);
-      triggerItem("crybabyBell");
-    }
-    if (i >= 0 && hasItem("shadowThread") && inBounds(m.col, m.row) && OPEN.has(grid[m.row][m.col].t)) {
-      slowFields.push({ col: m.col, row: m.row, life: 6000, max: 6000 });
-      triggerItem("shadowThread");
-    }
     effects.push({ type: "puff", x: m.px, y: m.py, life: 300, max: 300, color: "#5fd16b" });
   }
 
   function killHero(h) {
     const i = heroes.indexOf(h);
     if (i >= 0) heroes.splice(i, 1);
-    let rewardMul = 1;
-    if (hasItem("tornWallet") && nutrients < 5) rewardMul *= 1.5;
-    if (hasItem("earlyDrum")) rewardMul *= 1.2;
-    const reward = Math.round((4 + h.wave) * rewardMul);
+    const reward = Math.round(4 + h.wave);
     nutrients += reward;
     score += Math.round((80 * h.wave + 20) * scoreMultiplier());
     kills++;
     emitEvent("heroKilled", { cls: h.cls, wave: h.wave, x: h.px, y: h.py });
     popDmg(h.px, h.py, `+${reward}`, "#ffcf4d");
-    if (hasItem("victoryBoneFlute")) {
-      for (const m of monsters) {
-        if (cheb(m, h) > 2 || m.hp >= m.maxHp) continue;
-        const amount = Math.max(1, Math.round(m.maxHp * 0.15));
-        m.hp = Math.min(m.maxHp, m.hp + amount);
-        popDmg(m.px, m.py - 10, `+${amount}`, "#9effa0");
-      }
-      triggerItem("victoryBoneFlute");
-    }
     effects.push({ type: "puff", x: h.px, y: h.py, life: 340, max: 340, color: "#cfd8e3" });
     if (random() < REAPER_SPAWN_CHANCE) {
       const reaper = spawnMonsterNear("reaper", h.col, h.row, 1);
@@ -2755,13 +2505,9 @@ export function createGame(options = {}) {
     const base = e.moveCd || (e.kind && KINDS[e.kind] && KINDS[e.kind].moveCd) || MOVEMENT_TICK;
     const k = e.kind ? (KINDS[e.kind] || {}) : {};
     let mul = 1;
-    if (e.kind && hasItem("crackedMap") && heroes.length === 0 && spawnQueue.length === 0) mul *= 0.85;
-    if (e.kind && hasItem("blackRaindrop") && waveIsActive()) mul *= 1.12;
     if (e.kind && k.skitter) mul *= k.skitter;
     if (e.kind && k.packBoost && sameFamilyNear(e, 2) > 0) mul *= Math.max(0.72, 1 - sameFamilyNear(e, 2) * k.packBoost);
-    if (e.cls && hasItem("sleepSand") && waveOpeningActive()) mul *= 1.15;
-    if (e.cls && hasItem("gapStake") && grid[e.row][e.col].t === "tunnel") mul *= 1.08;
-    if (e.cls && hasItem("blackRaindrop") && waveIsActive()) mul *= 1.12;
+    if (e.kind) mul *= 100 / (100 + itemStats.speed);
     if (e.cls && hasDebuff("informantMap")) mul *= 0.9;
     return Math.max(MOVEMENT_TICK, Math.round(base * mul));
   }
@@ -2824,16 +2570,9 @@ export function createGame(options = {}) {
   }
 
   function heroMoveCandidates(h) {
-    const out = heroPathCandidates(h, { allowEarth: false, includeOccupied: true })
+    return heroPathCandidates(h, { allowEarth: false, includeOccupied: true })
       .filter((n) => actorCanMoveTo(h, n.col, n.row))
       .slice(0, 4);
-    if (hasItem("wanderingPowder") && out.length > 1 && random() < 0.1) {
-      const first = out[0];
-      out[0] = out[1];
-      out[1] = first;
-      triggerItem("wanderingPowder");
-    }
-    return out;
   }
 
   function movementPriority(e, intent) {
@@ -2937,10 +2676,6 @@ export function createGame(options = {}) {
       e.moveWait = 0;
       if (e.kind && e.wanderTarget && e.col === e.wanderTarget.col && e.row === e.wanderTarget.row) e.wanderTarget = null;
       if (e.cls && move.req.intent.kind === "unblock") e.blockedMs = 0;
-      if (e.cls && hasItem("stickyMud") && grid[e.row][e.col].t === "tunnel" && random() < 0.12) {
-        e.itemMoveLag = Math.max(e.itemMoveLag || 0, 350);
-        triggerItem("stickyMud");
-      }
       if (e.cls) {
         const field = slowFields.find((f) => f.col === e.col && f.row === e.row);
         if (field) {
@@ -2970,10 +2705,10 @@ export function createGame(options = {}) {
 
   function updateLowerBreeding(dt) {
     for (const m of [...monsters]) {
-      if (!monsters.includes(m) || isMoving(m)) continue;
+      if (!monsters.includes(m) || isMoving(m) || isBornProtected(m)) continue;
       const k = KINDS[m.kind];
       if (!k.breedEvery || m.breedLeft <= 0) continue;
-      m.breedCd -= dt * (hasItem("herdFlute") ? 1 / 0.85 : 1);
+      m.breedCd -= dt * (100 + itemStats.breed) / 100;
       if (m.breedCd > 0) continue;
       if (monsters.length + eggs.length >= MONSTER_CAP) {
         m.breedCd = k.breedEvery * 0.5;
@@ -2981,8 +2716,7 @@ export function createGame(options = {}) {
       }
       let local = 0;
       for (const o of monsters) if (o.kind === m.kind && cheb(o, m) <= 1) local++;
-      const nearHome = cheb(m, { col: m.homeCol, row: m.homeRow }) <= 2;
-      const localCap = (k.breedCap || 2) + (hasItem("nestFlag") && nearHome ? 1 : 0);
+      const localCap = k.breedCap || 2;
       if (local >= localCap) {
         m.breedCd = k.breedEvery * 0.6;
         continue;
@@ -2998,13 +2732,12 @@ export function createGame(options = {}) {
       if (child) child.bornAnim = BORN_ANIM;
       effects.push({ type: "birth", x: cx(d.col), y: cy(d.row), life: 380, max: 380, color: k.col });
       m.breedLeft--;
-      m.breedCd = k.breedEvery * (hasItem("herdFlute") ? 0.85 : 1) * rnd(0.9, 1.3);
+      m.breedCd = k.breedEvery * rnd(0.9, 1.3);
     }
   }
 
   function monsterAttackInterval(m, k) {
-    let cd = k.atkCd;
-    if (hasItem("breathingFlute") && (m.nonCombatMs || 0) >= 8000) cd *= 0.85;
+    const cd = k.atkCd * 100 / (100 + itemStats.speed);
     return Math.max(120, Math.round(cd));
   }
 
@@ -3018,9 +2751,12 @@ export function createGame(options = {}) {
       updateVisualPosition(m, dt);
       m.atkAnim = Math.max(0, (m.atkAnim || 0) - dt);
       m.actionTime = Math.max(0, (m.actionTime || 0) - dt);
-      m.bornAnim = Math.max(0, (m.bornAnim || 0) - dt);
       if (entryPaused) continue;
       if (isMoving(m)) continue;
+      if (isBornProtected(m)) {
+        m.moveIntent = { kind: "wander" };
+        continue;
+      }
       const fireAttack = k.lineFire ? bestDragonFireAttack(m) : null;
       const heroTarget = k.lineFire ? (fireAttack && fireAttack.target) : bestHeroInRange(m);
       if (heroTarget) {
@@ -3030,6 +2766,8 @@ export function createGame(options = {}) {
             breatheDragonFire(m, fireAttack, k);
           } else {
             m.nonCombatMs = 0;
+            m.combatUpdate = updateSerial;
+            m.recoveryCarry = 0;
             m.atkCd = monsterAttackInterval(m, k);
             setAction(m, m.range >= 2 ? "cast" : "attack", heroTarget.px, heroTarget.py, ATK_ANIM);
             if (m.range >= 2) shoot(m.px, m.py - 4, heroTarget.px, heroTarget.py, "#9bff5a");
@@ -3039,15 +2777,14 @@ export function createGame(options = {}) {
         }
         continue;
       }
-      const aggroRange = k.aggro + (hasItem("angerMask") && hpRatio(m) >= 0.7 ? 2 : 0) + (hasItem("deepCompass") ? 1 : 0);
+      const aggroRange = k.aggro;
       const aggroHero = bestHeroWithin(m, aggroRange);
       if (aggroHero) faceToward(m, aggroHero.px, aggroHero.py);
       if (!aggroHero && m.eatCd <= 0) {
         m.eatCd = EAT_CHECK * rnd(0.85, 1.25);
         if (tryEatLower(m)) continue;
       }
-      if (aggroHero && hasItem("charmRope") && hpRatio(m) <= 0.35) m.moveIntent = { kind: "flee", target: aggroHero };
-      else if (aggroHero) m.moveIntent = { kind: "chase", target: aggroHero, opts: { attackRange: k.range, preferLos: k.range > 1, lineFire: !!k.lineFire } };
+      if (aggroHero) m.moveIntent = { kind: "chase", target: aggroHero, opts: { attackRange: k.range, preferLos: k.range > 1, lineFire: !!k.lineFire } };
       else m.moveIntent = { kind: "wander" };
     }
   }
@@ -3097,7 +2834,7 @@ export function createGame(options = {}) {
       let extra = 0;
       const areaDmg = Math.max(1, Math.round(damage * (c.areaScale || 0.65)));
       for (const m of [...monsters]) {
-        if (m === monsterTarget || isMoving(m) || cheb(m, h) > h.range) continue;
+        if (m === monsterTarget || isMoving(m) || isBornProtected(m) || cheb(m, h) > h.range) continue;
         if (!sameHeroAttackLane(h, monsterTarget, m)) continue;
         if (!hasLOS(h.col, h.row, m.col, m.row)) continue;
         shoot(h.px, h.py - 8, m.px, m.py, "#ffe680");
@@ -3114,16 +2851,11 @@ export function createGame(options = {}) {
       return;
     }
     if (step.tile.t === "earth") {
-      const digDmg = Math.max(1, Math.round(heroDigDmg(h.atk) * (hasItem("masonGloves") ? 0.85 : 1) * (hasDebuff("informantMap") ? 1.1 : 1)));
+      const digDmg = Math.max(1, Math.round(heroDigDmg(h.atk) * (hasDebuff("informantMap") ? 1.1 : 1)));
       step.tile.dig = (step.tile.dig || 0) + digDmg;
       effects.push({ type: "dig", x: cx(step.col), y: cy(step.row), life: 300, max: 300, hero: true });
       h.actCd = DIG_CD;
       setAction(h, "dig", cx(step.col), cy(step.row), ATK_ANIM);
-      if (hasItem("quakeStone")) {
-        damageHero(h, 2, null, "#bff7ea");
-        triggerItem("quakeStone");
-        if (!heroes.includes(h)) return;
-      }
       if (step.tile.dig >= DIG_BREAK) {
         step.tile.t = "tunnel";
         clearVein(step.tile, true);
@@ -3201,15 +2933,9 @@ export function createGame(options = {}) {
       if (canCoreAttackFrom(h.col, h.row)) {
         if (h.coreCd <= 0) {
           const dmg = heroAttackPower(h);
-          if (hasItem("redSealingWax") && !usedItems.has("redSealingWax")) {
-            usedItems.add("redSealingWax");
-            triggerItem("redSealingWax", 1500);
-            popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, "無効", "#ffcf4d");
-          } else {
-            coreHP -= dmg;
-            emitEvent("coreHit", { cls: h.cls, wave: h.wave, damage: dmg, x: cx(CORE_COL), y: cy(CORE_ROW) });
-            popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `-${dmg}`, "#e0556b");
-          }
+          coreHP -= dmg;
+          emitEvent("coreHit", { cls: h.cls, wave: h.wave, damage: dmg, x: cx(CORE_COL), y: cy(CORE_ROW) });
+          popDmg(cx(CORE_COL), cy(CORE_ROW) - 10, `-${dmg}`, "#e0556b");
           effects.push({ type: "corehit", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#e0556b", life: 420, max: 420 });
           effects.push({ type: "coreShock", x: cx(CORE_COL), y: cy(CORE_ROW), color: "#ff3355", life: 460, max: 460 });
           h.coreCd = 1100;
@@ -3241,13 +2967,17 @@ export function createGame(options = {}) {
     }
   }
 
-  function updateItemPassives(dt) {
+  function updateMonsterPassives(dt) {
     for (const m of monsters) {
       const k = KINDS[m.kind] || {};
-      m.nonCombatMs = (m.nonCombatMs || 0) + dt;
-      m.bloodyPlateMs = Math.max(0, (m.bloodyPlateMs || 0) - dt);
-      m.crybabyBellMs = Math.max(0, (m.crybabyBellMs || 0) - dt);
-      m.obsidianLidMs = Math.max(0, (m.obsidianLidMs || 0) - dt);
+      const previousNonCombat = m.nonCombatMs || 0;
+      const foughtThisUpdate = m.combatUpdate === updateSerial;
+      if (foughtThisUpdate) {
+        m.nonCombatMs = 0;
+        m.recoveryCarry = 0;
+      } else {
+        m.nonCombatMs = previousNonCombat + dt;
+      }
       m.chargeMs = Math.max(0, (m.chargeMs || 0) - dt);
       if (k.idleRegen && !isMoving(m) && m.hp < m.maxHp && (m.nonCombatMs || 0) >= 1800) {
         m.regenTick = (m.regenTick || 0) + dt;
@@ -3260,6 +2990,20 @@ export function createGame(options = {}) {
       } else {
         m.regenTick = 0;
       }
+      const recoveryMs = foughtThisUpdate
+        ? 0
+        : Math.max(0, m.nonCombatMs - Math.max(previousNonCombat, ITEM_RECOVERY_DELAY));
+      if (itemStats.recovery > 0 && recoveryMs > 0 && m.hp < m.maxHp) {
+        m.recoveryCarry = (m.recoveryCarry || 0) + m.maxHp * itemStats.recovery / 2000 * recoveryMs / 1000;
+        const amount = Math.min(m.maxHp - m.hp, Math.floor(m.recoveryCarry));
+        if (amount > 0) {
+          m.recoveryCarry -= amount;
+          m.hp += amount;
+          popDmg(m.px, m.py - 8, `+${amount}`, "#9effa0");
+        }
+      } else if (m.hp >= m.maxHp || itemStats.recovery <= 0) {
+        m.recoveryCarry = 0;
+      }
     }
     for (const h of heroes) {
       h.weakenMs = Math.max(0, (h.weakenMs || 0) - dt);
@@ -3271,12 +3015,14 @@ export function createGame(options = {}) {
     }
   }
 
-  function updateItemEvents(dt) {
-    for (let i = itemEvents.length - 1; i >= 0; i--) {
-      itemEvents[i].life -= dt;
-      if (itemEvents[i].life <= 0) itemEvents.splice(i, 1);
+  function updateBirthProtection(dt) {
+    for (const m of monsters) {
+      if (m.bornUpdate === updateSerial) continue;
+      m.bornProtectMs = Math.max(0, (m.bornProtectMs || 0) - dt);
+      m.bornAnim = Math.max(0, (m.bornAnim || 0) - dt);
     }
   }
+
 
   function updateMonsterTtl(dt) {
     for (const m of [...monsters]) {
@@ -3306,6 +3052,7 @@ export function createGame(options = {}) {
 
   function update(dt) {
     if (gameState !== "playing") return;
+    updateSerial++;
     if (waveIsActive()) waveElapsed += dt;
     if (spawnQueue.length === 0 && heroes.length === 0) {
       if (wave > 0 && waveSettled < wave) {
@@ -3313,7 +3060,7 @@ export function createGame(options = {}) {
         waveSettleDelay = Math.max(0, waveSettleDelay - dt);
         if (waveSettleDelay > 0) {
           updatePickups(dt);
-          updateItemEvents(dt);
+          updateBirthProtection(dt);
           updateEffects(dt);
           return;
         }
@@ -3353,11 +3100,11 @@ export function createGame(options = {}) {
     updateMonsters(dt, entryPaused);
     updateHeroes(dt, entryPaused);
     updatePickups(dt);
-    updateItemPassives(dt);
+    updateMonsterPassives(dt);
     updateMonsterTtl(dt);
     updateActorMovement(dt, entryPaused);
     if (heroEntryHold > 0 && !holdStarted) heroEntryHold = Math.max(0, heroEntryHold - dt);
-    updateItemEvents(dt);
+    updateBirthProtection(dt);
     updateEffects(dt);
     if (coreHP <= 0) {
       coreHP = 0;
@@ -3376,14 +3123,13 @@ export function createGame(options = {}) {
     effects = [];
     spawnQueue = [];
     pickups = [];
-    items = [];
+    equipment = Object.fromEntries(Object.keys(ITEM_TYPES).map((type) => [type, null]));
+    itemStats = Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, 0]));
     debuffItems = [];
     itemOffer = null;
     shopOffer = null;
     trapOffer = null;
     debuffNotice = null;
-    itemEvents = [];
-    usedItems = new Set();
     slowFields = [];
     clearDialogue();
     nutrients = START_NUT;
@@ -3402,6 +3148,9 @@ export function createGame(options = {}) {
     veinSpawnTimer = 0;
     events = [];
     idc = 0;
+    equipmentIdc = 0;
+    updateSerial = 0;
+    freeItemMisses = 0;
     unlocked = new Set(Object.keys(VEIN).filter((key) => VEIN[key].unlock <= 1));
     gameState = "playing";
     buildGrid();
@@ -3432,31 +3181,25 @@ export function createGame(options = {}) {
     const d = Math.hypot(dx, dy) || 1;
     let power = 5;
     let yLift = 0;
-    let scale = 1;
     let rot = 0;
     const c = e.cls ? HERO_CLASSES[e.cls] : null;
     if (e.actionType === "eat") {
       power = 12;
-      scale = 1 + 0.18 * waveSin;
       rot = 0.12 * waveSin * Math.sign(dx || 1);
     } else if (e.actionType === "cast") {
       power = c && c.areaAttack ? -1 : -3;
       yLift = c && c.areaAttack ? -4 : -2;
-      scale = 1 + (c && c.areaAttack ? 0.12 : 0.08) * waveSin;
       rot = -0.08 * waveSin * Math.sign(dx || 1);
     } else if (e.actionType === "heal") {
       power = -1;
       yLift = -5;
-      scale = 1 + 0.1 * waveSin;
       rot = -0.05 * waveSin * Math.sign(dx || 1);
     } else if (e.actionType === "attack") {
       if (c) {
         power = 0;
-        scale = 1;
         rot = 0;
       } else {
         power = 7;
-        scale = 1 + 0.05 * waveSin;
         rot = 0.1 * waveSin * Math.sign(dx || 1);
       }
     } else if (e.actionType === "dig") {
@@ -3465,10 +3208,9 @@ export function createGame(options = {}) {
     } else if (e.actionType === "dodge") {
       power = -9;
       yLift = -3;
-      scale = 0.94 + 0.06 * Math.cos(p * Math.PI);
       rot = -0.18 * waveSin * Math.sign(dx || 1);
     }
-    return { x: dx / d * power * waveSin, y: dy / d * power * waveSin + yLift * waveSin, scale, rot };
+    return { x: dx / d * power * waveSin, y: dy / d * power * waveSin + yLift * waveSin, scale: 1, rot };
   }
 
   function actorAction(e) {
@@ -3488,17 +3230,16 @@ export function createGame(options = {}) {
     get spawnQueue() { return spawnQueue; },
     get pickups() { return pickups; },
     get slowFields() { return slowFields; },
-    get items() { return items; },
+    get equipment() { return Object.fromEntries(Object.entries(equipment).map(([type, item]) => [type, cloneEquipmentItem(item)])); },
+    get itemStats() { return { ...itemStats }; },
     get debuffItems() { return debuffItems; },
-    get itemOffer() { return itemOffer ? { wave: itemOffer.wave, choices: [...itemOffer.choices] } : null; },
-    get shopOffer() { return shopOffer ? { wave: shopOffer.wave, goods: shopOffer.goods.map((g) => ({ ...g })) } : null; },
+    get itemOffer() { return itemOffer ? { wave: itemOffer.wave, choices: itemOffer.choices.map(cloneEquipmentItem) } : null; },
+    get shopOffer() { return shopOffer ? { wave: shopOffer.wave, goods: shopOffer.goods.map((good) => ({ item: cloneEquipmentItem(good.item), price: good.price, sold: good.sold })) } : null; },
     get trapOffer() { return trapOffer ? { wave: trapOffer.wave, choices: [...trapOffer.choices] } : null; },
     get debuffNotice() { return debuffNotice ? { ids: [...debuffNotice.ids], penalty: !!debuffNotice.penalty } : null; },
     get dialogue() { return dialogueSnapshot(); },
     get postWaveEvent() { return itemOffer ? "item" : (shopOffer ? "shop" : (trapOffer ? "trap" : null)); },
-    get itemEvents() { return itemEvents; },
-    get usedItems() { return [...usedItems]; },
-    get canRerollItemOffer() { return !!itemOffer && hasItem("wildCard") && !usedItems.has("wildCard"); },
+    get freeItemMisses() { return freeItemMisses; },
     get unlocked() { return unlocked; },
     get monsterDeck() { return { ...monsterDeck }; },
     get wave() { return wave; },
@@ -3530,19 +3271,19 @@ export function createGame(options = {}) {
     },
     get ruleConfig() { return clonePlain(ruleConfig); },
     setRandom(fn) { random = fn; },
-    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, rerollItemOffer, buyShopItem, closeShopOffer, chooseTrapDebuff, acknowledgeDebuffNotice, advanceDialogue, clearCoreHitEffects, drainEvents,
-    hasItem, applyItem, hasDebuff, applyDebuff, itemUnlocked, availableItemIds,
+    update, resetGame, startGame, gameOver, tryDig, isDiggable, startWave, tauntEarly, settleWave, chooseItemOffer, buyShopItem, closeShopOffer, chooseTrapDebuff, acknowledgeDebuffNotice, advanceDialogue, clearCoreHitEffects, drainEvents,
+    equipItem, validateEquipment, createEquipment, effectiveItemWave, itemRarityWeights, rollItemRarity, hasDebuff, applyDebuff,
     updateVeinTouchEvolution, updateVeinAging, updateVeinSpawning, veinSpawnChance, veinTypeSpawnWeight, veinTouchNeed, veinNextTouchNeed, evoStageOf, soilManaOf, beginMove, updateVisualPosition, setAction, actorPose,
     dirFromDelta, faceToward, actorAction, spawnMonster, spawnHero, spawnInTunnel, spawnEgg,
     pickHeroClass, heroClassWeightForWave, heroStep, openNeighbors, openFreeNeighbors, reachableMonsterCells, hasLOS, dragonFireCells, occupied, actorOccupied, eggOccupied, hatchSpot,
-    isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemHighlights, itemRarity, itemShopPrice,
-    countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, canBeEatenBy, canLayEgg, rankOf,
+    isHeroEntryZone, isCoreCell, isCoreAttackCell, canCoreAttackFrom, isMonsterForbiddenCell, itemRarity, itemShopPrice,
+    countKindNear, digCost, monsterIncomeRate, killMonster, killHero, isElite, evoLevelOf, isBornProtected, canBeEatenBy, canLayEgg, rankOf,
     resolveHeroStats, heroDamageTaken, heroAttackPower, monsterAttackPower, damageHero, damageMonster,
-    KINDS, VEIN, HERO_CLASSES, ITEMS, ITEM_RARITIES, ITEM_UNLOCKS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
+    KINDS, VEIN, HERO_CLASSES, ITEM_TYPES, ITEM_RARITIES, ITEM_STAT_KEYS, ITEM_STAT_LIMITS, ITEM_RARITY_WAVE_WEIGHTS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, get ITEM_CAP() { return effectiveItemCap(); }, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+    VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
     PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
@@ -3550,11 +3291,11 @@ export function createGame(options = {}) {
 
 export const Core = {
   DEFAULT_RULE_CONFIG, RULE_CONSTANT_KEYS, RULE_TABLE_NUMBER_KEYS, createRuleConfig, resolveMonsterDeck,
-  VEIN, KINDS, HERO_CLASSES, ITEMS, ITEM_RARITIES, ITEM_UNLOCKS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
+  VEIN, KINDS, HERO_CLASSES, ITEM_TYPES, ITEM_RARITIES, ITEM_STAT_KEYS, ITEM_STAT_LIMITS, ITEM_RARITY_WAVE_WEIGHTS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
-  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, ITEM_CAP, SHOP_STOCK_COUNT, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
+  CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
   PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
   PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
 };

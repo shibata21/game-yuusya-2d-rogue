@@ -1,13 +1,14 @@
 "use strict";
 
 import Phaser from "phaser";
+import { assetUrl } from "./assetUrl.js";
 import {
   createGame,
   createRuleConfig,
   DEFAULT_RULE_CONFIG,
   DEFAULT_MONSTER_DECK,
   exposeGameNamespace,
-  ITEM_UNLOCKS,
+  ITEM_STAT_LIMITS,
   MONSTER_FAMILIES,
   resolveMonsterDeck,
   pixelAssetUrl,
@@ -57,7 +58,6 @@ function createConfiguredGame(loop = 1, resetPenaltyActive = false) {
     ruleConfig: loadStoredRuleConfig(),
     loop,
     resetPenaltyActive,
-    unlockedItems: sourceProgress ? sourceProgress.unlockedItems : [],
     monsterDeck: sourceProgress ? sourceProgress.monsterDeck : DEFAULT_MONSTER_DECK,
   });
   exposeGameNamespace(next);
@@ -68,7 +68,11 @@ let progress = loadProgress();
 let selectedLoop = defaultLoop();
 let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
 let codexTab = "monster";
-let homeTab = "defense";
+let codexFamilyId = null;
+let codexStage = 0;
+let codexListScrollTop = 0;
+let restoreCodexListScroll = false;
+let homeTab = "menu";
 let settingsTab = "volume";
 let homeMessage = "";
 let homeRenderCacheKey = "";
@@ -76,15 +80,43 @@ let lastItemOfferKey = "";
 let lastShopOfferKey = "";
 let lastItemBarKey = "";
 let itemPress = null;
-let activeItemPopupId = null;
+let activeItemPopupKey = null;
+let equipmentStatusOpen = false;
+let quitConfirmOpen = false;
+let pendingEquipmentChoice = null;
 let activeScene = null;
 let bgmSound = null;
 let audioSaveTimer = null;
 let lastCoreHitSoundAt = 0;
+let loadUiMode = "initial";
+let loadUiProgress = 0;
+let startPending = false;
 
-const MONSTER_CODEX_ORDER = Object.keys(gameApi.KINDS);
+const MONSTER_CODEX_ORDER = Object.values(MONSTER_FAMILIES).flatMap((family) => family.kinds);
 const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage"];
-const ITEM_CODEX_ORDER = PIXEL_ITEMS;
+const ITEM_CODEX_ORDER = ["earthCore", "demonFang", "guardianCarapace", "windFeather", "lifeEgg"];
+const ITEM_STAT_DEFS = [
+  ["soil", "土壌"],
+  ["attack", "攻撃"],
+  ["defense", "防御"],
+  ["speed", "速度"],
+  ["breed", "繁殖"],
+  ["recovery", "回復"],
+];
+const ITEM_TYPE_FALLBACKS = {
+  earthCore: { name: "地脈石", primary: "土壌", profile: "土壌から得る力を高める。" },
+  demonFang: { name: "魔牙", primary: "攻撃", profile: "魔物の攻撃力を高める。" },
+  guardianCarapace: { name: "守護甲", primary: "防御", profile: "魔物が受ける傷を抑える。" },
+  windFeather: { name: "風羽", primary: "速度", profile: "移動と攻撃の間隔を短くする。" },
+  lifeEgg: { name: "命卵", primary: "繁殖・回復", profile: "繁殖と休息中の回復を助ける。" },
+};
+const MONSTER_AXIS_DEFS = [
+  ["hp", "体力", (kind) => Math.log1p(kind.hp || 0)],
+  ["atk", "攻撃", (kind) => Math.log1p(kind.atk || 0)],
+  ["range", "射程", (kind) => kind.range || 0],
+  ["moveCd", "移動速度", (kind) => 1 / Math.max(1, kind.moveCd || 1)],
+  ["atkCd", "攻撃速度", (kind) => 1 / Math.max(1, kind.atkCd || 1)],
+];
 const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
@@ -120,7 +152,7 @@ function resolveInterruptedRunOnBoot(raw) {
 }
 
 function audioAssetUrl(name) {
-  return `assets/audio/${name}?v=${AUDIO_ASSET_VERSION}`;
+  return assetUrl(`assets/audio/${name}`, AUDIO_ASSET_VERSION);
 }
 
 function actorAssetUrl(sheet) {
@@ -134,15 +166,52 @@ function actorSheetsForCurrentDeck() {
   return [...sheets].filter((sheet) => PIXEL_ACTOR_SHEETS[sheet]);
 }
 
-function updateLoadProgress(value = 1, visible = false) {
+function renderLoadUi() {
   const overlay = document.getElementById("loadOverlay");
   const fill = document.getElementById("loadFill");
   const text = document.getElementById("loadText");
+  const retry = document.getElementById("loadRetryBtn");
+  const start = document.getElementById("startBtn");
   if (!overlay || !fill || !text) return;
-  const progressValue = Math.max(0, Math.min(1, Number(value) || 0));
+  const visible = loadUiMode !== "ready";
+  const percent = Math.round(loadUiProgress * 100);
   overlay.classList.toggle("hidden", !visible);
-  fill.style.width = `${Math.round(progressValue * 100)}%`;
-  text.textContent = `読み込み中 ${Math.round(progressValue * 100)}%`;
+  overlay.setAttribute("aria-busy", visible && loadUiMode !== "error" ? "true" : "false");
+  fill.style.width = `${percent}%`;
+  if (loadUiMode === "error") text.textContent = "素材を読み込めませんでした";
+  else if (loadUiMode === "starting") text.textContent = `防衛開始の準備中 ${percent}%`;
+  else text.textContent = `素材を読み込み中 ${percent}%`;
+  if (retry) retry.classList.toggle("hidden", loadUiMode !== "error");
+  if (start) {
+    const waiting = loadUiMode !== "ready" || startPending;
+    start.disabled = waiting;
+    start.setAttribute("aria-busy", waiting ? "true" : "false");
+    start.textContent = loadUiMode === "starting" || startPending
+      ? "開始準備中…"
+      : (loadUiMode === "ready" ? "防衛開始" : "素材を読み込み中…");
+  }
+}
+
+function setLoadUi(mode, value = loadUiProgress) {
+  loadUiMode = mode;
+  loadUiProgress = Math.max(0, Math.min(1, Number(value) || 0));
+  renderLoadUi();
+}
+
+function updateLoadProgress(value) {
+  loadUiProgress = Math.max(0, Math.min(1, Number(value) || 0));
+  renderLoadUi();
+}
+
+function initialVisualTextureKeys() {
+  return [
+    "tiles",
+    "effects",
+    "items",
+    "debuffs",
+    "dialoguePortraits",
+    ...actorSheetsForCurrentDeck().map(pixelActorTextureKey),
+  ];
 }
 
 function tileKey(tile) {
@@ -307,15 +376,21 @@ function playHeroDeathVoice() {
 
 function syncAudioState(forceStart = false) {
   if (!activeScene || !activeScene.sound) return;
+  if (quitConfirmOpen) {
+    if (bgmSound && bgmSound.isPlaying && typeof bgmSound.pause === "function") bgmSound.pause();
+    return;
+  }
   const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "dialogue" || gameApi.gameState === "itemChoice" || gameApi.gameState === "shop" || gameApi.gameState === "trap" || gameApi.gameState === "debuffNotice";
   if (!shouldPlay) {
-    if (bgmSound && bgmSound.isPlaying) bgmSound.stop();
+    if (bgmSound && (bgmSound.isPlaying || bgmSound.isPaused)) bgmSound.stop();
     return;
   }
   try {
     if (!bgmSound) bgmSound = activeScene.sound.add(AUDIO_KEYS.bgm, { loop: true, volume: effectiveVolume("bgm") });
     if (typeof bgmSound.setVolume === "function") bgmSound.setVolume(effectiveVolume("bgm"));
-    if ((forceStart || !bgmSound.isPlaying) && !bgmSound.isPaused) {
+    if (bgmSound.isPaused && typeof bgmSound.resume === "function") {
+      bgmSound.resume();
+    } else if (forceStart || !bgmSound.isPlaying) {
       unlockAudio();
       bgmSound.play();
     }
@@ -370,12 +445,14 @@ class MainScene extends Phaser.Scene {
     this.flameGraphics = null;
     this.pressStart = null;
     this.loadingActorSheets = new Set();
+    this.failedActorSheets = new Set();
+    this.actorLoadPromise = null;
+    this.visualReady = false;
   }
 
   preload() {
-    updateLoadProgress(0, true);
-    this.load.on("progress", (value) => updateLoadProgress(value, true));
-    this.load.once("complete", () => updateLoadProgress(1, false));
+    setLoadUi("initial", 0);
+    this.load.on("progress", updateLoadProgress);
     this.load.spritesheet("tiles", pixelAssetUrl("tiles.png"), { frameWidth: TILE, frameHeight: TILE });
     for (const sheet of actorSheetsForCurrentDeck()) {
       this.load.spritesheet(pixelActorTextureKey(sheet), actorAssetUrl(sheet), { frameWidth: TILE, frameHeight: TILE });
@@ -383,6 +460,7 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("items", pixelAssetUrl("items.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("debuffs", pixelAssetUrl("debuffs.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.spritesheet("dialoguePortraits", pixelAssetUrl("dialogue_portraits.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.audio(AUDIO_KEYS.bgm, audioAssetUrl("bgm_dungeon_loop.wav"));
     this.load.audio(AUDIO_KEYS.dig, audioAssetUrl("dig.wav"));
     this.load.audio(AUDIO_KEYS.button, audioAssetUrl("button.wav"));
@@ -442,10 +520,14 @@ class MainScene extends Phaser.Scene {
     this.crackGraphics.setDepth(80);
     this.flameGraphics = this.add.graphics();
     this.flameGraphics.setDepth(490);
+    this.visualReady = initialVisualTextureKeys().every((key) => this.textures.exists(key));
+    setLoadUi(this.visualReady ? "ready" : "error", this.visualReady ? 1 : loadUiProgress);
     syncAudioState();
   }
 
   update(_time, delta) {
+    if (loadUiMode === "runtime" || loadUiMode === "error") return;
+    if (quitConfirmOpen) return;
     gameApi.update(Math.min(delta, 60));
     syncProgressEvents();
     this.syncTiles();
@@ -556,17 +638,6 @@ class MainScene extends Phaser.Scene {
         this.soilGraphics.fillRect(sx, sy - size, 1, size * 2 + 1);
       }
     }
-    if (tile.sub && evoStage(tile) >= 2) {
-      this.soilGraphics.lineStyle(2, 0xffcf4d, 0.38);
-      this.soilGraphics.strokeRect(x + 4, y + 4, TILE - 8, TILE - 8);
-      this.soilGraphics.lineStyle(1, 0xfff1a6, 0.24);
-      this.soilGraphics.strokeRect(x + 7, y + 7, TILE - 14, TILE - 14);
-      for (const [sx, sy] of [[10, 8], [38, 12], [36, 38], [12, 36]]) {
-        this.soilGraphics.fillStyle(0xffcf4d, 0.44);
-        this.soilGraphics.fillRect(x + sx - 1, y + sy, 3, 1);
-        this.soilGraphics.fillRect(x + sx, y + sy - 1, 1, 3);
-      }
-    }
   }
 
   syncCracks() {
@@ -611,27 +682,61 @@ class MainScene extends Phaser.Scene {
     }
   }
 
-  ensureActorSheets(sheets) {
-    const missing = [...new Set(sheets)]
+  actorSheetsReady(sheets) {
+    return [...new Set(sheets)]
       .filter((sheet) => PIXEL_ACTOR_SHEETS[sheet])
-      .filter((sheet) => !this.textures.exists(pixelActorTextureKey(sheet)) && !this.loadingActorSheets.has(sheet));
-    if (!missing.length) return true;
+      .every((sheet) => this.textures.exists(pixelActorTextureKey(sheet)));
+  }
+
+  async ensureActorSheets(sheets, mode = "runtime") {
+    const requested = [...new Set(sheets)].filter((sheet) => PIXEL_ACTOR_SHEETS[sheet]);
+    if (this.actorSheetsReady(requested)) return true;
+    if (requested.some((sheet) => this.failedActorSheets.has(sheet))) {
+      setLoadUi("error", loadUiProgress);
+      return false;
+    }
+    if (this.actorLoadPromise) {
+      const currentSucceeded = await this.actorLoadPromise;
+      if (!currentSucceeded) return false;
+      if (this.actorSheetsReady(requested)) return true;
+    }
     const loaderBusy = typeof this.load.isLoading === "function" ? this.load.isLoading() : !!this.load.isLoading;
-    if (loaderBusy) return false;
+    if (loaderBusy) {
+      await new Promise((resolve) => this.load.once("complete", resolve));
+      return this.ensureActorSheets(requested, mode);
+    }
+    const missing = requested.filter((sheet) => !this.textures.exists(pixelActorTextureKey(sheet)));
+    if (!missing.length) return true;
+    setLoadUi(mode === "starting" ? "starting" : "runtime", 0);
     for (const sheet of missing) {
       this.loadingActorSheets.add(sheet);
       this.load.spritesheet(pixelActorTextureKey(sheet), actorAssetUrl(sheet), { frameWidth: TILE, frameHeight: TILE });
     }
-    updateLoadProgress(0, true);
-    const onProgress = (value) => updateLoadProgress(value, true);
-    this.load.on("progress", onProgress);
-    this.load.once("complete", () => {
-      this.load.off("progress", onProgress);
-      for (const sheet of missing) this.loadingActorSheets.delete(sheet);
-      updateLoadProgress(1, false);
+    const expectedKeys = new Set(missing.map(pixelActorTextureKey));
+    let failed = false;
+    const onLoadError = (file) => {
+      if (file && expectedKeys.has(file.key)) failed = true;
+    };
+    const batchPromise = new Promise((resolve) => {
+      this.load.on("loaderror", onLoadError);
+      this.load.once("complete", () => {
+        this.load.off("loaderror", onLoadError);
+        for (const sheet of missing) this.loadingActorSheets.delete(sheet);
+        const ready = !failed && this.actorSheetsReady(missing);
+        if (!ready) for (const sheet of missing) this.failedActorSheets.add(sheet);
+        resolve(ready);
+      });
     });
+    this.actorLoadPromise = batchPromise;
     this.load.start();
-    return false;
+    const succeeded = await batchPromise;
+    if (this.actorLoadPromise === batchPromise) this.actorLoadPromise = null;
+    if (!succeeded) {
+      setLoadUi("error", loadUiProgress);
+      return false;
+    }
+    if (mode === "runtime" && loadUiMode === "runtime") setLoadUi("ready", 1);
+    return this.actorSheetsReady(requested);
   }
 
   syncActors() {
@@ -645,7 +750,8 @@ class MainScene extends Phaser.Scene {
       const name = entry.egg ? `egg_${e.kind}` : (entry.hero ? e.cls : e.kind);
       return pixelActorSheetName(name);
     });
-    const sheetsReady = this.ensureActorSheets(requiredSheets);
+    const sheetsReady = this.actorSheetsReady(requiredSheets);
+    if (!sheetsReady) void this.ensureActorSheets(requiredSheets);
 
     while (this.actorSprites.length < entries.length) {
       const sprite = this.add.image(0, 0, "tiles", 0);
@@ -792,7 +898,6 @@ function progressSets() {
   return {
     monsters: new Set(progress.discoveredMonsters),
     heroes: new Set(progress.discoveredHeroes),
-    items: new Set(progress.discoveredItems),
   };
 }
 
@@ -845,29 +950,6 @@ function buyMonsterFamily(id) {
   return true;
 }
 
-function buyUnlockItem(id) {
-  const row = ITEM_UNLOCKS[id];
-  const item = gameApi.ITEMS[id];
-  if (!row || !item || (progress.unlockedItems || []).includes(id)) return false;
-  if (!clearGateMet(row)) {
-    homeMessage = `${item.name}は${row.unlockClears}周クリアで解放候補になる`;
-    renderHome();
-    return false;
-  }
-  if (!canAffordUnlock(row)) {
-    homeMessage = "コインが足りない";
-    renderHome();
-    return false;
-  }
-  progress = {
-    ...progress,
-    coins: progress.coins - row.price,
-    unlockedItems: [...new Set([...(progress.unlockedItems || []), id])],
-  };
-  saveProgressAndRefresh(`${item.name}を解放した`);
-  return true;
-}
-
 function selectMonsterFamily(id) {
   const row = MONSTER_FAMILIES[id];
   if (!row || !unlockedFamilySet().has(id)) return false;
@@ -900,28 +982,27 @@ function familyStagesText(id) {
   return row.kinds.map((kind) => (gameApi.KINDS[kind] && gameApi.KINDS[kind].name) || kind).join(" / ");
 }
 
-function familyCard(id, mode = "deck") {
+function familyCard(id) {
   const row = MONSTER_FAMILIES[id];
   if (!row) return "";
   const deck = resolveMonsterDeck(progress.monsterDeck);
   const unlocked = unlockedFamilySet().has(id);
   const selected = deck[row.vein] === id;
-  const locked = !unlocked;
   const canBuy = !row.default && !unlocked && clearGateMet(row) && canAffordUnlock(row);
   const gate = row.unlockClears ? `${row.unlockClears}周クリア` : "初期候補";
-  const action = mode === "unlock"
-    ? (unlocked || row.default ? "解放済み" : `解放 ${row.price}`)
-    : (selected ? "選択中" : "入れる");
-  const attr = mode === "unlock" ? `data-buy-family="${escapeHtml(id)}"` : `data-select-family="${escapeHtml(id)}"`;
-  const disabled = mode === "unlock" ? (!canBuy) : (locked || selected);
-  const classes = ["home-card", selected ? "selected" : "", locked ? "locked" : ""].filter(Boolean).join(" ");
+  const action = unlocked
+    ? (selected ? "選択中" : "入れる")
+    : (canBuy ? `解放 ${row.price}` : (!clearGateMet(row) ? gate : `コイン ${row.price}`));
+  const attr = unlocked ? `data-select-family="${escapeHtml(id)}"` : `data-buy-family="${escapeHtml(id)}"`;
+  const disabled = unlocked ? selected : !canBuy;
+  const classes = ["home-card", selected ? "selected" : "", unlocked ? "" : "locked"].filter(Boolean).join(" ");
   return `
     <article class="${classes}">
       ${familySpriteHtml(id)}
       <span class="home-card-body">
         <b>${escapeHtml(row.name)}</b>
         <em>${escapeHtml(familyStagesText(id))}</em>
-        <small>${escapeHtml(mode === "unlock" ? `${row.trait} / ${gate}` : row.trait)}</small>
+        <small>${escapeHtml(unlocked ? row.trait : `${row.trait} / ${gate}`)}</small>
       </span>
       <button type="button" ${attr}${disabled ? " disabled" : ""}>${escapeHtml(action)}</button>
     </article>`;
@@ -929,68 +1010,31 @@ function familyCard(id, mode = "deck") {
 
 function renderDeckHome() {
   const veins = ["moss", "meat", "venom", "stone", "ember"];
-  const unlocked = unlockedFamilySet();
   return veins.map((vein) => {
     const veinName = (gameApi.VEIN[vein] && gameApi.VEIN[vein].legend.split("→")[0]) || vein;
     const cards = Object.keys(MONSTER_FAMILIES)
       .filter((id) => MONSTER_FAMILIES[id].vein === vein)
-      .filter((id) => unlocked.has(id))
-      .map((id) => familyCard(id, "deck"))
+      .map(familyCard)
       .join("");
     return `<section class="home-group"><h3>${escapeHtml(veinName)}</h3><div class="home-card-list">${cards}</div></section>`;
   }).join("");
 }
 
-function unlockStatus(row, unlocked) {
-  if (unlocked) return "解放済み";
-  if (!clearGateMet(row)) return row.unlockClears ? `${row.unlockClears}周` : "未解放";
-  if (!canAffordUnlock(row)) return "コイン不足";
-  return "未解放";
-}
-
 function codexMonsterFamilyCard(id) {
   const row = MONSTER_FAMILIES[id];
   if (!row) return "";
-  const deck = resolveMonsterDeck(progress.monsterDeck);
   const unlocked = unlockedFamilySet().has(id);
-  const selected = deck[row.vein] === id;
-  const canBuy = !row.default && !unlocked && clearGateMet(row) && canAffordUnlock(row);
-  const status = row.default ? "初期" : unlockStatus(row, unlocked);
-  const classes = ["codex-card", "codex-unlock-card", unlocked ? "" : "locked", selected ? "selected" : ""].filter(Boolean).join(" ");
+  const familyLabels = { moss: "苔系統", meat: "獣系統", venom: "虫系統", stone: "岩系統", ember: "龍系統" };
   return `
-    <article class="${classes}">
+    <button type="button" class="codex-card codex-family-card" data-codex-family="${escapeHtml(id)}">
       <div class="codex-sprite-wrap">${familySpriteHtml(id)}</div>
       <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(row.name)}</strong><em>${escapeHtml(status)}</em></div>
+        <div class="codex-title"><strong>${escapeHtml(row.name)}</strong><em>${unlocked ? "解放済み" : "未解放"}</em></div>
         <div class="codex-stats">
-          ${statPill("系統", familyStagesText(id))}${statPill("価格", row.default ? "初期" : row.price)}
+          ${statPill("分類", familyLabels[row.vein] || "魔物系統")}${statPill("デッキ", unlocked ? "利用可" : "利用不可")}
         </div>
-        <p>${escapeHtml(row.trait)}</p>
       </div>
-      <button type="button" data-buy-family="${escapeHtml(id)}"${canBuy ? "" : " disabled"}>${escapeHtml(unlocked || row.default ? "解放済み" : `解放 ${row.price}`)}</button>
-    </article>`;
-}
-
-function codexItemCard(id) {
-  const item = gameApi.ITEMS[id];
-  const row = ITEM_UNLOCKS[id];
-  const found = progressSets().items.has(id);
-  const unlocked = !row || (progress.unlockedItems || []).includes(id);
-  if (!row) return itemCard(id);
-  const canBuy = !unlocked && clearGateMet(row) && canAffordUnlock(row);
-  const status = unlockStatus(row, unlocked);
-  return `
-    <article class="codex-card codex-unlock-card ${unlocked ? "" : "locked"}">
-      <div class="codex-sprite-wrap">${itemIconHtml(id, found || unlocked ? "codex-item-icon" : "codex-item-icon silhouette", 48)}</div>
-      <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(item.name)}</strong><em>${escapeHtml(status)}</em></div>
-        <div class="codex-stats">
-          ${statPill("格", itemRarityName(id))}${statPill("価格", row.price)}
-        </div>
-        <p>${escapeHtml(item.profile)}</p>
-      </div>
-      <button type="button" data-buy-item="${escapeHtml(id)}"${canBuy ? "" : " disabled"}>${escapeHtml(unlocked ? "解放済み" : `解放 ${row.price}`)}</button>
-    </article>`;
+    </button>`;
 }
 
 function renderDefenseHome() {
@@ -1017,6 +1061,15 @@ function renderCodexHome() {
     </section>`;
 }
 
+function renderHomeSubscreen(title, content) {
+  return `
+    <div class="home-subhead">
+      <h2>${escapeHtml(title)}</h2>
+      <button type="button" data-home-back>戻る</button>
+    </div>
+    ${content}`;
+}
+
 function renderVolumeSettingsHome() {
   return `
     <section class="home-settings-panel">
@@ -1039,7 +1092,7 @@ function renderDevSettingsHome() {
         <button type="button" id="resetDevBtn">初期化</button>
         <button type="button" id="resetProgressBtn">図鑑初期化</button>
       </div>
-      <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0 / アイテム 0</div>
+      <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0</div>
       <textarea id="devJsonOutput" class="dev-json-output" readonly spellcheck="false" aria-label="開発JSON"></textarea>
       <div class="dev-fields" id="devFields"></div>
     </section>`;
@@ -1060,6 +1113,8 @@ function homeRenderKey() {
     homeTab,
     settingsTab,
     codexTab,
+    codexFamilyId,
+    codexStage,
     selectedLoop,
     maxLoop: selectableMaxLoop(),
     message: homeMessage,
@@ -1069,10 +1124,8 @@ function homeRenderKey() {
     resetPenaltyActive: !!progress.resetPenaltyActive,
     deck: resolveMonsterDeck(progress.monsterDeck),
     families: [...(progress.unlockedMonsterFamilies || [])].sort(),
-    items: [...(progress.unlockedItems || [])].sort(),
     monsters: [...(progress.discoveredMonsters || [])].sort(),
     heroes: [...(progress.discoveredHeroes || [])].sort(),
-    discoveredItems: [...(progress.discoveredItems || [])].sort(),
   });
 }
 
@@ -1085,26 +1138,30 @@ function renderHome(force = false) {
   if (coin) coin.textContent = String(progress.coins || 0);
   if (message) message.textContent = homeMessage || "";
   for (const btn of document.querySelectorAll("[data-home-tab]")) btn.classList.toggle("active", btn.dataset.homeTab === homeTab);
+  const tabs = document.querySelector(".home-tabs");
+  if (tabs) tabs.classList.toggle("hidden", homeTab !== "menu");
   if (start) start.classList.toggle("hidden", homeTab !== "defense");
   const key = homeRenderKey();
   if (!force && key === homeRenderCacheKey) return;
   homeRenderCacheKey = key;
   if (homeTab === "deck") {
-    body.innerHTML = renderDeckHome();
+    body.innerHTML = renderHomeSubscreen("モンスターデッキ", renderDeckHome());
   } else if (homeTab === "codex") {
-    body.innerHTML = renderCodexHome();
+    body.innerHTML = renderHomeSubscreen("図鑑", renderCodexHome());
     renderCodex();
   } else if (homeTab === "settings") {
-    body.innerHTML = renderSettingsHome();
+    body.innerHTML = renderHomeSubscreen("設定", renderSettingsHome());
     if (settingsTab === "dev") {
       renderDevPanel();
       updateProgressStatus();
     } else {
       renderAudioControls();
     }
-  } else {
-    body.innerHTML = renderDefenseHome();
+  } else if (homeTab === "defense") {
+    body.innerHTML = renderHomeSubscreen("防衛", renderDefenseHome());
     renderLoopSelector();
+  } else {
+    body.innerHTML = `<p class="home-intro">守り方を選んでください。</p>`;
   }
 }
 
@@ -1195,16 +1252,6 @@ function roleLabel(role) {
   return "特殊";
 }
 
-function monsterUnlockLabel(kind) {
-  for (const key in gameApi.VEIN) {
-    const v = gameApi.VEIN[key];
-    if (v.kind === kind) return `W${v.unlock}`;
-    if (v.evoKind === kind) return `進化W${v.unlock}`;
-    if (v.finalKind === kind) return `二段進化W${v.unlock}`;
-  }
-  return "-";
-}
-
 function codexSpriteStyle(name) {
   const info = pixelActorFrameInfo(name, "idle", "s", 1);
   return `background-image:url("${actorAssetUrl(info.sheet)}");background-size:${info.sheetWidth}px ${info.sheetHeight}px;background-position:-${info.x}px -${info.y}px;`;
@@ -1257,61 +1304,70 @@ function dialoguePortraitStyle(id, size = 48) {
   ].join(";");
 }
 
-function itemLabel(id) {
-  const a = gameApi.ITEMS[id];
-  if (!a) return id;
-  return `${a.name}: ${a.profile}`;
+function itemTypeInfo(type) {
+  return { ...(ITEM_TYPE_FALLBACKS[type] || { name: type, primary: "補正", profile: "迷宮を強化する装備。" }), ...((gameApi.ITEM_TYPES && gameApi.ITEM_TYPES[type]) || {}) };
+}
+
+function itemPrimaryLabel(type) {
+  const primary = itemTypeInfo(type).primary;
+  if (!Array.isArray(primary)) return primary || "補正";
+  const labels = Object.fromEntries(ITEM_STAT_DEFS);
+  return primary.map((key) => labels[key] || key).join("・");
+}
+
+function equipmentMap() {
+  const value = gameApi.equipment || {};
+  if (Array.isArray(value)) return Object.fromEntries(value.filter(Boolean).map((item) => [item.type, item]));
+  return value;
+}
+
+function equippedItem(type) {
+  return equipmentMap()[type] || null;
+}
+
+function equipmentRarity(itemOrRarity) {
+  const rarity = typeof itemOrRarity === "string" ? itemOrRarity : itemOrRarity && itemOrRarity.rarity;
+  return gameApi.ITEM_RARITIES && gameApi.ITEM_RARITIES[rarity] ? rarity : "iron";
+}
+
+function itemRarityName(itemOrRarity) {
+  const rarity = equipmentRarity(itemOrRarity);
+  const fallbacks = { iron: "アイアン", bronze: "ブロンズ", silver: "シルバー", gold: "ゴールド", diamond: "ダイヤ" };
+  return (gameApi.ITEM_RARITIES[rarity] && gameApi.ITEM_RARITIES[rarity].name) || fallbacks[rarity] || rarity;
+}
+
+function itemRarityBadgeHtml(itemOrRarity) {
+  const rarity = equipmentRarity(itemOrRarity);
+  return `<i class="item-rarity item-rarity-${escapeHtml(rarity)}">${escapeHtml(itemRarityName(rarity))}</i>`;
+}
+
+function signedPercent(value) {
+  const amount = Number(value) || 0;
+  return `${amount >= 0 ? "+" : ""}${amount}%`;
+}
+
+function equipmentModsHtml(item, className = "equipment-mods") {
+  const mods = (item && item.mods) || {};
+  return `<span class="${escapeHtml(className)}">${ITEM_STAT_DEFS.map(([key, label]) => {
+    const value = Number(mods[key]) || 0;
+    return `<i class="${value < 0 ? "negative" : (value > 0 ? "positive" : "zero")}"><b>${escapeHtml(label)}</b>${escapeHtml(signedPercent(value))}</i>`;
+  }).join("")}</span>`;
+}
+
+function itemLabel(item) {
+  if (!item) return "装備なし";
+  const type = itemTypeInfo(item.type);
+  const changes = ITEM_STAT_DEFS
+    .filter(([key]) => Number(item.mods && item.mods[key]))
+    .map(([key, label]) => `${label}${signedPercent(item.mods[key])}`)
+    .join("、");
+  return `${type.name} ${itemRarityName(item)}: ${changes || "補正なし"}`;
 }
 
 function debuffLabel(id) {
   const d = gameApi.DEBUFF_ITEMS[id];
   if (!d) return id;
   return `${d.name}: ${d.profile}`;
-}
-
-function itemRarity(id) {
-  const rarity = gameApi.itemRarity ? gameApi.itemRarity(id) : (gameApi.ITEMS[id] && gameApi.ITEMS[id].rarity) || "normal";
-  return gameApi.ITEM_RARITIES[rarity] ? rarity : "normal";
-}
-
-function itemRarityName(id) {
-  return gameApi.ITEM_RARITIES[itemRarity(id)].name;
-}
-
-function itemRarityBadgeHtml(id) {
-  const rarity = itemRarity(id);
-  return `<i class="item-rarity item-rarity-${escapeHtml(rarity)}">${escapeHtml(itemRarityName(id))}</i>`;
-}
-
-function monsterCard(kind) {
-  const k = gameApi.KINDS[kind];
-  const found = progressSets().monsters.has(kind);
-  if (!found) {
-    return `
-      <article class="codex-card locked">
-        <div class="codex-sprite-wrap"><div class="codex-sprite silhouette" style='${codexSpriteStyle(kind)}'></div></div>
-        <div class="codex-body">
-          <div class="codex-title"><strong>???</strong><em>未発見</em></div>
-          <div class="codex-stats">
-            ${statPill("HP", "???")}${statPill("攻", "???")}${statPill("射", "???")}${statPill("解禁", "???")}
-          </div>
-          <p>まだ記録がない。</p>
-        </div>
-      </article>`;
-  }
-  const name = k.name || kind;
-  const type = ["reaper", "chimera"].includes(kind) ? "特殊モンスター" : (k.evoLevel >= 2 ? "第二進化モンスター" : (k.eliteOf ? "進化モンスター" : "通常モンスター"));
-  return `
-    <article class="codex-card">
-      <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(kind)}'></div></div>
-      <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(name)}</strong><em>${escapeHtml(type)}</em></div>
-        <div class="codex-stats">
-          ${statPill("HP", k.hp)}${statPill("攻", k.atk)}${statPill("射", k.range)}${statPill("解禁", monsterUnlockLabel(kind))}
-        </div>
-        <p>${escapeHtml(k.profile)}</p>
-      </div>
-    </article>`;
 }
 
 function heroCard(cls) {
@@ -1344,31 +1400,95 @@ function heroCard(cls) {
     </article>`;
 }
 
-function itemCard(id) {
-  const a = gameApi.ITEMS[id];
-  const found = progressSets().items.has(id);
-  if (!found) {
-    return `
-      <article class="codex-card locked">
-        <div class="codex-sprite-wrap">${itemIconHtml(id, "codex-item-icon silhouette", 48)}</div>
-        <div class="codex-body">
-          <div class="codex-title"><strong>???</strong><em>未発見</em></div>
-          <div class="codex-stats">
-            ${statPill("種別", "???")}${statPill("効果", "???")}
-          </div>
-          <p>まだ記録がない。</p>
-        </div>
-      </article>`;
-  }
+function normalizedMonsterStats(kindId) {
+  const kind = gameApi.KINDS[kindId];
+  const population = Object.values(MONSTER_FAMILIES).flatMap((family) => family.kinds).map((id) => gameApi.KINDS[id]).filter(Boolean);
+  if (!kind || !population.length) return MONSTER_AXIS_DEFS.map(([key, label]) => ({ key, label, score: 1, raw: 0 }));
+  return MONSTER_AXIS_DEFS.map(([key, label, read]) => {
+    const values = population.map(read);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const measured = read(kind);
+    const score = max === min ? 3 : 1 + ((measured - min) / (max - min)) * 4;
+    return { key, label, score: clampNumber(score, 1, 5), raw: kind[key] || 0 };
+  });
+}
+
+function radarPoint(index, value, radius = 76) {
+  const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
+  const scaled = radius * clampNumber(value, 0, 5) / 5;
+  return [110 + Math.cos(angle) * scaled, 110 + Math.sin(angle) * scaled];
+}
+
+function radarPoints(values, radius = 76) {
+  return values.map((value, index) => radarPoint(index, value, radius).map((n) => n.toFixed(1)).join(",")).join(" ");
+}
+
+function monsterRadarHtml(stats) {
+  const grids = Array.from({ length: 5 }, (_, index) => `<polygon class="radar-grid radar-grid-${index + 1}" points="${radarPoints(Array(5).fill(index + 1))}"/>`).join("");
+  const axes = stats.map((_, index) => {
+    const [x, y] = radarPoint(index, 5);
+    return `<line x1="110" y1="110" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`;
+  }).join("");
+  const labels = stats.map((stat, index) => {
+    const [x, y] = radarPoint(index, 6.25);
+    return `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}">${escapeHtml(stat.label)}</text>`;
+  }).join("");
+  return `<svg class="monster-radar" viewBox="0 0 220 220" role="img" aria-label="五角形ステータス"><g class="radar-guides">${grids}${axes}</g><polygon class="radar-value" points="${radarPoints(stats.map((stat) => stat.score))}"/>${labels}</svg>`;
+}
+
+function renderMonsterFamilyDetail(id) {
+  const family = MONSTER_FAMILIES[id];
+  if (!family) return "";
+  const stage = clampNumber(codexStage, 0, family.kinds.length - 1);
+  const kindId = family.kinds[stage];
+  const kind = gameApi.KINDS[kindId];
+  const unlocked = unlockedFamilySet().has(id);
+  const stats = normalizedMonsterStats(kindId);
+  const stageNames = ["通常", "第一進化", "第二進化"];
   return `
-    <article class="codex-card">
-      <div class="codex-sprite-wrap">${itemIconHtml(id, "codex-item-icon", 48)}</div>
-      <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(a.name)}</strong><em>${escapeHtml(itemRarityName(id))}</em></div>
-        <div class="codex-stats">
-          ${statPill("種別", a.passive ? "常時" : "取得時")}${statPill("格", itemRarityName(id))}
+    <section class="codex-detail" data-codex-detail="${escapeHtml(id)}">
+      <div class="codex-detail-head">
+        <button type="button" data-codex-list-back>一覧へ戻る</button>
+        <span>${unlocked ? "解放済み" : "未解放"}</span>
+      </div>
+      <h3>${escapeHtml(family.name)}</h3>
+      <p class="codex-family-trait">${escapeHtml(family.trait)}</p>
+      <div class="codex-stage-list">
+        ${family.kinds.map((candidate, index) => {
+          const row = gameApi.KINDS[candidate];
+          return `<button type="button" class="${index === stage ? "active" : ""}" data-codex-stage="${index}" aria-pressed="${index === stage ? "true" : "false"}"><span class="codex-sprite" style='${codexSpriteStyle(candidate)}'></span><b>${stageNames[index]}</b><em>${escapeHtml(row.name)}</em></button>`;
+        }).join("")}
+      </div>
+      <article class="codex-creature-detail">
+        <div class="codex-creature-copy"><h4>${escapeHtml(kind.name)}</h4><p>${escapeHtml(kind.profile)}</p></div>
+        <div class="codex-radar-wrap">${monsterRadarHtml(stats)}</div>
+        <div class="codex-raw-stats">
+          ${statPill("体力", kind.hp)}${statPill("攻撃", kind.atk)}${statPill("射程", kind.range)}${statPill("移動間隔", `${kind.moveCd}ms`)}${statPill("攻撃間隔", `${kind.atkCd}ms`)}
         </div>
-        <p>${escapeHtml(a.profile)}</p>
+        <div class="codex-normalized-stats">${stats.map((stat) => `<span><b>${escapeHtml(stat.label)}</b>${stat.score.toFixed(1)} / 5</span>`).join("")}</div>
+      </article>
+    </section>`;
+}
+
+function codexItemCard(type) {
+  const info = itemTypeInfo(type);
+  const rarityValues = { iron: 6, bronze: 10, silver: 14, gold: 19, diamond: 25 };
+  const rarityHtml = Object.keys(rarityValues).map((rarity) => {
+    const row = gameApi.ITEM_RARITIES[rarity] || {};
+    const value = row.mainValue ?? row.main ?? rarityValues[rarity];
+    return `<span class="codex-rarity-row item-frame-${rarity}">${itemRarityBadgeHtml(rarity)}<b>主能力 +${escapeHtml(value)}%</b></span>`;
+  }).join("");
+  return `
+    <article class="codex-card codex-item-card">
+      <div class="codex-sprite-wrap">${itemIconHtml(type, "codex-item-icon", 48)}</div>
+      <div class="codex-body">
+        <div class="codex-title"><strong>${escapeHtml(info.name)}</strong><em>全レアリティ</em></div>
+        <div class="codex-stats">
+          ${statPill("保証主能力", itemPrimaryLabel(type))}
+        </div>
+        <p>${escapeHtml(info.profile)}</p>
+        <div class="codex-rarity-list">${rarityHtml}</div>
       </div>
     </article>`;
 }
@@ -1377,7 +1497,7 @@ function renderCodex() {
   const grid = document.getElementById("codexGrid");
   if (!grid) return;
   const htmlByTab = {
-    monster: Object.keys(MONSTER_FAMILIES).map(codexMonsterFamilyCard).join(""),
+    monster: codexFamilyId ? renderMonsterFamilyDetail(codexFamilyId) : Object.keys(MONSTER_FAMILIES).map(codexMonsterFamilyCard).join(""),
     hero: HERO_CODEX_ORDER.map(heroCard).join(""),
     item: ITEM_CODEX_ORDER.map(codexItemCard).join(""),
   };
@@ -1386,6 +1506,13 @@ function renderCodex() {
     const active = btn.dataset.codexTab === codexTab;
     btn.classList.toggle("active", active);
     btn.setAttribute("aria-selected", active ? "true" : "false");
+  }
+  if (restoreCodexListScroll && codexTab === "monster" && !codexFamilyId) {
+    restoreCodexListScroll = false;
+    requestAnimationFrame(() => {
+      const body = document.getElementById("homeBody");
+      if (body) body.scrollTop = codexListScrollTop;
+    });
   }
 }
 
@@ -1522,7 +1649,7 @@ function updateProgressStatus() {
   const status = document.getElementById("progressStatus");
   if (!status) return;
   const penalty = progress.resetPenaltyActive ? " / リセット罰あり" : "";
-  status.textContent = `コイン ${progress.coins || 0} / 最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length} / アイテム ${progress.discoveredItems.length}/${ITEM_CODEX_ORDER.length}${penalty}`;
+  status.textContent = `コイン ${progress.coins || 0} / 最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length}${penalty}`;
 }
 
 function saveDevPanel() {
@@ -1567,18 +1694,19 @@ function hideItemPopup() {
   if (!popup) return;
   popup.classList.add("hidden");
   popup.style.visibility = "";
-  activeItemPopupId = null;
+  activeItemPopupKey = null;
 }
 
-function showItemPopup(id, target) {
+function showItemPopup(key, target) {
   const popup = document.getElementById("itemPopup");
-  const a = gameApi.ITEMS[id];
-  const d = gameApi.DEBUFF_ITEMS[id];
-  if (!popup || (!a && !d) || !target) return;
-  popup.innerHTML = a
-    ? `${itemIconHtml(id, "item-popup-icon", 30)}
-    <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(id)}</b><em>${escapeHtml(a.profile)}</em></span>`
-    : `${debuffIconHtml(id, "item-popup-icon debuff-icon", 30)}
+  const item = target && target.dataset.equipmentType ? equippedItem(target.dataset.equipmentType) : null;
+  const d = gameApi.DEBUFF_ITEMS[key];
+  if (!popup || (!item && !d) || !target) return;
+  const info = item && itemTypeInfo(item.type);
+  popup.innerHTML = item
+    ? `${itemIconHtml(item.type, "item-popup-icon", 30)}
+    <span><b>${escapeHtml(info.name)} ${itemRarityBadgeHtml(item)}</b><em>${equipmentModsHtml(item, "equipment-popup-mods")}</em></span>`
+    : `${debuffIconHtml(key, "item-popup-icon debuff-icon", 30)}
     <span><b>${escapeHtml(d.name)} <i class="item-rarity item-rarity-debuff">デバフ</i></b><em>${escapeHtml(d.profile)}</em></span>`;
   popup.classList.remove("hidden");
   popup.style.visibility = "hidden";
@@ -1592,7 +1720,7 @@ function showItemPopup(id, target) {
   popup.style.left = `${Math.round(left)}px`;
   popup.style.top = `${Math.round(clampNumber(top, 8, window.innerHeight - popupRect.height - 8))}px`;
   popup.style.visibility = "";
-  activeItemPopupId = id;
+  activeItemPopupKey = key;
 }
 
 function clearItemPress() {
@@ -1603,8 +1731,8 @@ function clearItemPress() {
 
 function startItemPress(event, button) {
   clearItemPress();
-  const id = button.dataset.itemId || button.dataset.debuffId;
-  if (!id) return;
+  const key = button.dataset.equipmentType || button.dataset.debuffId;
+  if (!key) return;
   event.preventDefault();
   try {
     button.setPointerCapture(event.pointerId);
@@ -1614,13 +1742,13 @@ function startItemPress(event, button) {
   const startX = event.clientX;
   const startY = event.clientY;
   itemPress = {
-    id,
+    key,
     button,
     startX,
     startY,
     timer: setTimeout(() => {
-      if (!itemPress || itemPress.id !== id) return;
-      showItemPopup(id, button);
+      if (!itemPress || itemPress.key !== key) return;
+      showItemPopup(key, button);
     }, ITEM_LONG_PRESS_MS),
   };
 }
@@ -1634,21 +1762,21 @@ function bindItemHud() {
   const bar = document.getElementById("itemBar");
   if (!bar) return;
   bar.addEventListener("pointerdown", (event) => {
-    const button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-item-id], [data-debuff-id]") : null;
+    const button = event.target && typeof event.target.closest === "function" ? event.target.closest("[data-equipment-type], [data-debuff-id]") : null;
     if (!button) return;
     startItemPress(event, button);
   });
   bar.addEventListener("pointermove", moveItemPress);
   for (const type of ["pointerup", "pointercancel", "pointerleave"]) bar.addEventListener(type, clearItemPress);
   bar.addEventListener("contextmenu", (event) => {
-    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id], [data-debuff-id]")) event.preventDefault();
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-equipment-type], [data-debuff-id]")) event.preventDefault();
   });
   bar.addEventListener("selectstart", (event) => {
-    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-item-id], [data-debuff-id]")) event.preventDefault();
+    if (event.target && typeof event.target.closest === "function" && event.target.closest("[data-equipment-type], [data-debuff-id]")) event.preventDefault();
   });
   document.addEventListener("pointerdown", (event) => {
     const target = event.target && typeof event.target.closest === "function" ? event.target : null;
-    if (target && (target.closest("#itemBar [data-item-id], #itemBar [data-debuff-id]") || target.closest("#itemPopup"))) return;
+    if (target && (target.closest("#itemBar [data-equipment-type], #itemBar [data-debuff-id]") || target.closest("#itemPopup"))) return;
     hideItemPopup();
   });
   window.addEventListener("scroll", hideItemPopup, { passive: true });
@@ -1658,25 +1786,19 @@ function bindItemHud() {
 function renderItems() {
   const bar = document.getElementById("itemBar");
   if (!bar) return;
-  const held = gameApi.items;
+  const held = equipmentMap();
   const debuffs = gameApi.debuffItems || [];
-  const used = new Set(gameApi.usedItems);
-  const key = held.join(",") + "|d:" + debuffs.join(",") + "|" + [...used].sort().join(",");
+  const key = JSON.stringify({ held, debuffs });
   if (key === lastItemBarKey) return;
   lastItemBarKey = key;
-  if (activeItemPopupId && !held.includes(activeItemPopupId) && !debuffs.includes(activeItemPopupId)) hideItemPopup();
-  if (!held.length && !debuffs.length) {
-    bar.innerHTML = `<span class="item-empty">アイテムなし</span>`;
-    return;
-  }
-  const itemHtml = held.map((id) => {
-    const a = gameApi.ITEMS[id];
-    if (!a) return "";
-    const classes = ["item"];
-    if (used.has(id)) classes.push("item-used");
-    const badge = used.has(id) ? `<i class="item-badge">済</i>` : "";
-    const label = itemLabel(id);
-    return `<button type="button" class="${classes.join(" ")}" data-item-id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${itemIconHtml(id, "item-icon", 24)}${badge}</button>`;
+  if (activeItemPopupKey && !held[activeItemPopupKey] && !debuffs.includes(activeItemPopupKey)) hideItemPopup();
+  const itemHtml = ITEM_CODEX_ORDER.map((type) => {
+    const item = held[type];
+    const info = itemTypeInfo(type);
+    if (!item) return `<span class="item equipment-slot equipment-slot-empty" aria-label="${escapeHtml(info.name)} 空き枠" title="${escapeHtml(info.name)}: 装備なし">${itemIconHtml(type, "item-icon", 28)}<small>空</small></span>`;
+    const rarity = equipmentRarity(item);
+    const label = itemLabel(item);
+    return `<button type="button" class="item equipment-slot item-frame-${rarity}" data-equipment-type="${escapeHtml(type)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${itemIconHtml(type, "item-icon", 28)}<small>${escapeHtml(itemRarityName(item).slice(0, 1))}</small></button>`;
   }).join("");
   const debuffHtml = debuffs.map((id) => {
     const d = gameApi.DEBUFF_ITEMS[id];
@@ -1685,6 +1807,20 @@ function renderItems() {
     return `<button type="button" class="item item-debuff" data-debuff-id="${escapeHtml(id)}" aria-label="${escapeHtml(label)}" title="${escapeHtml(label)}">${debuffIconHtml(id, "item-icon debuff-icon", 24)}<i class="item-badge debuff-badge">罠</i></button>`;
   }).join("");
   bar.innerHTML = itemHtml + debuffHtml;
+}
+
+function renderEquipmentStats() {
+  const panel = document.getElementById("equipmentStatusPanel");
+  const toggle = document.getElementById("statusToggleBtn");
+  if (!panel || !toggle) return;
+  const stats = gameApi.itemStats || {};
+  panel.classList.toggle("hidden", !equipmentStatusOpen);
+  toggle.setAttribute("aria-expanded", equipmentStatusOpen ? "true" : "false");
+  toggle.classList.toggle("active", equipmentStatusOpen);
+  panel.innerHTML = ITEM_STAT_DEFS.map(([key, label]) => {
+    const value = Number(stats[key]) || 0;
+    return `<span><b>${escapeHtml(label)}</b><em class="${value < 0 ? "negative" : (value > 0 ? "positive" : "zero")}">${escapeHtml(signedPercent(value))}</em></span>`;
+  }).join("");
 }
 
 function renderHudMessage() {
@@ -1699,28 +1835,26 @@ function renderHudMessage() {
 function renderItemOffer() {
   const overlay = document.getElementById("itemChoiceOverlay");
   const grid = document.getElementById("itemChoiceGrid");
-  const reroll = document.getElementById("rerollItemBtn");
   if (!overlay || !grid) return;
   const offer = gameApi.itemOffer;
   const visible = !!offer && gameApi.gameState === "itemChoice";
   overlay.classList.toggle("hidden", !visible);
-  if (reroll) reroll.classList.toggle("hidden", !visible || !gameApi.canRerollItemOffer);
   if (!offer) {
     lastItemOfferKey = "";
     grid.innerHTML = "";
     return;
   }
   if (!visible) return;
-  const key = `${offer.wave}:${offer.choices.join(",")}`;
+  const key = `${offer.wave}:${JSON.stringify(offer.choices)}`;
   if (key === lastItemOfferKey) return;
   lastItemOfferKey = key;
-  grid.innerHTML = offer.choices.map((id) => {
-    const a = gameApi.ITEMS[id];
-    if (!a) return "";
+  grid.innerHTML = offer.choices.map((item) => {
+    const info = itemTypeInfo(item.type);
+    const rarity = equipmentRarity(item);
     return `
-      <button type="button" class="item-choice-card" data-item-choice="${escapeHtml(id)}">
-        ${itemIconHtml(id, "item-choice-icon", 38)}
-        <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(id)}</b><em>${escapeHtml(a.profile)}</em></span>
+      <button type="button" class="item-choice-card item-frame-${rarity}" data-item-choice="${escapeHtml(item.uid)}">
+        ${itemIconHtml(item.type, "item-choice-icon", 38)}
+        <span><b>${escapeHtml(info.name)} ${itemRarityBadgeHtml(item)}</b>${equipmentModsHtml(item)}</span>
       </button>`;
   }).join("");
 }
@@ -1785,26 +1919,71 @@ function renderShopOffer() {
     return;
   }
   if (!visible) return;
-  const key = `${offer.wave}:${Math.floor(gameApi.nutrients)}:${offer.goods.map((g) => `${g.id}:${g.price}:${g.sold ? 1 : 0}`).join(",")}`;
+  const key = `${offer.wave}:${Math.floor(gameApi.nutrients)}:${JSON.stringify(offer.goods)}`;
   if (key === lastShopOfferKey) return;
   lastShopOfferKey = key;
   grid.innerHTML = offer.goods.map((good) => {
-    const a = gameApi.ITEMS[good.id];
-    if (!a) return "";
-    const owned = gameApi.items.includes(good.id);
-    const sold = good.sold || owned;
+    const item = good.item;
+    if (!item) return "";
+    const info = itemTypeInfo(item.type);
+    const sold = !!good.sold;
     const affordable = gameApi.nutrients >= good.price;
     const disabled = sold || !affordable;
     const priceLabel = sold ? "購入済み" : `栄養 ${good.price}`;
-    const classes = ["item-choice-card", "item-shop-card", `item-shop-${itemRarity(good.id)}`];
+    const classes = ["item-choice-card", "item-shop-card", `item-frame-${equipmentRarity(item)}`];
     if (sold) classes.push("item-shop-sold");
     if (!sold && !affordable) classes.push("item-shop-short");
     return `
-      <button type="button" class="${classes.join(" ")}" data-shop-item="${escapeHtml(good.id)}"${disabled ? " disabled" : ""}>
-        ${itemIconHtml(good.id, "item-choice-icon", 38)}
-        <span><b>${escapeHtml(a.name)} ${itemRarityBadgeHtml(good.id)}</b><em>${escapeHtml(a.profile)}</em><strong class="shop-price">${escapeHtml(priceLabel)}</strong></span>
+      <button type="button" class="${classes.join(" ")}" data-shop-item="${escapeHtml(item.uid)}"${disabled ? " disabled" : ""}>
+        ${itemIconHtml(item.type, "item-choice-icon", 38)}
+        <span><b>${escapeHtml(info.name)} ${itemRarityBadgeHtml(item)}</b>${equipmentModsHtml(item)}<strong class="shop-price">${escapeHtml(priceLabel)}</strong></span>
       </button>`;
   }).join("");
+}
+
+function offeredEquipment(source, uid) {
+  if (source === "item") return (gameApi.itemOffer?.choices || []).find((item) => item.uid === uid) || null;
+  return (gameApi.shopOffer?.goods || []).find((good) => good.item && good.item.uid === uid)?.item || null;
+}
+
+function projectedItemStats(candidate) {
+  const nextEquipment = { ...equipmentMap(), [candidate.type]: candidate };
+  return Object.fromEntries(ITEM_STAT_DEFS.map(([key]) => {
+    const raw = Object.values(nextEquipment).reduce((sum, item) => sum + (Number(item?.mods?.[key]) || 0), 0);
+    const [min, max] = ITEM_STAT_LIMITS[key];
+    return [key, clampNumber(raw, min, max)];
+  }));
+}
+
+function renderEquipmentCompare() {
+  const overlay = document.getElementById("equipmentCompareOverlay");
+  const body = document.getElementById("equipmentCompareBody");
+  const title = document.getElementById("equipmentCompareTitle");
+  if (!overlay || !body || !title) return;
+  const candidate = pendingEquipmentChoice && offeredEquipment(pendingEquipmentChoice.source, pendingEquipmentChoice.uid);
+  const current = candidate && equippedItem(candidate.type);
+  const visible = !!candidate && !!current;
+  overlay.classList.toggle("hidden", !visible);
+  if (!visible) {
+    body.innerHTML = "";
+    if (pendingEquipmentChoice) pendingEquipmentChoice = null;
+    return;
+  }
+  const info = itemTypeInfo(candidate.type);
+  const before = gameApi.itemStats || {};
+  const after = projectedItemStats(candidate);
+  title.textContent = `${info.name}を入れ替える`;
+  body.innerHTML = `
+    <div class="equipment-compare-cards">
+      <article class="item-frame-${equipmentRarity(current)}"><h3>現在</h3>${itemIconHtml(current.type, "item-choice-icon", 42)}<b>${escapeHtml(info.name)} ${itemRarityBadgeHtml(current)}</b>${equipmentModsHtml(current)}</article>
+      <article class="item-frame-${equipmentRarity(candidate)}"><h3>候補</h3>${itemIconHtml(candidate.type, "item-choice-icon", 42)}<b>${escapeHtml(info.name)} ${itemRarityBadgeHtml(candidate)}</b>${equipmentModsHtml(candidate)}</article>
+    </div>
+    <div class="equipment-total-compare"><h3>装備後の実効値</h3>${ITEM_STAT_DEFS.map(([key, label]) => {
+      const oldValue = Number(before[key]) || 0;
+      const newValue = Number(after[key]) || 0;
+      const diff = newValue - oldValue;
+      return `<span><b>${escapeHtml(label)}</b><em>${escapeHtml(signedPercent(oldValue))}</em><i>→</i><strong>${escapeHtml(signedPercent(newValue))}</strong><small class="${diff < 0 ? "negative" : (diff > 0 ? "positive" : "zero")}">${escapeHtml(`(${signedPercent(diff)})`)}</small></span>`;
+    }).join("")}</div>`;
 }
 
 function renderDialogue() {
@@ -1837,6 +2016,70 @@ function renderDialogue() {
   next.textContent = dialogue.index + 1 >= dialogue.total ? "進む" : "次へ";
 }
 
+function runControlsAvailable() {
+  return ["playing", "dialogue", "itemChoice", "shop", "trap", "debuffNotice"].includes(gameApi.gameState);
+}
+
+function renderRunControls() {
+  const actions = document.getElementById("hudActions");
+  const statusButton = document.getElementById("statusToggleBtn");
+  const quitButton = document.getElementById("quitRunBtn");
+  const quitOverlay = document.getElementById("quitConfirmOverlay");
+  const available = runControlsAvailable();
+  if (actions) actions.classList.toggle("hidden", !available);
+  if (statusButton) statusButton.disabled = !available || quitConfirmOpen;
+  if (quitButton) quitButton.disabled = !available || quitConfirmOpen;
+  if (!available) equipmentStatusOpen = false;
+  if (quitOverlay) quitOverlay.classList.toggle("hidden", !quitConfirmOpen);
+  renderEquipmentStats();
+}
+
+function openQuitConfirmation() {
+  if (!runControlsAvailable() || quitConfirmOpen) return false;
+  hideItemPopup();
+  quitConfirmOpen = true;
+  updateHud();
+  return true;
+}
+
+function cancelQuitConfirmation() {
+  if (!quitConfirmOpen) return false;
+  quitConfirmOpen = false;
+  updateHud();
+  syncAudioState(true);
+  return true;
+}
+
+function confirmQuitRun() {
+  if (!quitConfirmOpen) return false;
+  quitConfirmOpen = false;
+  markRunInterrupted();
+  openStartFlow();
+  return true;
+}
+
+function chooseEquipmentCandidate(source, uid) {
+  const item = offeredEquipment(source, uid);
+  if (!item) return false;
+  if (equippedItem(item.type)) {
+    pendingEquipmentChoice = { source, uid };
+    updateHud();
+    return true;
+  }
+  const changed = source === "item" ? gameApi.chooseItemOffer(uid) : gameApi.buyShopItem(uid);
+  if (changed) updateHud();
+  return !!changed;
+}
+
+function confirmEquipmentReplacement() {
+  if (!pendingEquipmentChoice) return false;
+  const { source, uid } = pendingEquipmentChoice;
+  pendingEquipmentChoice = null;
+  const changed = source === "item" ? gameApi.chooseItemOffer(uid) : gameApi.buyShopItem(uid);
+  updateHud();
+  return !!changed;
+}
+
 function updateHud() {
   syncRunOutcome();
   const ratio = Math.max(0, Math.min(1, gameApi.coreHP / gameApi.CORE_MAX));
@@ -1852,18 +2095,23 @@ function updateHud() {
   renderItems();
   renderItemOffer();
   renderShopOffer();
+  renderEquipmentCompare();
   renderTrapOffer();
   renderDebuffNotice();
   renderDialogue();
+  renderRunControls();
   const queue = gameApi.spawnQueue;
   const activeHeroes = gameApi.heroes.length + queue.length;
   let waveLabel = "次の襲来まで";
   let waveTimer = `${Math.ceil(Math.max(0, gameApi.waveCountdown) / 1000)} 秒`;
-  if (gameApi.gameState === "dialogue") {
+  if (quitConfirmOpen) {
+    waveLabel = "終了確認";
+    waveTimer = "時間停止中";
+  } else if (gameApi.gameState === "dialogue") {
     waveLabel = "会話中";
     waveTimer = "時間停止中";
   } else if (gameApi.gameState === "itemChoice") {
-    waveLabel = "アイテム選択";
+    waveLabel = "装備選択";
     waveTimer = "時間停止中";
   } else if (gameApi.gameState === "shop") {
     waveLabel = "ショップ";
@@ -1906,29 +2154,57 @@ function updateHud() {
   syncAudioState();
 }
 
-function startGame() {
+async function startGame() {
+  if (startPending || loadUiMode !== "ready" || !activeScene || !activeScene.visualReady || gameApi.gameState !== "title") return false;
   hideItemPopup();
   lastItemBarKey = "";
   lastShopOfferKey = "";
+  equipmentStatusOpen = false;
+  pendingEquipmentChoice = null;
+  quitConfirmOpen = false;
+  unlockAudio();
   const select = document.getElementById("homeLoopSelect");
   selectedLoop = Math.max(1, Math.min(selectableMaxLoop(), Math.floor(Number(select && select.value) || defaultLoop())));
+  startPending = true;
+  setLoadUi("starting", 0);
+  let assetsReady = false;
+  try {
+    assetsReady = await activeScene.ensureActorSheets(actorSheetsForCurrentDeck(), "starting");
+  } catch {
+    assetsReady = false;
+  }
+  if (!assetsReady) {
+    startPending = false;
+    setLoadUi("error", loadUiProgress);
+    return false;
+  }
+  startPending = false;
+  setLoadUi("ready", 1);
   markRunStarted(selectedLoop);
   gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
   gameApi.startGame(selectedLoop, { resetPenaltyActive: progress.resetPenaltyActive, showIntro: selectedLoop === 1 && (progress.highestWave || 0) < 3 });
-  if (activeScene) activeScene.ensureActorSheets(actorSheetsForCurrentDeck());
   syncAudioState(true);
   syncProgressEvents();
   updateHud();
+  return true;
 }
 
 function openStartFlow() {
   hideItemPopup();
   lastItemBarKey = "";
   lastShopOfferKey = "";
-  homeTab = "defense";
+  homeTab = "menu";
+  codexTab = "monster";
+  codexFamilyId = null;
+  codexStage = 0;
+  equipmentStatusOpen = false;
+  pendingEquipmentChoice = null;
+  quitConfirmOpen = false;
   selectedLoop = defaultLoop();
   gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
   gameApi.gameState = "title";
+  startPending = false;
+  if (activeScene && activeScene.visualReady && loadUiMode !== "error") setLoadUi("ready", 1);
   syncAudioState();
   syncProgressEvents();
   renderLoopSelector();
@@ -1946,17 +2222,33 @@ function bindButtonSounds() {
 }
 
 function boot() {
+  renderLoadUi();
   document.getElementById("startBtn").addEventListener("click", startGame);
+  document.getElementById("loadRetryBtn").addEventListener("click", () => window.location.reload());
   document.getElementById("restartBtn").addEventListener("click", openStartFlow);
   document.getElementById("clearRestartBtn").addEventListener("click", openStartFlow);
   const startOverlay = document.getElementById("startOverlay");
   if (startOverlay) {
     startOverlay.addEventListener("click", (event) => {
       const target = event.target && typeof event.target.closest === "function" ? event.target : null;
+      if (target && target.closest("[data-home-back]")) {
+        homeTab = "menu";
+        homeMessage = "";
+        codexFamilyId = null;
+        homeRenderCacheKey = "";
+        renderHome(true);
+        return;
+      }
       const tab = target ? target.closest("[data-home-tab]") : null;
       if (tab) {
-        homeTab = tab.dataset.homeTab || "defense";
+        homeTab = tab.dataset.homeTab || "menu";
         homeMessage = "";
+        if (homeTab === "codex") {
+          codexTab = "monster";
+          codexFamilyId = null;
+          codexStage = 0;
+          codexListScrollTop = 0;
+        }
         renderHome(true);
         return;
       }
@@ -1969,17 +2261,40 @@ function boot() {
       const codex = target ? target.closest("[data-codex-tab]") : null;
       if (codex) {
         codexTab = codex.dataset.codexTab || "monster";
+        codexFamilyId = null;
+        codexStage = 0;
         renderCodex();
+        homeRenderCacheKey = homeRenderKey();
+        return;
+      }
+      const familyDetail = target ? target.closest("[data-codex-family]") : null;
+      if (familyDetail) {
+        const body = document.getElementById("homeBody");
+        codexListScrollTop = body ? body.scrollTop : 0;
+        codexFamilyId = familyDetail.dataset.codexFamily || null;
+        codexStage = 0;
+        renderCodex();
+        homeRenderCacheKey = homeRenderKey();
+        if (body) body.scrollTop = 0;
+        return;
+      }
+      if (target && target.closest("[data-codex-list-back]")) {
+        codexFamilyId = null;
+        restoreCodexListScroll = true;
+        renderCodex();
+        homeRenderCacheKey = homeRenderKey();
+        return;
+      }
+      const stage = target ? target.closest("[data-codex-stage]") : null;
+      if (stage) {
+        codexStage = clampNumber(Math.floor(Number(stage.dataset.codexStage) || 0), 0, 2);
+        renderCodex();
+        homeRenderCacheKey = homeRenderKey();
         return;
       }
       const familyBuy = target ? target.closest("[data-buy-family]") : null;
       if (familyBuy) {
         buyMonsterFamily(familyBuy.dataset.buyFamily);
-        return;
-      }
-      const itemBuy = target ? target.closest("[data-buy-item]") : null;
-      if (itemBuy) {
-        buyUnlockItem(itemBuy.dataset.buyItem);
         return;
       }
       const familySelect = target ? target.closest("[data-select-family]") : null;
@@ -2055,27 +2370,44 @@ function boot() {
     const target = event.target && typeof event.target.closest === "function" ? event.target : null;
     const button = target ? target.closest("[data-item-choice]") : null;
     if (!button) return;
-    if (gameApi.chooseItemOffer(button.dataset.itemChoice)) updateHud();
+    chooseEquipmentCandidate("item", button.dataset.itemChoice);
   });
   const skipItem = document.getElementById("skipItemBtn");
   if (skipItem) skipItem.addEventListener("click", () => {
+    pendingEquipmentChoice = null;
     if (gameApi.chooseItemOffer(null)) updateHud();
-  });
-  const rerollItem = document.getElementById("rerollItemBtn");
-  if (rerollItem) rerollItem.addEventListener("click", () => {
-    if (gameApi.rerollItemOffer()) updateHud();
   });
   const itemShopGrid = document.getElementById("itemShopGrid");
   if (itemShopGrid) itemShopGrid.addEventListener("click", (event) => {
     const target = event.target && typeof event.target.closest === "function" ? event.target : null;
     const button = target ? target.closest("[data-shop-item]") : null;
     if (!button) return;
-    if (gameApi.buyShopItem(button.dataset.shopItem)) updateHud();
+    chooseEquipmentCandidate("shop", button.dataset.shopItem);
   });
   const closeShop = document.getElementById("closeShopBtn");
   if (closeShop) closeShop.addEventListener("click", () => {
+    pendingEquipmentChoice = null;
     if (gameApi.closeShopOffer()) updateHud();
   });
+  const confirmReplace = document.getElementById("confirmReplaceBtn");
+  if (confirmReplace) confirmReplace.addEventListener("click", confirmEquipmentReplacement);
+  const backToChoices = document.getElementById("backToItemChoicesBtn");
+  if (backToChoices) backToChoices.addEventListener("click", () => {
+    pendingEquipmentChoice = null;
+    updateHud();
+  });
+  const statusToggle = document.getElementById("statusToggleBtn");
+  if (statusToggle) statusToggle.addEventListener("click", () => {
+    if (!runControlsAvailable() || quitConfirmOpen) return;
+    equipmentStatusOpen = !equipmentStatusOpen;
+    renderRunControls();
+  });
+  const quitRun = document.getElementById("quitRunBtn");
+  if (quitRun) quitRun.addEventListener("click", openQuitConfirmation);
+  const cancelQuit = document.getElementById("cancelQuitBtn");
+  if (cancelQuit) cancelQuit.addEventListener("click", cancelQuitConfirmation);
+  const confirmQuit = document.getElementById("confirmQuitBtn");
+  if (confirmQuit) confirmQuit.addEventListener("click", confirmQuitRun);
   const trapChoiceGrid = document.getElementById("trapChoiceGrid");
   if (trapChoiceGrid) trapChoiceGrid.addEventListener("click", (event) => {
     const target = event.target && typeof event.target.closest === "function" ? event.target : null;
@@ -2092,6 +2424,11 @@ function boot() {
     if (gameApi.advanceDialogue()) updateHud();
   });
   document.addEventListener("keydown", (event) => {
+    if (quitConfirmOpen && event.key === "Escape") {
+      event.preventDefault();
+      cancelQuitConfirmation();
+      return;
+    }
     if (gameApi.gameState !== "dialogue" || (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
     if (gameApi.advanceDialogue()) updateHud();

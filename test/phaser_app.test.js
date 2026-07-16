@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { createGame, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTOR_SHEETS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS } from "../src/gameCore.js";
+import { createGame, MONSTER_FAMILIES, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, PIXEL_ACTIONS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_FRAMES, PIXEL_CELL, PIXEL_ACTOR_SHEETS, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -26,6 +26,16 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="itemChoiceOverlay"');
     expect(html).toContain('id="itemChoiceGrid"');
     expect(html).toContain('id="skipItemBtn"');
+    expect(html).not.toContain('id="rerollItemBtn"');
+    expect(html).toContain('id="equipmentCompareOverlay"');
+    expect(html).toContain('id="confirmReplaceBtn"');
+    expect(html).toContain('id="backToItemChoicesBtn"');
+    expect(html).toContain('id="statusToggleBtn"');
+    expect(html).toContain('id="equipmentStatusPanel"');
+    expect(html).toContain('id="quitRunBtn"');
+    expect(html).toContain('id="quitConfirmOverlay"');
+    expect(html).toContain('id="confirmQuitBtn"');
+    expect(html).toContain('id="cancelQuitBtn"');
     expect(html).not.toContain('id="loopSelect"');
     expect(html).not.toContain('id="loopInfo"');
     expect(html).toContain('<div class="controls">');
@@ -104,8 +114,11 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('homeTab === "codex"');
     expect(src).toContain("silhouette");
     expect(src).toContain("discoveredMonsters");
-    expect(src).toContain("discoveredItems");
-    expect(src).toContain("itemCard");
+    expect(src).not.toContain("discoveredItems");
+    expect(src).not.toContain("unlockedItems");
+    expect(src).not.toContain("ITEM_UNLOCKS");
+    expect(src).not.toContain("rerollItemOffer");
+    expect(src).toContain("codexItemCard");
     expect(src).toContain("renderItemOffer");
     expect(src).toContain("renderShopOffer");
     expect(src).toContain("renderTrapOffer");
@@ -138,9 +151,21 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('data-settings-tab="volume"');
     expect(src).toContain("codexMonsterFamilyCard");
     expect(src).toContain("codexItemCard");
+    expect(src).toContain("renderMonsterFamilyDetail");
+    expect(src).toContain("monsterRadarHtml");
+    expect(src).toContain("normalizedMonsterStats");
+    expect(src).toContain('homeTab = "menu"');
+    expect(src).toContain("data-home-back");
+    expect(src).toContain("codexListScrollTop");
+    expect(src).toContain("equipmentMap");
+    expect(src).toContain("gameApi.itemStats");
+    expect(src).toContain("pendingEquipmentChoice");
+    expect(src).toContain("quitConfirmOpen");
+    expect(src).toContain("markRunInterrupted");
+    expect(src).toContain("bgmSound.pause");
+    expect(src).toContain("bgmSound.resume");
     expect(src).not.toContain("codexOpen");
-    expect(src).toContain("進化モンスター");
-    expect(src).not.toContain("上位モンスター");
+    expect(src).toContain('["通常", "第一進化", "第二進化"]');
   });
 
   it("盤面上から縦スクロールできるCSSを持つ", () => {
@@ -150,7 +175,6 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain("width: calc(100% - 4px)");
     expect(css).toContain(".codex-card");
     expect(css).toContain(".codex-card.locked");
-    expect(css).toContain(".codex-unlock-card");
     expect(css).toContain(".codex-sprite.silhouette");
     expect(css).toContain(".codex-item-icon");
     expect(css).toContain(".dev-panel");
@@ -158,7 +182,6 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".sound-fields input[type=\"range\"]");
     expect(css).toContain(".core-line.core-alert");
     expect(css).not.toContain(".item-flash");
-    expect(css).toContain(".item-used");
     expect(css).toContain(".item-popup");
     expect(css).toContain(".dev-default");
     expect(css).toContain(".dev-field .dev-default.dev-default-diff");
@@ -167,7 +190,17 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".item-choice-card");
     expect(css).toContain(".item-choice-icon");
     expect(css).toContain(".item-shop-card");
+    expect(css).toContain(".item-rarity-iron");
+    expect(css).toContain(".item-rarity-bronze");
+    expect(css).toContain(".item-rarity-silver");
     expect(css).toContain(".item-rarity-gold");
+    expect(css).toContain(".item-rarity-diamond");
+    expect(css).toContain(".equipment-status");
+    expect(css).toContain(".equipment-compare-body");
+    expect(css).toContain(".quit-confirm");
+    expect(css).toContain(".codex-detail");
+    expect(css).toContain(".monster-radar");
+    expect(css).not.toContain(".btn-reroll-item");
     expect(css).not.toContain(".loop-select");
     expect(css).toContain("grid-template-columns: minmax(0, 1fr) 116px");
     expect(css).toContain(".hud-message");
@@ -185,6 +218,18 @@ describe("Phaserアプリ構成", () => {
     expect(fs.existsSync(path.join(repoDir, "assets/ui/demon-squirrel-king.png"))).toBe(false);
   });
 
+  it("図鑑は20系統の詳細と五角形正規化を持つ", () => {
+    expect(Object.keys(MONSTER_FAMILIES)).toHaveLength(20);
+    const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
+    expect(src).toContain('["hp", "体力", (kind) => Math.log1p');
+    expect(src).toContain('["atk", "攻撃", (kind) => Math.log1p');
+    expect(src).toContain('["range", "射程"');
+    expect(src).toContain('["moveCd", "移動速度"');
+    expect(src).toContain('["atkCd", "攻撃速度"');
+    expect(src).toContain("1 + ((measured - min) / (max - min)) * 4");
+    expect(src).toContain('viewBox="0 0 220 220"');
+  });
+
   it("ViteビルドはPages配下で読める相対baseを使う", () => {
     const config = fs.readFileSync(path.join(repoDir, "vite.config.mjs"), "utf8");
     expect(config).toContain('base: "./"');
@@ -199,7 +244,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v30-imagegen");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v32-equipment");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

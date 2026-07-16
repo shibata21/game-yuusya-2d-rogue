@@ -50,6 +50,46 @@ function opaqueCount(img) {
   return count;
 }
 
+function alphaBounds(img) {
+  let minX = img.width;
+  let minY = img.height;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      if (img.data[(y * img.width + x) * 4 + 3] <= 12) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  return maxX < minX ? null : { minX, minY, maxX, maxY };
+}
+
+function opaqueEdgeCount(img) {
+  let count = 0;
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      if (x > 0 && y > 0 && x < img.width - 1 && y < img.height - 1) continue;
+      if (img.data[(y * img.width + x) * 4 + 3] > 12) count++;
+    }
+  }
+  return count;
+}
+
+function alphaJaccardDiff(a, b) {
+  let intersection = 0;
+  let union = 0;
+  for (let i = 3; i < a.data.length; i += 4) {
+    const aa = a.data[i] > 12;
+    const ba = b.data[i] > 12;
+    if (aa && ba) intersection++;
+    if (aa || ba) union++;
+  }
+  return union ? 1 - intersection / union : 0;
+}
+
 function uniqueColors(img) {
   const colors = new Set();
   for (let i = 0; i < img.data.length; i += 4) {
@@ -183,6 +223,23 @@ function validateActorPoseOverride(relativePath, label) {
   }
 }
 
+function validateTransparentSource(relativePath, label) {
+  const file = sourceFile(relativePath);
+  if (!fs.existsSync(file)) return;
+  const img = readPng(file);
+  const corners = [0, img.width - 1, (img.height - 1) * img.width, img.width * img.height - 1];
+  if (!corners.every((pixel) => img.data[pixel * 4 + 3] <= 12)) {
+    fail(`${label} の背景が透過されていません`);
+  }
+  if (opaqueEdgeCount(img) > 0) fail(`${label} の不透明領域が外周へ接触しています`);
+  for (let i = 0; i < img.data.length; i += 4) {
+    if (img.data[i + 3] > 12 && img.data[i] > 240 && img.data[i + 1] < 16 && img.data[i + 2] > 240) {
+      fail(`${label} にマゼンタ背景が残っています`);
+      break;
+    }
+  }
+}
+
 function validateImagegenSource(manifest) {
   if (manifest.version !== "imagegen-v1") fail("素材マニフェストの版が不正です");
   if (!String(manifest.generator?.tool || "").toLowerCase().includes("imagegen")) {
@@ -275,6 +332,10 @@ function validateImagegenSource(manifest) {
   }
   for (const [index, layout] of manifest.itemSheets.entries()) {
     validateSourceGrid(layout.file, layout.columns, layout.rows, `アイテムシート${index + 1}`);
+    validateTransparentSource(layout.file, `アイテムシート${index + 1}`);
+    if (layout.columns !== 1 || layout.rows !== 1 || layout.ids.length !== 1) {
+      fail(`アイテムシート${index + 1} は1画像1装備である必要があります`);
+    }
   }
 
   if (!sameList(manifest.layouts.eggs.ids, ACTOR_SHEETS.eggs)) fail("卵の順序が不正です");
@@ -298,9 +359,20 @@ function validateImagegenSource(manifest) {
 
   for (const actor of ACTORS) {
     if (actor.startsWith("egg_")) continue;
-    if (!manifest.actorSources[actor] && !manifest.paletteVariants[actor]) {
+    if (!manifest.actorSources[actor]) {
       fail(`${actor} のimagegen生成元対応がありません`);
     }
+  }
+  const directActors = ACTORS.filter((actor) => !actor.startsWith("egg_"));
+  const directSourceNames = Object.keys(manifest.actorSources);
+  if (directSourceNames.length !== directActors.length || directActors.some((actor) => !directSourceNames.includes(actor))) {
+    fail("全アクターが独立したimagegen原画へ対応していません");
+  }
+  if (Object.keys(manifest.paletteVariants || {}).length !== 0) {
+    fail("旧色違い進化定義が残っています");
+  }
+  if (Object.keys(manifest.actorPoseOverrides || {}).length !== 0) {
+    fail("旧アクター個別ポーズ差し替えが残っています");
   }
   ok("imagegen生成元とマニフェストを検査しました");
 }
@@ -328,6 +400,23 @@ function validateMeta(manifest) {
   if (!sameList(Object.keys(meta.items), ITEM_ICONS)) fail("sprites.json のアイテム順が不正です");
   if (!sameList(Object.keys(meta.debuffs), DEBUFF_ICONS)) fail("sprites.json のデバフ順が不正です");
   if (!sameList(Object.keys(meta.dialogue), DIALOGUE_PORTRAITS)) fail("sprites.json の会話立ち絵順が不正です");
+  const directActors = ACTORS.filter((actor) => !actor.startsWith("egg_"));
+  const normalizationNames = Object.keys(meta.actorNormalization || {});
+  if (normalizationNames.length !== directActors.length || directActors.some((actor) => !normalizationNames.includes(actor))) {
+    fail("sprites.json のアクター共通正規化情報が不足しています");
+  }
+  for (const actor of directActors) {
+    const row = meta.actorNormalization?.[actor];
+    if (!row) continue;
+    if (!Number.isFinite(row.scale) || row.scale <= 0) fail(`${actor} の共通倍率が不正です`);
+    if (row.targetCenterX !== CELL / 2 || row.targetFootY !== 45) fail(`${actor} の中心・足元基準が不正です`);
+    if (!Number.isFinite(row.minEffectScale) || row.minEffectScale <= 0 || row.minEffectScale > 1) {
+      fail(`${actor} のエフェクト倍率が不正です`);
+    }
+    if (row.sourceComponents <= 0 || row.assignedComponents !== row.sourceComponents) {
+      fail(`${actor} の原画成分に未割当があります`);
+    }
+  }
   ok("sprites.json を検査しました");
 }
 
@@ -379,10 +468,27 @@ function validateAtlases() {
         for (let frame = 0; frame < FRAMES; frame++) {
           const sprite = actorFrame(name, action, direction, frame);
           if (opaqueCount(sprite) < 20) fail(`${name}:${action}:${direction}:${frame} が空です`);
+          if (opaqueEdgeCount(sprite) !== 0) fail(`${name}:${action}:${direction}:${frame} がセル外周へ接触しています`);
           hashes.add(imageHash(sprite));
         }
         if (hashes.size < 3) fail(`${name}:${action}:${direction} の4フレーム差分が不足しています`);
       }
+    }
+  }
+
+  for (const name of ACTORS.filter((actor) => !actor.startsWith("egg_"))) {
+    const idleBounds = ACTOR_RENDER_DIRECTIONS.map((direction) => alphaBounds(actorFrame(name, "idle", direction, 0)));
+    const sizes = idleBounds.map((bounds) => Math.max(bounds.maxX - bounds.minX + 1, bounds.maxY - bounds.minY + 1));
+    const centers = idleBounds.map((bounds) => (bounds.minX + bounds.maxX) / 2);
+    const feet = idleBounds.map((bounds) => bounds.maxY);
+    if (Math.min(...sizes) < 20 || Math.max(...sizes) > 40 || Math.max(...sizes) / Math.min(...sizes) > 1.75) {
+      fail(`${name} の待機本体占有サイズが不安定です: ${Math.min(...sizes)}-${Math.max(...sizes)}`);
+    }
+    if (Math.min(...centers) < 22 || Math.max(...centers) > 26 || Math.max(...centers) - Math.min(...centers) > 3) {
+      fail(`${name} の待機本体中心が不安定です: ${Math.min(...centers)}-${Math.max(...centers)}`);
+    }
+    if (Math.min(...feet) < 42 || Math.max(...feet) > 45 || Math.max(...feet) - Math.min(...feet) > 2) {
+      fail(`${name} の待機本体足元が不安定です: ${Math.min(...feet)}-${Math.max(...feet)}`);
     }
   }
 
@@ -441,26 +547,22 @@ function validateActorVariety(manifest) {
   ok("アクターの方向・アクション・職業差分を検査しました");
 }
 
-function validatePaletteVariants(manifest) {
-  for (const [variant, spec] of Object.entries(manifest.paletteVariants)) {
-    for (const action of ACTIONS) {
-      for (const direction of ACTOR_RENDER_DIRECTIONS) {
-        for (let frame = 0; frame < FRAMES; frame++) {
-          const stats = diffStats(
-            actorFrame(spec.base, action, direction, frame),
-            actorFrame(variant, action, direction, frame),
-          );
-          if (stats.alphaDiff !== 0) {
-            fail(`${spec.base}/${variant} の形状が一致しません: ${action}/${direction}/${frame}`);
-          }
-          if (stats.colorRatio < 0.18) {
-            fail(`${spec.base}/${variant} の色差が不足しています: ${action}/${direction}/${frame}`);
-          }
-        }
-      }
+function validateIndependentEvolutions(manifest) {
+  if (Object.keys(manifest.paletteVariants || {}).length !== 0) return;
+  for (const [sheet, names] of Object.entries(ACTOR_SHEETS)) {
+    if (names.length !== 3 || sheet === "eggs") continue;
+    for (const [leftIndex, rightIndex] of [[0, 1], [0, 2], [1, 2]]) {
+      const left = names[leftIndex];
+      const right = names[rightIndex];
+      const differences = ACTOR_RENDER_DIRECTIONS.map((direction) => alphaJaccardDiff(
+        actorFrame(left, "idle", direction, 1),
+        actorFrame(right, "idle", direction, 1),
+      ));
+      const average = differences.reduce((sum, value) => sum + value, 0) / differences.length;
+      if (average <= 0.04) fail(`${left}/${right} の独立形状差が不足しています: ${average.toFixed(3)}`);
     }
   }
-  ok("第一・第二進化の同形状色違いを検査しました");
+  ok("第一・第二進化の独立原画と形状差を検査しました");
 }
 
 function validateAtlasVariety(tiles, items, dialogue) {
@@ -522,7 +624,7 @@ function main() {
   validateMeta(manifest);
   const atlases = validateAtlases();
   validateActorVariety(manifest);
-  validatePaletteVariants(manifest);
+  validateIndependentEvolutions(manifest);
   validateAtlasVariety(atlases.tiles, atlases.items, atlases.dialogue);
   validatePipelinePolicy();
   validateSourceRoots();

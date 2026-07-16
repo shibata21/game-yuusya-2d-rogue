@@ -63,14 +63,7 @@ const TILES = [
 ];
 const EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 const ITEM_ICONS = [
-  "rustyPickaxe", "blackSoilBag", "undergroundLantern", "crackedMap", "masonGloves", "deepCompass", "oldIncense",
-  "herdFlute", "warmNest", "eggGuardBell", "boneMeal", "redCollar", "warPaint", "sleepSand", "curseNail", "blackBell", "stickyMud",
-  "coreShard", "coreBandage", "redSealingWax", "quakeStone", "leftoverMeat", "silverMuzzle", "bloodyPlate", "trainingStick",
-  "victoryBoneFlute", "crybabyBell", "shadowThread", "spareHeart", "ledger", "tornWallet", "demonCoin", "fakeGold", "wildCard",
-  "thiefBag", "dryBread", "blackSeed", "reversedHourglass", "earlyDrum", "breathingFlute", "gapStake", "moleClaw", "obsidianLid",
-  "wanderingPowder", "trailMark", "charmRope", "angerMask", "nestFlag", "oldEggshell", "crackedEgg", "royalEggshell", "rottenCrown",
-  "rebelCharm", "crowdMark", "lowestCandle", "blackRaindrop", "redMoonShard", "boneContract",
-  "undergroundStore", "veinBrush", "denLedger", "homeChime", "shopStamp", "corePiggyBank",
+  "earthCore", "demonFang", "guardianCarapace", "windFeather", "lifeEgg",
 ];
 const DEBUFF_ICONS = ["rottenRations", "crackedCore", "informantMap", "sharpenedBlade", "dullFeed"];
 const DIALOGUE_PORTRAITS = ["executive", "gorilla"];

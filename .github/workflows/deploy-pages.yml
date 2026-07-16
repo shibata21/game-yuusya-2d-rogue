@@ -39,6 +39,8 @@ jobs:
         run: npm test
 
       - name: Build Web app
+        env:
+          VITE_ASSET_VERSION: ${{ github.sha }}
         run: npm run build
 
       - name: Configure Pages

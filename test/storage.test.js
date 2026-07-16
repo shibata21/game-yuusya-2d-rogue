@@ -36,8 +36,6 @@ describe("ローカル保存", () => {
       { type: "discoverMonster", kind: "slime" },
       { type: "discoverMonster", kind: "slime" },
       { type: "discoverHero", cls: "warrior" },
-      { type: "discoverItem", id: "rustyPickaxe" },
-      { type: "discoverItem", id: "rustyPickaxe" },
       { type: "loopCleared", loop: 2 },
     ]);
     expect(result.changed).toBe(true);
@@ -51,9 +49,7 @@ describe("ローカル保存", () => {
       activeRun: null,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
-      discoveredItems: ["rustyPickaxe"],
       unlockedMonsterFamilies: [],
-      unlockedItems: [],
       monsterDeck: {},
     });
     expect(saveProgress(result.progress)).toBe(true);
@@ -75,9 +71,7 @@ describe("ローカル保存", () => {
       activeRun: null,
       discoveredMonsters: [],
       discoveredHeroes: [],
-      discoveredItems: [],
       unlockedMonsterFamilies: [],
-      unlockedItems: [],
       monsterDeck: {},
     });
   });
@@ -98,11 +92,27 @@ describe("ローカル保存", () => {
       activeRun: null,
       discoveredMonsters: ["slime"],
       discoveredHeroes: ["warrior"],
-      discoveredItems: [],
       unlockedMonsterFamilies: [],
-      unlockedItems: [],
       monsterDeck: {},
     });
+  });
+
+  it("旧アイテム進行を読み込み時に破棄し、次回保存から除去する", () => {
+    __storageTestHooks.setRaw(PROGRESS_KEY, JSON.stringify({
+      highestWave: 4,
+      coins: 12,
+      discoveredItems: ["rustyPickaxe"],
+      unlockedItems: ["blackSoilBag"],
+      unlockedMonsterFamilies: ["moss_shroom"],
+    }));
+
+    const progress = loadProgress();
+    expect(progress).not.toHaveProperty("discoveredItems");
+    expect(progress).not.toHaveProperty("unlockedItems");
+    expect(progress.unlockedMonsterFamilies).toEqual(["moss_shroom"]);
+    expect(saveProgress(progress)).toBe(true);
+    expect(JSON.parse(__storageTestHooks.getRaw(PROGRESS_KEY))).not.toHaveProperty("discoveredItems");
+    expect(JSON.parse(__storageTestHooks.getRaw(PROGRESS_KEY))).not.toHaveProperty("unlockedItems");
   });
 
   it("ラン終了コインをスコアとクリアボーナスから付与する", () => {
