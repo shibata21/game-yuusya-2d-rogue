@@ -1811,6 +1811,7 @@ button {
 
 .deck-stage-list em {
   max-width: 100%;
+  margin-top: 2px;
   color: var(--ink);
   font-style: normal;
   font-size: 10px;

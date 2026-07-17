@@ -269,6 +269,7 @@ describe("Phaserアプリ構成", () => {
   it("モンスターデッキは20系統の詳細と五角形正規化を持つ", () => {
     expect(Object.keys(MONSTER_FAMILIES)).toHaveLength(20);
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
+    const css = fs.readFileSync(path.join(repoDir, "src/style.css"), "utf8");
     expect(src).toContain('["hp", "体力", (kind) => Math.log1p');
     expect(src).toContain('["atk", "攻撃", (kind) => Math.log1p');
     expect(src).toContain('["range", "射程"');
@@ -278,6 +279,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('viewBox="0 0 220 220"');
     expect(src).toContain('data-deck-detail="${escapeHtml(id)}"');
     expect(src).not.toContain("data-codex-tab");
+    expect(css).toMatch(/\.deck-stage-list em\s*\{[^}]*margin-top: 2px;/s);
   });
 
   it("ViteビルドはPages配下で読める相対baseを使う", () => {
