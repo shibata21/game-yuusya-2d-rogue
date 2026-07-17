@@ -2,10 +2,13 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const AUDIO_DIR = path.join("assets", "audio");
 const SPECS = {
-  "bgm_dungeon_loop.wav": { min: 23.5, max: 24.5 },
+  "bgm_vein_pulse.wav": { min: 25.6, max: 25.8 },
+  "bgm_monster_march.wav": { min: 22.4, max: 22.6 },
+  "bgm_deep_ritual.wav": { min: 25.5, max: 25.7 },
   "dig.wav": { min: 0.32, max: 0.42 },
   "button.wav": { min: 0.09, max: 0.16 },
   "core_hit.wav": { min: 0.36, max: 0.48 },
@@ -38,14 +41,18 @@ function readWav(file) {
   const samples = dataSize / 2;
   let peak = 0;
   let sum = 0;
+  let signedSum = 0;
   for (let i = 44; i < 44 + dataSize; i += 2) {
-    const v = Math.abs(buffer.readInt16LE(i));
-    peak = Math.max(peak, v);
-    sum += v;
+    const signed = buffer.readInt16LE(i);
+    const absolute = Math.abs(signed);
+    peak = Math.max(peak, absolute);
+    sum += absolute;
+    signedSum += signed;
   }
-  return { duration: samples / rate, peak, average: sum / samples, bytes: buffer.length };
+  return { duration: samples / rate, peak, average: sum / samples, dc: signedSum / samples, bytes: buffer.length, hash: crypto.createHash("sha256").update(buffer).digest("hex") };
 }
 
+const bgmHashes = new Set();
 for (const [name, spec] of Object.entries(SPECS)) {
   const file = path.join(AUDIO_DIR, name);
   try {
@@ -53,10 +60,18 @@ for (const [name, spec] of Object.entries(SPECS)) {
     const stats = readWav(file);
     if (stats.duration < spec.min || stats.duration > spec.max) throw new Error(`尺が不正です: ${stats.duration.toFixed(2)}秒`);
     if (stats.peak < 1200 || stats.average < 80) throw new Error(`音量が小さすぎます: peak=${stats.peak} avg=${stats.average.toFixed(1)}`);
+    if (name.startsWith("bgm_") && stats.peak > 32100) throw new Error(`BGMがクリップしています: peak=${stats.peak}`);
+    if (name.startsWith("bgm_") && Math.abs(stats.dc) > 100) throw new Error(`BGMの直流成分が大きすぎます: dc=${stats.dc.toFixed(1)}`);
     if (stats.bytes > 1200000) throw new Error(`ファイルサイズが大きすぎます: ${stats.bytes}`);
+    if (name.startsWith("bgm_")) bgmHashes.add(stats.hash);
   } catch (error) {
     fail(`${name}: ${error.message}`);
   }
 }
+
+const expectedBgm = Object.keys(SPECS).filter((name) => name.startsWith("bgm_")).sort();
+const actualBgm = fs.readdirSync(AUDIO_DIR).filter((name) => /^bgm_.*\.wav$/.test(name)).sort();
+if (JSON.stringify(actualBgm) !== JSON.stringify(expectedBgm)) fail(`BGMファイル構成が不正です: ${actualBgm.join(", ")}`);
+if (bgmHashes.size !== expectedBgm.length) fail("BGMに同一内容のファイルがあります");
 
 if (!process.exitCode) ok("自製WAV素材を検査しました");

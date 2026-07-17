@@ -2,6 +2,7 @@
 
 import Phaser from "phaser";
 import { assetUrl } from "./assetUrl.js";
+import { BGM_TRACKS, createBgmPlaylist, isBgmPlaybackState } from "./bgmPlaylist.js";
 import {
   createGame,
   createRuleConfig,
@@ -89,6 +90,7 @@ let quitConfirmOpen = false;
 let pendingEquipmentChoice = null;
 let activeScene = null;
 let bgmSound = null;
+let bgmGeneration = 0;
 let audioSaveTimer = null;
 let lastCoreHitSoundAt = 0;
 let loadUiMode = "initial";
@@ -124,18 +126,18 @@ const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
 const ITEM_LONG_PRESS_MS = 520;
-const AUDIO_ASSET_VERSION = "v2-core-hit";
+const AUDIO_ASSET_VERSION = "v3-bgm-playlist";
 const AUDIO_DB_NAME = "makaiDefense.audio.v1";
 const AUDIO_STORE_NAME = "settings";
 const AUDIO_SETTINGS_KEY = "volume";
 const AUDIO_DEFAULTS = Object.freeze({ master: 0.8, bgm: 0.45, se: 0.75, voice: 0.85 });
 const AUDIO_KEYS = {
-  bgm: "bgmDungeon",
   dig: "digSe",
   button: "buttonSe",
   coreHit: "coreHitSe",
   heroDeaths: ["heroDeath1", "heroDeath2", "heroDeath3"],
 };
+const bgmPlaylist = createBgmPlaylist();
 let audioSettings = { ...AUDIO_DEFAULTS };
 
 function selectableMaxLoop() {
@@ -377,28 +379,76 @@ function playHeroDeathVoice() {
   playAudio(key, "voice");
 }
 
+function destroyBgmSound(sound) {
+  if (!sound) return;
+  if (typeof sound.removeAllListeners === "function") sound.removeAllListeners("complete");
+  if ((sound.isPlaying || sound.isPaused) && typeof sound.stop === "function") sound.stop();
+  if (typeof sound.destroy === "function") sound.destroy();
+}
+
+function stopBgm(resetPlaylist = false) {
+  if (resetPlaylist) bgmPlaylist.reset();
+  if (!bgmSound) return;
+  const sound = bgmSound;
+  bgmSound = null;
+  bgmGeneration += 1;
+  destroyBgmSound(sound);
+}
+
+function startNextBgmTrack() {
+  if (!activeScene || !activeScene.sound || quitConfirmOpen || !isBgmPlaybackState(gameApi.gameState)) return;
+  const track = bgmPlaylist.next();
+  if (!track) return;
+  let sound = null;
+  try {
+    sound = activeScene.sound.add(track.key, { loop: false, volume: effectiveVolume("bgm") });
+    const generation = ++bgmGeneration;
+    bgmSound = sound;
+    if (typeof sound.once === "function") sound.once("complete", () => {
+      if (bgmSound !== sound || bgmGeneration !== generation) return;
+      bgmSound = null;
+      if (typeof sound.destroy === "function") sound.destroy();
+      if (!quitConfirmOpen && isBgmPlaybackState(gameApi.gameState)) startNextBgmTrack();
+    });
+    unlockAudio();
+    if (sound.play() === false && bgmSound === sound) {
+      bgmSound = null;
+      bgmGeneration += 1;
+      destroyBgmSound(sound);
+    }
+  } catch {
+    if (bgmSound === sound) bgmSound = null;
+    bgmGeneration += 1;
+    destroyBgmSound(sound);
+  }
+}
+
 function syncAudioState(forceStart = false) {
   if (!activeScene || !activeScene.sound) return;
   if (quitConfirmOpen) {
     if (bgmSound && bgmSound.isPlaying && typeof bgmSound.pause === "function") bgmSound.pause();
     return;
   }
-  const shouldPlay = gameApi.gameState === "playing" || gameApi.gameState === "dialogue" || gameApi.gameState === "itemChoice" || gameApi.gameState === "shop" || gameApi.gameState === "trap" || gameApi.gameState === "debuffNotice";
+  const shouldPlay = isBgmPlaybackState(gameApi.gameState);
   if (!shouldPlay) {
-    if (bgmSound && (bgmSound.isPlaying || bgmSound.isPaused)) bgmSound.stop();
+    stopBgm(true);
     return;
   }
   try {
-    if (!bgmSound) bgmSound = activeScene.sound.add(AUDIO_KEYS.bgm, { loop: true, volume: effectiveVolume("bgm") });
+    if (!bgmSound) {
+      if (forceStart) unlockAudio();
+      startNextBgmTrack();
+      return;
+    }
     if (typeof bgmSound.setVolume === "function") bgmSound.setVolume(effectiveVolume("bgm"));
     if (bgmSound.isPaused && typeof bgmSound.resume === "function") {
       bgmSound.resume();
-    } else if (forceStart || !bgmSound.isPlaying) {
-      unlockAudio();
-      bgmSound.play();
+    } else if (!bgmSound.isPlaying) {
+      stopBgm();
+      startNextBgmTrack();
     }
   } catch {
-    bgmSound = null;
+    stopBgm();
   }
 }
 
@@ -464,7 +514,7 @@ class MainScene extends Phaser.Scene {
     this.load.spritesheet("items", pixelAssetUrl("items.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("debuffs", pixelAssetUrl("debuffs.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("dialoguePortraits", pixelAssetUrl("dialogue_portraits.png"), { frameWidth: TILE, frameHeight: TILE });
-    this.load.audio(AUDIO_KEYS.bgm, audioAssetUrl("bgm_dungeon_loop.wav"));
+    for (const track of BGM_TRACKS) this.load.audio(track.key, audioAssetUrl(track.file));
     this.load.audio(AUDIO_KEYS.dig, audioAssetUrl("dig.wav"));
     this.load.audio(AUDIO_KEYS.button, audioAssetUrl("button.wav"));
     this.load.audio(AUDIO_KEYS.coreHit, audioAssetUrl("core_hit.wav"));

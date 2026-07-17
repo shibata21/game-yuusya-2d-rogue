@@ -69,6 +69,7 @@ describe("Phaserアプリ構成", () => {
 
   it("Phaserシーンは分割アトラスをspritesheetとして読む", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
+    const bgmSrc = fs.readFileSync(path.join(repoDir, "src/bgmPlaylist.js"), "utf8");
     expect(src).toContain('import Phaser from "phaser"');
     expect(src).toContain("let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);");
     expect(src).not.toContain("let gameApi = createGame({ seed: 1 });");
@@ -84,8 +85,11 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('this.load.spritesheet("effects"');
     expect(src).toContain('this.load.spritesheet("items"');
     expect(src).toContain('this.load.spritesheet("debuffs"');
-    expect(src).toContain("this.load.audio(AUDIO_KEYS.bgm");
-    expect(src).toContain("bgm_dungeon_loop.wav");
+    expect(src).toContain("for (const track of BGM_TRACKS)");
+    expect(src).toContain("this.load.audio(track.key, audioAssetUrl(track.file))");
+    expect(bgmSrc).toContain("bgm_vein_pulse.wav");
+    expect(bgmSrc).toContain("bgm_monster_march.wav");
+    expect(bgmSrc).toContain("bgm_deep_ritual.wav");
     expect(src).toContain("core_hit.wav");
     expect(src).toContain("hero_death_1.wav");
     expect(src).toContain("indexedDB.open(AUDIO_DB_NAME");
@@ -165,6 +169,11 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("markRunInterrupted");
     expect(src).toContain("bgmSound.pause");
     expect(src).toContain("bgmSound.resume");
+    expect(src).toContain('sound.once("complete"');
+    expect(src).toContain("startNextBgmTrack");
+    expect(src).toContain("bgmGeneration");
+    expect(src).toContain("{ loop: false, volume: effectiveVolume(\"bgm\") }");
+    expect(src).not.toContain("{ loop: true, volume: effectiveVolume(\"bgm\") }");
     expect(src).not.toContain("codexOpen");
     expect(src).toContain('["通常", "第一進化", "第二進化"]');
   });
