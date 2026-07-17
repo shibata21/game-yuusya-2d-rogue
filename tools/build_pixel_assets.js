@@ -18,6 +18,8 @@ const {
   ACTOR_SHEETS,
   TILES,
   EFFECTS,
+  DRAGON_FIRE_VARIANTS,
+  DRAGON_FIRE_SEGMENTS,
   ITEM_ICONS,
   DEBUFF_ICONS,
   DIALOGUE_PORTRAITS,
@@ -70,6 +72,22 @@ function validateManifest() {
   );
   assertList("通常タイル", manifest.layouts.environmentTiles.ids, TILES.slice(0, 5));
   assertList("エフェクト", manifest.layouts.effects.ids, EFFECTS);
+  const dragonFire = manifest.layouts.dragonFireBreath;
+  assertList("ドラゴン炎の色", dragonFire.variants, DRAGON_FIRE_VARIANTS);
+  assertList("ドラゴン炎の部位", dragonFire.segments, DRAGON_FIRE_SEGMENTS);
+  if (dragonFire.files.length !== DRAGON_FIRE_VARIANTS.length
+    || dragonFire.columns !== FRAMES
+    || dragonFire.rows !== DRAGON_FIRE_SEGMENTS.length
+    || JSON.stringify(dragonFire.sourceSize) !== JSON.stringify([1536, 1024])
+    || dragonFire.frames !== FRAMES
+    || dragonFire.baseDirection !== "e") {
+    throw new Error("ドラゴン炎原画の仕様が不正です。");
+  }
+  dragonFire.files.forEach((file, index) => {
+    if (file !== `effects/dragon-fire-breath-${DRAGON_FIRE_VARIANTS[index]}.png`) {
+      throw new Error("ドラゴン炎原画の色とファイル順が一致しません。");
+    }
+  });
   assertList("デバフ", manifest.layouts.debuffs.ids, DEBUFF_ICONS);
   assertList("会話立ち絵", manifest.layouts.dialogue.ids, DIALOGUE_PORTRAITS);
   assertList("アイテム", manifest.itemSheets.flatMap((sheet) => sheet.ids), ITEM_ICONS);
@@ -831,6 +849,23 @@ function writeEffectAtlas() {
   writePng(path.join(OUT_DIR, "effects.png"), atlas);
 }
 
+function writeDragonFireBreathAtlas() {
+  const layout = manifest.layouts.dragonFireBreath;
+  const atlas = image(CELL * FRAMES, CELL * DRAGON_FIRE_VARIANTS.length * DRAGON_FIRE_SEGMENTS.length);
+  layout.files.forEach((file, variantIndex) => {
+    const src = sourceImage(file);
+    DRAGON_FIRE_SEGMENTS.forEach((_, segmentIndex) => {
+      for (let frame = 0; frame < FRAMES; frame++) {
+        const sourceCell = gridCell(src, frame, segmentIndex, layout.columns, layout.rows);
+        const effect = resizeNearest(sourceCell, CELL, CELL);
+        const row = variantIndex * DRAGON_FIRE_SEGMENTS.length + segmentIndex;
+        copyInto(atlas, effect, frame * CELL, row * CELL);
+      }
+    });
+  });
+  writePng(path.join(OUT_DIR, "dragon_fire_breath.png"), atlas);
+}
+
 function writeItemAtlas() {
   const cells = new Map();
   for (const layout of manifest.itemSheets) {
@@ -903,6 +938,7 @@ function writeMeta() {
     actors: {},
     tiles: {},
     effects: {},
+    dragonFireBreath: {},
     items: {},
     soilAlgae: {},
     veinEvo2Aura: {},
@@ -958,6 +994,21 @@ function writeMeta() {
       frames: FRAMES,
       anchor: [CELL / 2, CELL / 2],
     };
+  });
+  DRAGON_FIRE_VARIANTS.forEach((variant, variantIndex) => {
+    meta.dragonFireBreath[variant] = {};
+    DRAGON_FIRE_SEGMENTS.forEach((segment, segmentIndex) => {
+      const row = variantIndex * DRAGON_FIRE_SEGMENTS.length + segmentIndex;
+      meta.dragonFireBreath[variant][segment] = {
+        sheet: "dragon_fire_breath",
+        x: 0,
+        y: row * CELL,
+        w: CELL,
+        h: CELL,
+        frames: FRAMES,
+        anchor: [CELL / 2, CELL / 2],
+      };
+    });
   });
   ITEM_ICONS.forEach((name, column) => {
     meta.items[name] = {
@@ -1019,6 +1070,7 @@ function build() {
   writeActorAtlases();
   writeTileAtlas();
   writeEffectAtlas();
+  writeDragonFireBreathAtlas();
   writeItemAtlas();
   writeSoilAlgaeAtlas();
   writeVeinEvo2AuraAtlas();

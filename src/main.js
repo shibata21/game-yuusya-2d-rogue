@@ -22,9 +22,12 @@ import {
   pixelActorSheetName,
   pixelActorTextureKey,
   pixelItemFrameIndex,
+  pixelDragonFireFrameIndex,
   pixelDebuffFrameIndex,
   pixelDialoguePortraitFrameIndex,
   tileOverlayFrameState,
+  dragonFireSegmentAt,
+  dragonFireDirectionLayout,
   COLS,
   ROWS,
   TILE,
@@ -39,12 +42,14 @@ import {
   PIXEL_ACTOR_SHEETS,
   PIXEL_TILES,
   PIXEL_EFFECTS,
+  PIXEL_DRAGON_FIRE_VARIANTS,
   PIXEL_ITEMS,
   PIXEL_DEBUFFS,
   PIXEL_DIALOGUE_PORTRAITS,
   PIXEL_FRAMES,
 } from "./gameCore.js";
 import { DEV_GROUPS } from "./devTuning.js";
+import { hideDragonFireSprite, showDragonFireSprite } from "./dragonFireSprites.js";
 import {
   applyProgressEvents,
   awardRunCoins,
@@ -212,6 +217,7 @@ function initialVisualTextureKeys() {
   return [
     "tiles",
     "effects",
+    "dragonFireBreath",
     "items",
     "soilAlgae",
     "veinEvo2Aura",
@@ -493,6 +499,7 @@ class MainScene extends Phaser.Scene {
     this.veinAuraSprites = [];
     this.actorSprites = [];
     this.effectSprites = [];
+    this.dragonFireSprites = [];
     this.soilGraphics = null;
     this.crackGraphics = null;
     this.flameGraphics = null;
@@ -511,6 +518,7 @@ class MainScene extends Phaser.Scene {
       this.load.spritesheet(pixelActorTextureKey(sheet), actorAssetUrl(sheet), { frameWidth: TILE, frameHeight: TILE });
     }
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.spritesheet("dragonFireBreath", pixelAssetUrl("dragon_fire_breath.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("items", pixelAssetUrl("items.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("soilAlgae", pixelAssetUrl("soil_algae.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("veinEvo2Aura", pixelAssetUrl("vein_evo2_aura.png"), { frameWidth: TILE, frameHeight: TILE });
@@ -874,7 +882,8 @@ class MainScene extends Phaser.Scene {
   }
 
   syncEffects() {
-    this.drawFlameLines();
+    this.drawWorldGraphics();
+    this.syncDragonFireBreaths();
     const drawable = gameApi.effects.filter((f) => PIXEL_EFFECTS.includes(f.type));
     while (this.effectSprites.length < drawable.length) {
       const sprite = this.add.image(0, 0, "effects", 0);
@@ -909,7 +918,44 @@ class MainScene extends Phaser.Scene {
     }
   }
 
-  drawFlameLines() {
+  syncDragonFireBreaths() {
+    const entries = [];
+    for (const effect of gameApi.effects) {
+      if (effect.type !== "flameLine") continue;
+      const cells = Array.isArray(effect.cells) ? effect.cells : [];
+      cells.forEach((cell, index) => entries.push({ effect, cell, index, total: cells.length }));
+    }
+    while (this.dragonFireSprites.length < entries.length) {
+      const sprite = this.add.image(0, 0, "dragonFireBreath", 0);
+      sprite.setOrigin(0.5, 0.5);
+      this.dragonFireSprites.push(sprite);
+    }
+    for (let i = 0; i < this.dragonFireSprites.length; i++) {
+      const sprite = this.dragonFireSprites[i];
+      const entry = entries[i];
+      if (!entry) {
+        hideDragonFireSprite(sprite);
+        continue;
+      }
+      const { effect, cell, index, total } = entry;
+      const segment = dragonFireSegmentAt(index, total);
+      const progress = Math.max(0, Math.min(1, 1 - effect.life / effect.max));
+      const frame = Math.min(PIXEL_FRAMES - 1, Math.floor(progress * PIXEL_FRAMES));
+      const variant = PIXEL_DRAGON_FIRE_VARIANTS.includes(effect.variant) ? effect.variant : "orange";
+      const layout = dragonFireDirectionLayout(effect.dir);
+      showDragonFireSprite(sprite, {
+        frame: pixelDragonFireFrameIndex(variant, segment, frame),
+        x: gameApi.cx(cell.col),
+        y: gameApi.cy(cell.row),
+        rotation: layout.rotation,
+        scaleX: layout.scaleX,
+        alpha: Math.max(0, Math.min(1, effect.life / effect.max * 1.8)),
+        depth: 490 + i * 0.001,
+      });
+    }
+  }
+
+  drawWorldGraphics() {
     if (!this.flameGraphics) return;
     this.flameGraphics.clear();
     for (const f of gameApi.slowFields || []) {
@@ -948,22 +994,6 @@ class MainScene extends Phaser.Scene {
         this.flameGraphics.fillStyle(color, 0.10 * alpha);
         this.flameGraphics.fillCircle(f.x, f.y, 10 + p * 34);
         continue;
-      }
-      if (f.type !== "flameLine") continue;
-      const p = 1 - alpha;
-      for (let i = 0; i < (f.cells || []).length; i++) {
-        const cell = f.cells[i];
-        const x = gameApi.cx(cell.col) + Math.sin(this.time.now / 80 + i * 1.7) * 3;
-        const y = gameApi.cy(cell.row) + Math.cos(this.time.now / 95 + i) * 2;
-        const r = 18 - p * 5 + (i % 2) * 2;
-        this.flameGraphics.fillStyle(color, 0.22 * alpha);
-        this.flameGraphics.fillCircle(x, y + 6, r);
-        this.flameGraphics.fillStyle(0xfff1a6, 0.46 * alpha);
-        this.flameGraphics.fillTriangle(x - 11, y + 10, x + 11, y + 9, x + Math.sin(this.time.now / 70 + i) * 4, y - 17 - p * 6);
-        this.flameGraphics.fillStyle(0xff5a28, 0.30 * alpha);
-        this.flameGraphics.fillTriangle(x - 15, y + 12, x + 4, y + 13, x - 2, y - 12);
-        this.flameGraphics.fillStyle(0xffcf4d, 0.18 * alpha);
-        this.flameGraphics.fillCircle(x + 9, y - 3, 5 + Math.sin(this.time.now / 60 + i) * 2);
       }
     }
   }

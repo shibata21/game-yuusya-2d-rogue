@@ -18,6 +18,8 @@ const {
   ACTOR_SHEETS,
   TILES,
   EFFECTS,
+  DRAGON_FIRE_VARIANTS,
+  DRAGON_FIRE_SEGMENTS,
   ITEM_ICONS,
   DEBUFF_ICONS,
   DIALOGUE_PORTRAITS,
@@ -48,6 +50,23 @@ function opaqueCount(img) {
   let count = 0;
   for (let i = 3; i < img.data.length; i += 4) {
     if (img.data[i] > 12) count++;
+  }
+  return count;
+}
+
+function opaqueMagentaCount(img) {
+  let count = 0;
+  for (let i = 0; i < img.data.length; i += 4) {
+    const r = img.data[i];
+    const g = img.data[i + 1];
+    const b = img.data[i + 2];
+    const peak = Math.max(r, b);
+    const minLead = Math.max(12, peak * 0.18);
+    const maxRedBlueDelta = Math.max(18, peak * 0.40);
+    if (img.data[i + 3] > 12
+      && r - g >= minLead
+      && b - g >= minLead
+      && Math.abs(r - b) <= maxRedBlueDelta) count++;
   }
   return count;
 }
@@ -124,6 +143,23 @@ function gridCell(src, column, row, columns, rows) {
   const y0 = Math.round((row * src.height) / rows);
   const y1 = Math.round(((row + 1) * src.height) / rows);
   return crop(src, x0, y0, x1 - x0, y1 - y0);
+}
+
+function resizeNearest(src, width, height) {
+  const out = new PNG({ width, height });
+  for (let y = 0; y < height; y++) {
+    const sy = Math.min(src.height - 1, Math.floor(((y + 0.5) * src.height) / height));
+    for (let x = 0; x < width; x++) {
+      const sx = Math.min(src.width - 1, Math.floor(((x + 0.5) * src.width) / width));
+      const si = (sy * src.width + sx) * 4;
+      const di = (y * width + x) * 4;
+      out.data[di] = src.data[si];
+      out.data[di + 1] = src.data[si + 1];
+      out.data[di + 2] = src.data[si + 2];
+      out.data[di + 3] = src.data[si + 3] <= 8 ? 0 : src.data[si + 3];
+    }
+  }
+  return out;
 }
 
 function luminance(img, x, y) {
@@ -343,6 +379,30 @@ function validateImagegenSource(manifest) {
   for (const [label, layout] of gridLayouts) {
     validateSourceGrid(layout.file, layout.columns, layout.rows, label);
   }
+  const dragonFire = manifest.layouts.dragonFireBreath;
+  if (!sameList(dragonFire.variants, DRAGON_FIRE_VARIANTS)
+    || !sameList(dragonFire.segments, DRAGON_FIRE_SEGMENTS)
+    || dragonFire.files.length !== DRAGON_FIRE_VARIANTS.length
+    || dragonFire.columns !== FRAMES
+    || dragonFire.rows !== DRAGON_FIRE_SEGMENTS.length
+    || !sameList(dragonFire.sourceSize, [1536, 1024])
+    || dragonFire.frames !== FRAMES
+    || dragonFire.baseDirection !== "e") {
+    fail("ドラゴン炎原画の仕様が不正です");
+  } else {
+    dragonFire.files.forEach((file, index) => {
+      if (file !== `effects/dragon-fire-breath-${DRAGON_FIRE_VARIANTS[index]}.png`) {
+        fail(`ドラゴン炎 ${DRAGON_FIRE_VARIANTS[index]} のファイル対応が不正です`);
+      }
+      validateSourceGrid(file, dragonFire.columns, dragonFire.rows, `ドラゴン炎 ${DRAGON_FIRE_VARIANTS[index]}`);
+      validateTransparentSource(file, `ドラゴン炎 ${DRAGON_FIRE_VARIANTS[index]}`);
+      const source = readPng(sourceFile(file));
+      if (!sameList([source.width, source.height], dragonFire.sourceSize)) {
+        fail(`ドラゴン炎 ${DRAGON_FIRE_VARIANTS[index]} の原画寸法が不正です`);
+      }
+      if (opaqueMagentaCount(source) > 0) fail(`ドラゴン炎 ${DRAGON_FIRE_VARIANTS[index]} にマゼンタ背景が残っています`);
+    });
+  }
   for (const [index, layout] of manifest.itemSheets.entries()) {
     validateSourceGrid(layout.file, layout.columns, layout.rows, `アイテムシート${index + 1}`);
     validateTransparentSource(layout.file, `アイテムシート${index + 1}`);
@@ -426,6 +486,23 @@ function validateMeta(manifest) {
   if (!sameList(Object.keys(meta.actors), ACTORS)) fail("sprites.json のアクター順が不正です");
   if (!sameList(Object.keys(meta.tiles), TILES)) fail("sprites.json のタイル順が不正です");
   if (!sameList(Object.keys(meta.effects), EFFECTS)) fail("sprites.json のエフェクト順が不正です");
+  if (!sameList(Object.keys(meta.dragonFireBreath || {}), DRAGON_FIRE_VARIANTS)) {
+    fail("sprites.json のドラゴン炎色順が不正です");
+  } else {
+    DRAGON_FIRE_VARIANTS.forEach((variant, variantIndex) => {
+      if (!sameList(Object.keys(meta.dragonFireBreath[variant] || {}), DRAGON_FIRE_SEGMENTS)) {
+        fail(`sprites.json のドラゴン炎 ${variant} 部位順が不正です`);
+        return;
+      }
+      DRAGON_FIRE_SEGMENTS.forEach((segment, segmentIndex) => {
+        const row = variantIndex * DRAGON_FIRE_SEGMENTS.length + segmentIndex;
+        const expected = { sheet: "dragon_fire_breath", x: 0, y: row * CELL, w: CELL, h: CELL, frames: FRAMES, anchor: [CELL / 2, CELL / 2] };
+        if (!sameList(meta.dragonFireBreath[variant][segment], expected)) {
+          fail(`sprites.json のドラゴン炎 ${variant}:${segment} が不正です`);
+        }
+      });
+    });
+  }
   if (!sameList(Object.keys(meta.items), ITEM_ICONS)) fail("sprites.json のアイテム順が不正です");
   if (!sameList(Object.keys(meta.soilAlgae || {}).map(Number), SOIL_ALGAE_STAGES)) {
     fail("sprites.json の土壌の藻段階が不正です");
@@ -492,7 +569,7 @@ function actorFrame(name, action, direction, frame) {
   return crop(atlas, x, y);
 }
 
-function validateAtlases() {
+function validateAtlases(manifest) {
   if (fs.existsSync(path.join(OUT_DIR, "actors.png"))) fail("旧単一アクターシートが残っています");
   for (const [sheet, names] of Object.entries(ACTOR_SHEETS)) {
     const atlas = validatePng(
@@ -507,6 +584,11 @@ function validateAtlases() {
   }
   const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL);
   const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length);
+  const dragonFireBreath = validatePng(
+    path.join(OUT_DIR, "dragon_fire_breath.png"),
+    CELL * FRAMES,
+    CELL * DRAGON_FIRE_VARIANTS.length * DRAGON_FIRE_SEGMENTS.length,
+  );
   const items = validatePng(path.join(OUT_DIR, "items.png"), CELL * ITEM_ICONS.length, CELL);
   const soilAlgae = validatePng(path.join(OUT_DIR, "soil_algae.png"), CELL * SOIL_ALGAE_STAGES.length, CELL);
   const veinEvo2Aura = validatePng(path.join(OUT_DIR, "vein_evo2_aura.png"), CELL * VEIN_EVO2_AURA_FRAMES, CELL);
@@ -575,6 +657,32 @@ function validateAtlases() {
       if (opaqueCount(crop(effects, frame * CELL, row * CELL)) < 8) fail(`エフェクト ${name}:${frame} が空です`);
     }
   });
+  const dragonVariantHashes = new Set();
+  const dragonLayout = manifest.layouts.dragonFireBreath;
+  const dragonSources = dragonLayout.files.map((file) => readPng(sourceFile(file)));
+  DRAGON_FIRE_VARIANTS.forEach((variant, variantIndex) => {
+    DRAGON_FIRE_SEGMENTS.forEach((segment, segmentIndex) => {
+      const row = variantIndex * DRAGON_FIRE_SEGMENTS.length + segmentIndex;
+      const hashes = new Set();
+      for (let frame = 0; frame < FRAMES; frame++) {
+        const flame = crop(dragonFireBreath, frame * CELL, row * CELL);
+        const expected = resizeNearest(
+          gridCell(dragonSources[variantIndex], frame, segmentIndex, dragonLayout.columns, dragonLayout.rows),
+          CELL,
+          CELL,
+        );
+        if (opaqueCount(flame) < 20) fail(`ドラゴン炎 ${variant}:${segment}:${frame} が空です`);
+        if (opaqueMagentaCount(flame) > 0) fail(`ドラゴン炎 ${variant}:${segment}:${frame} にマゼンタ背景が残っています`);
+        if (imageHash(flame) !== imageHash(expected)) fail(`ドラゴン炎 ${variant}:${segment}:${frame} が原画と一致しません`);
+        hashes.add(imageHash(flame));
+      }
+      if (hashes.size < 3) fail(`ドラゴン炎 ${variant}:${segment} の4フレーム差分が不足しています`);
+      dragonVariantHashes.add(imageHash(crop(dragonFireBreath, CELL, row * CELL)));
+    });
+  });
+  if (dragonVariantHashes.size !== DRAGON_FIRE_VARIANTS.length * DRAGON_FIRE_SEGMENTS.length) {
+    fail("ドラゴン炎の色・部位差分が不足しています");
+  }
   ITEM_ICONS.forEach((name, column) => {
     const icon = crop(items, column * CELL, 0);
     if (opaqueCount(icon) < 60 || uniqueColors(icon) < 8) fail(`アイテム ${name} の情報量が不足しています`);
@@ -603,7 +711,7 @@ function validateAtlases() {
   DIALOGUE_PORTRAITS.forEach((name, column) => {
     if (opaqueCount(crop(dialogue, column * CELL, 0)) < 180) fail(`会話立ち絵 ${name} が小さすぎます`);
   });
-  const atlases = { tiles, effects, items, soilAlgae, veinEvo2Aura, debuffs, dialogue };
+  const atlases = { tiles, effects, dragonFireBreath, items, soilAlgae, veinEvo2Aura, debuffs, dialogue };
   for (const [name, atlas] of Object.entries(atlases)) {
     if (atlas && (atlas.width > 4096 || atlas.height > 4096)) {
       fail(`${name} アトラスがモバイル向け上限4096pxを超えています: ${atlas.width}x${atlas.height}`);
@@ -704,7 +812,7 @@ function main() {
   const manifest = JSON.parse(fs.readFileSync(manifestFile, "utf8"));
   validateImagegenSource(manifest);
   validateMeta(manifest);
-  const atlases = validateAtlases();
+  const atlases = validateAtlases(manifest);
   validateActorVariety(manifest);
   validateIndependentEvolutions(manifest);
   validateAtlasVariety(atlases.tiles, atlases.items, atlases.dialogue);

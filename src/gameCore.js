@@ -177,7 +177,7 @@ export const KINDS = {
   carniv: { hp: 26, atk: 5, range: 1, moveCd: 590, atkCd: 680, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, col: "#e06b3a", name: "牙獣", profile: "首輪はないが飼われている顔をしている。褒められると通路を余計に走る。" },
   spitter: { hp: 34, atk: 8, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
   golem: { hp: 125, atk: 5, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.08, col: "#6f86c4", name: "ゴーレム", profile: "動き出すまでが長い。動き出してからも長い。本人は慎重派と言っている。" },
-  flame: { hp: 84, atk: 18, range: 3, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.055, lineFire: true, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
+  flame: { hp: 84, atk: 18, range: 3, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.055, lineFire: true, fireBreath: "orange", col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
   moss_shroom: { hp: 8, atk: 1, range: 1, moveCd: 570, atkCd: 760, aggro: 3, rank: 1, breedEvery: 13000, breedCap: 4, family: "moss_shroom", soilGrow: 1, col: "#8fcf6a", name: "胞子茸", profile: "歩くたび胞子を落とす小さな茸。本人は掃除をしているつもりで土を肥やす。" },
   moss_mycelia: { hp: 43, atk: 5, range: 1, moveCd: 540, atkCd: 720, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_shroom", soilGrow: 2, col: "#b7df7a", eliteOf: "moss_shroom", name: "菌糸茸", profile: "足元から白い菌糸を伸ばす。通ったあとの土はやけに目覚めがいい。" },
   moss_myceliaKing: { hp: 94, atk: 11, range: 1, moveCd: 520, atkCd: 690, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_shroom", soilGrow: 3, col: "#e0ef9a", eliteOf: "moss_mycelia", evoLevel: 2, name: "菌糸王", profile: "地中に王国を広げる茸。本人が座ると周囲の土が勝手に家臣になる。" },
@@ -227,12 +227,12 @@ export const KINDS = {
   evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣", profile: "牙の手入れにうるさい。鏡がないので、水たまりの前でよく止まる。" },
   tarantula: { hp: 108, atk: 19, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
   titan: { hp: 285, atk: 16, range: 1, moveCd: 1080, atkCd: 1000, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.035, col: "#d9b27a", eliteOf: "golem", name: "巨像ゴーレム", profile: "昔は山だったと言い張る。否定すると返事が翌朝まで返ってこない。" },
-  infernal: { hp: 195, atk: 34, range: 3, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.025, lineFire: true, col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
+  infernal: { hp: 195, atk: 34, range: 3, moveCd: 560, atkCd: 740, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.025, lineFire: true, fireBreath: "blue", col: "#5ab0ff", eliteOf: "flame", name: "獄炎竜", profile: "青い炎を上品だと思っている。寝起きだけ火力が弱く、本人も少し気まずい。" },
   crownslime: { hp: 112, atk: 14, range: 1, moveCd: 500, atkCd: 650, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, col: "#d4a53d", eliteOf: "superslime", evoLevel: 2, name: "冠スライム", profile: "ぷるぷるした王冠をかぶる。威厳を出そうとして、まず姿勢から練習している。" },
   direfang: { hp: 178, atk: 30, range: 1, moveCd: 610, atkCd: 640, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, col: "#5f2020", eliteOf: "evolved", evoLevel: 2, name: "裂牙獣", profile: "走るたびに地面へ爪痕を残す。本人は道しるべのつもりらしい。" },
   goldweaver: { hp: 205, atk: 36, range: 2, moveCd: 540, atkCd: 820, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, eggChance: 0.06, col: "#c6952c", eliteOf: "tarantula", evoLevel: 2, name: "金糸蜘蛛", profile: "金色の糸を張る。採算を聞かれると急に巣の奥へ戻る。" },
   goldcore: { hp: 540, atk: 31, range: 1, moveCd: 1060, atkCd: 980, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.012, col: "#d0a248", eliteOf: "titan", evoLevel: 2, name: "金核ゴーレム", profile: "胸の核がやたら光る。本人は節電の概念をまだ知らない。" },
-  whiteflame: { hp: 390, atk: 62, range: 3, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.01, lineFire: true, col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
+  whiteflame: { hp: 390, atk: 62, range: 3, moveCd: 550, atkCd: 720, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, eggChance: 0.01, lineFire: true, fireBreath: "white", col: "#f3f7ff", eliteOf: "infernal", evoLevel: 2, name: "白炎竜", profile: "白い炎を吐く。熱すぎて焼き加減の感想がだいたい同じになる。" },
   reaper: { hp: 430, atk: 68, range: 1, moveCd: 520, atkCd: 620, aggro: 6, rank: 10, breedEvery: 0, breedCap: 1, col: "#b7c6d6", name: "死神", profile: "倒れた冒険者の影からまれに現れる。鎌の手入れだけは妙に几帳面。" },
   chimera: { hp: 1, atk: 1, range: 1, moveCd: 540, atkCd: 600, aggro: 8, rank: 11, breedEvery: 0, breedCap: 1, col: "#d7835a", name: "キメラ", profile: "手縫いのくまちゃんが倒れた魔物の力を縫い合わせて呼ぶ、一時の怪物。" },
 };
@@ -467,7 +467,7 @@ function applyMonsterDeckToVeins(veinTable, deck) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v34-soil-resources";
+export const PIXEL_ASSET_VERSION = "v35-dragon-fire";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -521,11 +521,37 @@ export const PIXEL_ACTOR_SHEETS = {
 };
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
+export const PIXEL_DRAGON_FIRE_VARIANTS = ["orange", "blue", "white"];
+export const PIXEL_DRAGON_FIRE_SEGMENTS = ["start", "middle", "end"];
+export const PIXEL_DRAGON_FIRE_SEGMENT_SCALE = 1.4;
 export const PIXEL_ITEMS = Object.keys(ITEM_TYPES);
 export const PIXEL_SOIL_ALGAE_STAGES = Array.from({ length: SOIL_MANA_MAX_STAGE }, (_, index) => index + 1);
 export const PIXEL_VEIN_EVO2_AURA_FRAMES = 4;
 export const PIXEL_DEBUFFS = Object.keys(DEBUFF_ITEMS);
 export const PIXEL_DIALOGUE_PORTRAITS = ["executive", "gorilla"];
+
+export function dragonFireSegmentAt(index, total) {
+  const count = Math.max(0, Math.floor(Number(total) || 0));
+  const position = Math.max(0, Math.floor(Number(index) || 0));
+  if (count <= 1 || position >= count - 1) return "end";
+  return position === 0 ? "start" : "middle";
+}
+
+export function dragonFireDirectionLayout(direction) {
+  const index = PIXEL_DIRS.indexOf(direction);
+  const normalizedIndex = index < 0 ? 0 : index;
+  const diagonal = normalizedIndex % 2 === 1;
+  const rawRotation = normalizedIndex * Math.PI / 4;
+  const rotation = rawRotation > Math.PI ? rawRotation - Math.PI * 2 : rawRotation;
+  return { rotation, scaleX: PIXEL_DRAGON_FIRE_SEGMENT_SCALE * (diagonal ? Math.SQRT2 : 1) };
+}
+
+export function pixelDragonFireFrameIndex(variant, segment, frame = 0) {
+  const variantIndex = Math.max(0, PIXEL_DRAGON_FIRE_VARIANTS.indexOf(variant));
+  const segmentIndex = Math.max(0, PIXEL_DRAGON_FIRE_SEGMENTS.indexOf(segment));
+  const frameIndex = Math.max(0, Math.min(PIXEL_FRAMES - 1, Math.floor(Number(frame) || 0)));
+  return (variantIndex * PIXEL_DRAGON_FIRE_SEGMENTS.length + segmentIndex) * PIXEL_FRAMES + frameIndex;
+}
 
 export function tileOverlayFrameState(tile, elapsedMs = 0, col = 0, row = 0) {
   const isEarth = !!tile && tile.t === "earth";
@@ -2321,7 +2347,7 @@ export function createGame(options = {}) {
     m.combatUpdate = updateSerial;
     m.recoveryCarry = 0;
     setAction(m, "cast", cx(end.col), cy(end.row), ATK_ANIM);
-    effects.push({ type: "flameLine", sx: m.px, sy: m.py - 4, tx: cx(end.col), ty: cy(end.row), x: cx(end.col), y: cy(end.row), color: k.col, life: 500, max: 500, cells: attack.cells });
+    effects.push({ type: "flameLine", sx: m.px, sy: m.py - 4, tx: cx(end.col), ty: cy(end.row), x: cx(end.col), y: cy(end.row), color: k.col, variant: k.fireBreath || "orange", dir: attack.dir, life: 500, max: 500, cells: attack.cells });
     for (const h of [...attack.victims]) {
       if (!heroes.includes(h)) continue;
       damageHero(h, monsterAttackPower(m), m, "#ffcf4d");
@@ -3347,8 +3373,8 @@ export function createGame(options = {}) {
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
     SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX, VEIN_EVO_MAX_STAGE,
     VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_SOIL_ALGAE_STAGES, PIXEL_VEIN_EVO2_AURA_FRAMES, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS, tileOverlayFrameState,
-    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_DRAGON_FIRE_VARIANTS, PIXEL_DRAGON_FIRE_SEGMENTS, PIXEL_DRAGON_FIRE_SEGMENT_SCALE, PIXEL_ITEMS, PIXEL_SOIL_ALGAE_STAGES, PIXEL_VEIN_EVO2_AURA_FRAMES, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS, tileOverlayFrameState, dragonFireSegmentAt, dragonFireDirectionLayout,
+    PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDragonFireFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
 
@@ -3359,8 +3385,8 @@ export const Core = {
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
   SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX, VEIN_EVO_MAX_STAGE,
   CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_SOIL_ALGAE_STAGES, PIXEL_VEIN_EVO2_AURA_FRAMES, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS, tileOverlayFrameState,
-  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
+  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_DRAGON_FIRE_VARIANTS, PIXEL_DRAGON_FIRE_SEGMENTS, PIXEL_DRAGON_FIRE_SEGMENT_SCALE, PIXEL_ITEMS, PIXEL_SOIL_ALGAE_STAGES, PIXEL_VEIN_EVO2_AURA_FRAMES, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS, tileOverlayFrameState, dragonFireSegmentAt, dragonFireDirectionLayout,
+  PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDragonFireFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
 };
 
 export function exposeGameNamespace(currentGame = null) {

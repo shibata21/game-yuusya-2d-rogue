@@ -948,8 +948,25 @@ describe("ゲームルール", () => {
     expect(far.hp).toBeLessThan(60);
     expect(outOfRange.hp).toBe(60);
     expect(offLine.hp).toBe(60);
-    expect(G.effects.some((e) => e.type === "flameLine")).toBe(true);
+    expect(G.effects.find((e) => e.type === "flameLine")).toMatchObject({
+      variant: "orange",
+      dir: "e",
+      cells: [{ col: 3, row: 5 }, { col: 4, row: 5 }, { col: 5, row: 5 }],
+    });
     expect(G.dragonFireCells(G.monsters[0], "e")).toHaveLength(3);
+  });
+
+  it("火竜3段階は橙・青・白の専用炎を使う", () => {
+    for (const [kind, variant] of [["flame", "orange"], ["infernal", "blue"], ["whiteflame", "white"]]) {
+      G.resetGame(1);
+      carveAll();
+      G.spawnMonster(kind, 2, 5);
+      finishBirth(G.monsters[0]);
+      G.heroes.push(hero("warrior", 3, 5, { hp: 100, atkCd: 999999 }));
+      G.monsters[0].atkCd = 0;
+      G.update(100);
+      expect(G.effects.find((effect) => effect.type === "flameLine"), kind).toMatchObject({ variant, dir: "e" });
+    }
   });
 
   it("ドラゴンの炎は縦横斜め以外へ通常遠距離攻撃しない", () => {
@@ -967,14 +984,18 @@ describe("ゲームルール", () => {
   it("ドラゴンの炎は壁で止まり、壁の先へ届かない", () => {
     carveAll();
     G.spawnMonster("flame", 2, 5);
+    finishBirth(G.monsters[0]);
     G.grid[5][4].t = "earth";
+    const near = hero("warrior", 3, 5, { hp: 60, atkCd: 999999 });
     const blocked = hero("warrior", 5, 5, { hp: 60, atkCd: 999999 });
-    G.heroes.push(blocked);
+    G.heroes.push(near, blocked);
     G.monsters[0].atkCd = 0;
     G.monsters[0].moveCd = 999999;
     G.update(100);
+    expect(near.hp).toBeLessThan(60);
     expect(blocked.hp).toBe(60);
     expect(G.dragonFireCells(G.monsters[0], "e")).toEqual([{ col: 3, row: 5 }]);
+    expect(G.effects.find((effect) => effect.type === "flameLine").cells).toEqual([{ col: 3, row: 5 }]);
   });
 
   it("近接攻撃は非隣接対象に当たらない", () => {

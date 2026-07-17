@@ -16,6 +16,9 @@ import {
   PIXEL_CELL,
   PIXEL_DIRS,
   PIXEL_EFFECTS,
+  PIXEL_DRAGON_FIRE_VARIANTS,
+  PIXEL_DRAGON_FIRE_SEGMENTS,
+  PIXEL_DRAGON_FIRE_SEGMENT_SCALE,
   PIXEL_FRAMES,
   PIXEL_TILES,
   PIXEL_ITEMS,
@@ -29,8 +32,11 @@ import {
   pixelActorFrameInfo,
   pixelActorSheetName,
   pixelItemFrameIndex,
+  pixelDragonFireFrameIndex,
   pixelDebuffFrameIndex,
   pixelDialoguePortraitFrameIndex,
+  dragonFireSegmentAt,
+  dragonFireDirectionLayout,
 } from "../src/gameCore.js";
 
 const repoDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -63,6 +69,22 @@ function opaqueCount(img) {
 function hasOpaqueMagenta(img) {
   for (let i = 0; i < img.data.length; i += 4) {
     if (img.data[i + 3] > 12 && img.data[i] > 240 && img.data[i + 1] < 16 && img.data[i + 2] > 240) return true;
+  }
+  return false;
+}
+
+function hasOpaqueChromaMagenta(img) {
+  for (let i = 0; i < img.data.length; i += 4) {
+    const r = img.data[i];
+    const g = img.data[i + 1];
+    const b = img.data[i + 2];
+    const peak = Math.max(r, b);
+    const minLead = Math.max(12, peak * 0.18);
+    const maxRedBlueDelta = Math.max(18, peak * 0.40);
+    if (img.data[i + 3] > 12
+      && r - g >= minLead
+      && b - g >= minLead
+      && Math.abs(r - b) <= maxRedBlueDelta) return true;
   }
   return false;
 }
@@ -256,6 +278,7 @@ describe("imagegenピクセル素材", () => {
     expect(Object.keys(meta.actors)).toEqual(PIXEL_ACTORS);
     expect(Object.keys(meta.tiles)).toEqual(PIXEL_TILES);
     expect(Object.keys(meta.effects)).toEqual(PIXEL_EFFECTS);
+    expect(Object.keys(meta.dragonFireBreath)).toEqual(PIXEL_DRAGON_FIRE_VARIANTS);
     expect(Object.keys(meta.items)).toEqual(PIXEL_ITEMS);
     expect(Object.keys(meta.soilAlgae).map(Number)).toEqual(PIXEL_SOIL_ALGAE_STAGES);
     expect(Object.keys(meta.veinEvo2Aura).map(Number)).toEqual(
@@ -303,15 +326,16 @@ describe("imagegenピクセル素材", () => {
   });
 
   it("公開アセットURLとフレーム参照が新しい版を使う", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v34-soil-resources");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v34-soil-resources");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v34-soil-resources");
-    expect(pixelAssetUrl("soil_algae.png")).toBe("assets/pixel/soil_algae.png?v=v34-soil-resources");
-    expect(pixelAssetUrl("vein_evo2_aura.png")).toBe("assets/pixel/vein_evo2_aura.png?v=v34-soil-resources");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v34-soil-resources");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v34-soil-resources");
+    expect(PIXEL_ASSET_VERSION).toBe("v35-dragon-fire");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v35-dragon-fire");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v35-dragon-fire");
+    expect(pixelAssetUrl("soil_algae.png")).toBe("assets/pixel/soil_algae.png?v=v35-dragon-fire");
+    expect(pixelAssetUrl("vein_evo2_aura.png")).toBe("assets/pixel/vein_evo2_aura.png?v=v35-dragon-fire");
+    expect(pixelAssetUrl("dragon_fire_breath.png")).toBe("assets/pixel/dragon_fire_breath.png?v=v35-dragon-fire");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v35-dragon-fire");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v35-dragon-fire");
     expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe(
-      "assets/pixel/actor_venom_spider.png?v=v34-soil-resources",
+      "assets/pixel/actor_venom_spider.png?v=v35-dragon-fire",
     );
 
     const east = pixelActorFrameInfo("slime", "idle", "e", 0);
@@ -322,6 +346,9 @@ describe("imagegenピクセル素材", () => {
     expect(east.flipX).toBe(false);
     expect(PIXEL_ITEMS).toEqual(["sand", "water", "fungus", "mineral", "air"]);
     expect(pixelItemFrameIndex("air")).toBe(4);
+    expect(pixelDragonFireFrameIndex("orange", "start", 0)).toBe(0);
+    expect(pixelDragonFireFrameIndex("blue", "middle", 2)).toBe(18);
+    expect(pixelDragonFireFrameIndex("white", "end", 3)).toBe(35);
     expect(pixelDebuffFrameIndex("sharpenedBlade")).toBe(3);
     expect(pixelDialoguePortraitFrameIndex("gorilla")).toBe(1);
   });
@@ -340,6 +367,10 @@ describe("imagegenピクセル素材", () => {
     expect(png("assets/pixel/effects.png")).toMatchObject({
       width: PIXEL_CELL * PIXEL_FRAMES,
       height: PIXEL_CELL * PIXEL_EFFECTS.length,
+    });
+    expect(png("assets/pixel/dragon_fire_breath.png")).toMatchObject({
+      width: PIXEL_CELL * PIXEL_FRAMES,
+      height: PIXEL_CELL * PIXEL_DRAGON_FIRE_VARIANTS.length * PIXEL_DRAGON_FIRE_SEGMENTS.length,
     });
     expect(png("assets/pixel/items.png")).toMatchObject({
       width: PIXEL_CELL * PIXEL_ITEMS.length,
@@ -559,6 +590,69 @@ describe("imagegenピクセル素材", () => {
       expect(opaqueEdgeCount(source), `source ${frame}`).toBe(0);
     }
     expect(new Set(hashes).size).toBe(PIXEL_VEIN_EVO2_AURA_FRAMES);
+  });
+
+  it("ドラゴン炎は3色・開始中継終端・4フレームを専用アトラスで使う", () => {
+    const layout = manifest.layouts.dragonFireBreath;
+    expect(layout).toMatchObject({
+      variants: PIXEL_DRAGON_FIRE_VARIANTS,
+      segments: PIXEL_DRAGON_FIRE_SEGMENTS,
+      columns: PIXEL_FRAMES,
+      rows: PIXEL_DRAGON_FIRE_SEGMENTS.length,
+      sourceSize: [1536, 1024],
+      frames: PIXEL_FRAMES,
+      baseDirection: "e",
+    });
+    expect(layout.files).toHaveLength(PIXEL_DRAGON_FIRE_VARIANTS.length);
+    for (const [variantIndex, file] of layout.files.entries()) {
+      expect(file).toBe(`effects/dragon-fire-breath-${PIXEL_DRAGON_FIRE_VARIANTS[variantIndex]}.png`);
+      const source = png(`assets/pixel/source/imagegen-v1/${file}`);
+      expect([source.width, source.height]).toEqual(layout.sourceSize);
+      expect(hasOpaqueChromaMagenta(source), file).toBe(false);
+      for (let row = 0; row < layout.rows; row++) {
+        for (let frame = 0; frame < layout.columns; frame++) {
+          expect(opaqueCount(gridCell(source, frame, row, layout.columns, layout.rows)), `${file}:${row}:${frame}`).toBeGreaterThan(200);
+        }
+      }
+    }
+
+    const atlas = png("assets/pixel/dragon_fire_breath.png");
+    const variantHashes = new Set();
+    for (const variant of PIXEL_DRAGON_FIRE_VARIANTS) {
+      expect(Object.keys(meta.dragonFireBreath[variant])).toEqual(PIXEL_DRAGON_FIRE_SEGMENTS);
+      for (const segment of PIXEL_DRAGON_FIRE_SEGMENTS) {
+        const hashes = [];
+        for (let frame = 0; frame < PIXEL_FRAMES; frame++) {
+          const index = pixelDragonFireFrameIndex(variant, segment, frame);
+          const cell = crop(atlas, index % PIXEL_FRAMES * PIXEL_CELL, Math.floor(index / PIXEL_FRAMES) * PIXEL_CELL);
+          expect(opaqueCount(cell), `${variant}:${segment}:${frame}`).toBeGreaterThan(20);
+          expect(hasOpaqueChromaMagenta(cell), `${variant}:${segment}:${frame}`).toBe(false);
+          hashes.push(imageHash(cell));
+        }
+        expect(new Set(hashes).size, `${variant}:${segment}`).toBeGreaterThanOrEqual(3);
+        variantHashes.add(hashes[1]);
+      }
+    }
+    expect(variantHashes.size).toBe(PIXEL_DRAGON_FIRE_VARIANTS.length * PIXEL_DRAGON_FIRE_SEGMENTS.length);
+    expect(dragonFireSegmentAt(0, 1)).toBe("end");
+    expect([dragonFireSegmentAt(0, 2), dragonFireSegmentAt(1, 2)]).toEqual(["start", "end"]);
+    expect([0, 1, 2].map((index) => dragonFireSegmentAt(index, 3))).toEqual(["start", "middle", "end"]);
+    const expectedRotations = {
+      e: 0,
+      se: Math.PI / 4,
+      s: Math.PI / 2,
+      sw: Math.PI * 3 / 4,
+      w: Math.PI,
+      nw: -Math.PI * 3 / 4,
+      n: -Math.PI / 2,
+      ne: -Math.PI / 4,
+    };
+    for (const direction of PIXEL_DIRS) {
+      const directionLayout = dragonFireDirectionLayout(direction);
+      const diagonal = ["se", "sw", "nw", "ne"].includes(direction);
+      expect(directionLayout.scaleX, direction).toBeCloseTo(PIXEL_DRAGON_FIRE_SEGMENT_SCALE * (diagonal ? Math.SQRT2 : 1));
+      expect(directionLayout.rotation, direction).toBeCloseTo(expectedRotations[direction]);
+    }
   });
 
   it("近接化した苔ウイルスの攻撃セルに分離した飛び道具がない", () => {

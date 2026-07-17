@@ -62,6 +62,8 @@ const TILES = [
   "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2",
 ];
 const EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
+const DRAGON_FIRE_VARIANTS = ["orange", "blue", "white"];
+const DRAGON_FIRE_SEGMENTS = ["start", "middle", "end"];
 const ITEM_ICONS = [
   "sand", "water", "fungus", "mineral", "air",
 ];
@@ -101,7 +103,7 @@ function copyInto(dst, src, dx, dy) {
 }
 
 module.exports = {
-  CELL, FRAMES, DIRECTIONS, ACTOR_RENDER_DIRECTIONS, ACTIONS, ACTOR_FRAMES_PER_ACTOR, ACTOR_ATLAS_COLUMNS, ACTOR_ATLAS_ROWS_PER_ACTOR, OUT_DIR, SOURCE_DIR, ACTORS, ACTOR_SHEETS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
+  CELL, FRAMES, DIRECTIONS, ACTOR_RENDER_DIRECTIONS, ACTIONS, ACTOR_FRAMES_PER_ACTOR, ACTOR_ATLAS_COLUMNS, ACTOR_ATLAS_ROWS_PER_ACTOR, OUT_DIR, SOURCE_DIR, ACTORS, ACTOR_SHEETS, TILES, EFFECTS, DRAGON_FIRE_VARIANTS, DRAGON_FIRE_SEGMENTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
   SOIL_ALGAE_STAGES, VEIN_EVO2_AURA_FRAMES,
   ensureDir, image, writePng, readPng, copyInto,
 };

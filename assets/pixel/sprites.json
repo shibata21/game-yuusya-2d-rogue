@@ -2348,6 +2348,122 @@
       ]
     }
   },
+  "dragonFireBreath": {
+    "orange": {
+      "start": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 0,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      },
+      "middle": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 48,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      },
+      "end": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 96,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      }
+    },
+    "blue": {
+      "start": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 144,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      },
+      "middle": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 192,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      },
+      "end": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 240,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      }
+    },
+    "white": {
+      "start": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 288,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      },
+      "middle": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 336,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      },
+      "end": {
+        "sheet": "dragon_fire_breath",
+        "x": 0,
+        "y": 384,
+        "w": 48,
+        "h": 48,
+        "frames": 4,
+        "anchor": [
+          24,
+          24
+        ]
+      }
+    }
+  },
   "items": {
     "sand": {
       "sheet": "items",

@@ -85,6 +85,20 @@
       "rows": 5,
       "ids": ["slash", "shot", "bite", "birth", "puff"]
     },
+    "dragonFireBreath": {
+      "files": [
+        "effects/dragon-fire-breath-orange.png",
+        "effects/dragon-fire-breath-blue.png",
+        "effects/dragon-fire-breath-white.png"
+      ],
+      "variants": ["orange", "blue", "white"],
+      "columns": 4,
+      "rows": 3,
+      "sourceSize": [1536, 1024],
+      "frames": 4,
+      "segments": ["start", "middle", "end"],
+      "baseDirection": "e"
+    },
     "debuffs": {
       "file": "debuffs/debuffs.png",
       "columns": 5,
@@ -295,7 +309,7 @@
     "actors": "Exact 5 columns by 7 rows. Columns are east, southeast, south, northeast, north. Rows are idle, attack, cast, dig, heal, eat, dodge. One character per cell on a solid chroma-key background, with no text or separators.",
     "eggs": "3列x3行。全セルで同じ中立的な卵形を使い、列は毒・石・炎、行は通常・第一進化・第二進化のモンスター土壌模様をそのまま載せる。モンスター固有の姿や部位は加えない。背景は単色クロマキー。",
     "tiles": "見下ろし全画面タイル。環境シートは土・通路・岩盤・地表・コア。鉱脈シートは5素材行x通常・第一進化・第二進化列。第二進化は外周を発光させず、第一進化とは異なる内部模様で示す。土壌養分は1〜7段階で藻が単調に増える独立オーバーレイ、第二進化鉱脈は枠内側だけを漂う4フレームの独立オーラで示す。",
-    "effects": "Exact 4 by 5 chronological animation sheet for slash, projectile, bite, birth and smoke effects on a solid chroma-key background.",
+    "effects": "通常エフェクトは斬撃・投射・噛み・誕生・煙の4列x5行。ドラゴン炎は橙・青・白の独立シートで、4列を時系列、3行を開始・中継・終端として右向きに接続する。背景は単色クロマキー。",
     "items": "砂、水、菌、ミネラル、空気の5資源を表す独立した1x1アイコン。各原画は透過背景で、文字、レアリティ色、UI枠を含めない。",
     "debuffs": "Exact 5 by 1 compact status icon sheet for rotten rations, cracked core, informant map, sharpened blade and dull feed.",
     "dialogue": "Exact 2 by 1 chest-up portrait sheet for the Dungeon King's executive and Gorilla Auntie, facing inward on a solid chroma-key background."

@@ -76,6 +76,7 @@ describe("Phaserアプリ構成", () => {
   it("Phaserシーンは分割アトラスをspritesheetとして読む", () => {
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     const bgmSrc = fs.readFileSync(path.join(repoDir, "src/bgmPlaylist.js"), "utf8");
+    const dragonFireSpriteSrc = fs.readFileSync(path.join(repoDir, "src/dragonFireSprites.js"), "utf8");
     expect(src).toContain('import Phaser from "phaser"');
     expect(src).toContain("let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);");
     expect(src).not.toContain("let gameApi = createGame({ seed: 1 });");
@@ -89,6 +90,7 @@ describe("Phaserアプリ構成", () => {
     expect(src).not.toContain('this.load.spritesheet("actors"');
     expect(src).not.toContain('pixelAssetUrl("actors.png")');
     expect(src).toContain('this.load.spritesheet("effects"');
+    expect(src).toContain('this.load.spritesheet("dragonFireBreath", pixelAssetUrl("dragon_fire_breath.png")');
     expect(src).toContain('this.load.spritesheet("items"');
     expect(src).toContain('this.load.spritesheet("soilAlgae", pixelAssetUrl("soil_algae.png")');
     expect(src).toContain('this.load.spritesheet("veinEvo2Aura", pixelAssetUrl("vein_evo2_aura.png")');
@@ -113,6 +115,17 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("drawInitialDigHint");
     expect(src).toContain("this.soilAlgaeSprites");
     expect(src).toContain("this.veinAuraSprites");
+    expect(src).toContain("this.dragonFireSprites");
+    expect(src).toContain("syncDragonFireBreaths()");
+    expect(src).toContain("dragonFireSegmentAt(index, total)");
+    expect(src).toContain("pixelDragonFireFrameIndex(variant, segment, frame)");
+    expect(src).toContain("dragonFireDirectionLayout(effect.dir)");
+    expect(src).toContain("showDragonFireSprite(sprite");
+    expect(src).toContain("hideDragonFireSprite(sprite)");
+    expect(dragonFireSpriteSrc).toContain("sprite.setScale(state.scaleX, 1)");
+    expect(dragonFireSpriteSrc).toContain("sprite.setScale(1, 1)");
+    expect(dragonFireSpriteSrc).toContain("sprite.clearTint()");
+    expect(src).not.toContain("fillTriangle");
     expect(src).toContain("tileOverlayFrameState(tile, this.time.now, c, r)");
     expect(src).toContain("if (overlayFrames.algaeFrame !== null)");
     expect(src).toContain("if (overlayFrames.auraFrame !== null)");
@@ -296,7 +309,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v34-soil-resources");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v35-dragon-fire");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {
