@@ -63,8 +63,10 @@ const TILES = [
 ];
 const EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 const ITEM_ICONS = [
-  "earthCore", "demonFang", "guardianCarapace", "windFeather", "lifeEgg",
+  "sand", "water", "fungus", "mineral", "air",
 ];
+const SOIL_ALGAE_STAGES = [1, 2, 3, 4, 5, 6, 7];
+const VEIN_EVO2_AURA_FRAMES = 4;
 const DEBUFF_ICONS = ["rottenRations", "crackedCore", "informantMap", "sharpenedBlade", "dullFeed"];
 const DIALOGUE_PORTRAITS = ["executive", "gorilla"];
 
@@ -100,5 +102,6 @@ function copyInto(dst, src, dx, dy) {
 
 module.exports = {
   CELL, FRAMES, DIRECTIONS, ACTOR_RENDER_DIRECTIONS, ACTIONS, ACTOR_FRAMES_PER_ACTOR, ACTOR_ATLAS_COLUMNS, ACTOR_ATLAS_ROWS_PER_ACTOR, OUT_DIR, SOURCE_DIR, ACTORS, ACTOR_SHEETS, TILES, EFFECTS, ITEM_ICONS, DEBUFF_ICONS, DIALOGUE_PORTRAITS,
+  SOIL_ALGAE_STAGES, VEIN_EVO2_AURA_FRAMES,
   ensureDir, image, writePng, readPng, copyInto,
 };

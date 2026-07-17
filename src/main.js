@@ -24,6 +24,7 @@ import {
   pixelItemFrameIndex,
   pixelDebuffFrameIndex,
   pixelDialoguePortraitFrameIndex,
+  tileOverlayFrameState,
   COLS,
   ROWS,
   TILE,
@@ -33,6 +34,7 @@ import {
   CORE_COL,
   CORE_ROW,
   ENTRANCE_COL,
+  VEIN_EVO_MAX_STAGE,
   PIXEL_ACTORS,
   PIXEL_ACTOR_SHEETS,
   PIXEL_TILES,
@@ -71,11 +73,10 @@ function createConfiguredGame(loop = 1, resetPenaltyActive = false) {
 let progress = loadProgress();
 let selectedLoop = defaultLoop();
 let gameApi = createConfiguredGame(selectedLoop, progress.resetPenaltyActive);
-let codexTab = "monster";
-let codexFamilyId = null;
-let codexStage = 0;
-let codexListScrollTop = 0;
-let restoreCodexListScroll = false;
+let deckDetailFamilyId = null;
+let deckDetailStage = 0;
+let deckListScrollTop = 0;
+let restoreDeckListScroll = false;
 let homeTab = "menu";
 let settingsTab = "volume";
 let homeMessage = "";
@@ -97,9 +98,9 @@ let loadUiMode = "initial";
 let loadUiProgress = 0;
 let startPending = false;
 
-const MONSTER_CODEX_ORDER = Object.values(MONSTER_FAMILIES).flatMap((family) => family.kinds);
-const HERO_CODEX_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage"];
-const ITEM_CODEX_ORDER = ["earthCore", "demonFang", "guardianCarapace", "windFeather", "lifeEgg"];
+const MONSTER_KIND_ORDER = Object.values(MONSTER_FAMILIES).flatMap((family) => family.kinds);
+const HERO_KIND_ORDER = ["warrior", "superwarrior", "ultrawarrior", "tank", "crossknight", "captain", "max", "shon", "hori", "xTerminator", "priest", "saint", "mage", "supermage", "sage"];
+const ITEM_SLOT_ORDER = ["sand", "water", "fungus", "mineral", "air"];
 const ITEM_STAT_DEFS = [
   ["soil", "土壌"],
   ["attack", "攻撃"],
@@ -109,11 +110,11 @@ const ITEM_STAT_DEFS = [
   ["recovery", "回復"],
 ];
 const ITEM_TYPE_FALLBACKS = {
-  earthCore: { name: "地脈石", primary: "土壌", profile: "土壌から得る力を高める。" },
-  demonFang: { name: "魔牙", primary: "攻撃", profile: "魔物の攻撃力を高める。" },
-  guardianCarapace: { name: "守護甲", primary: "防御", profile: "魔物が受ける傷を抑える。" },
-  windFeather: { name: "風羽", primary: "速度", profile: "移動と攻撃の間隔を短くする。" },
-  lifeEgg: { name: "命卵", primary: "繁殖・回復", profile: "繁殖と休息中の回復を助ける。" },
+  sand: { name: "砂", primary: "土壌", profile: "土壌から得る力を高める。" },
+  water: { name: "水", primary: "攻撃", profile: "魔物の攻撃力を高める。" },
+  fungus: { name: "菌", primary: "防御", profile: "魔物が受ける傷を抑える。" },
+  mineral: { name: "ミネラル", primary: "速度", profile: "移動と攻撃の間隔を短くする。" },
+  air: { name: "空気", primary: "繁殖・回復", profile: "繁殖と休息中の回復を助ける。" },
 };
 const MONSTER_AXIS_DEFS = [
   ["hp", "体力", (kind) => Math.log1p(kind.hp || 0)],
@@ -122,7 +123,6 @@ const MONSTER_AXIS_DEFS = [
   ["moveCd", "移動速度", (kind) => 1 / Math.max(1, kind.moveCd || 1)],
   ["atkCd", "攻撃速度", (kind) => 1 / Math.max(1, kind.atkCd || 1)],
 ];
-const SOIL_TINTS = [0x315a4d, 0x376a5d, 0x3f7a70, 0x4a8a82, 0x5a9b94, 0x70ada8, 0x91c4be];
 const TAP_MOVE_CANCEL = 10;
 const TAP_MAX_MS = 450;
 const ITEM_LONG_PRESS_MS = 520;
@@ -213,6 +213,8 @@ function initialVisualTextureKeys() {
     "tiles",
     "effects",
     "items",
+    "soilAlgae",
+    "veinEvo2Aura",
     "debuffs",
     "dialoguePortraits",
     ...actorSheetsForCurrentDeck().map(pixelActorTextureKey),
@@ -222,7 +224,7 @@ function initialVisualTextureKeys() {
 function tileKey(tile) {
   if (tile.t === "earth" && tile.sub) {
     const stage = evoStage(tile);
-    return `${tile.sub}${stage >= 2 ? "_evo2" : (stage >= 1 ? "_evo" : "")}`;
+    return `${tile.sub}${stage >= VEIN_EVO_MAX_STAGE ? "_evo2" : (stage >= 1 ? "_evo" : "")}`;
   }
   if (["earth", "tunnel", "bedrock", "surface", "core"].includes(tile.t)) return tile.t;
   return "tunnel";
@@ -230,11 +232,7 @@ function tileKey(tile) {
 
 function evoStage(tile) {
   const raw = tile.evoStage === undefined ? (tile.evo ? 1 : 0) : tile.evoStage;
-  return Math.max(0, Math.min(2, Math.floor(raw || 0)));
-}
-
-function soilStage(tile) {
-  return Math.max(0, Math.min(7, Math.floor((tile && tile.soilMana) || 0)));
+  return Math.max(0, Math.min(VEIN_EVO_MAX_STAGE, Math.floor(raw || 0)));
 }
 
 function actorFrame(e, scene) {
@@ -490,7 +488,9 @@ class MainScene extends Phaser.Scene {
   constructor() {
     super("MainScene");
     this.tileSprites = [];
+    this.soilAlgaeSprites = [];
     this.veinSprites = [];
+    this.veinAuraSprites = [];
     this.actorSprites = [];
     this.effectSprites = [];
     this.soilGraphics = null;
@@ -512,6 +512,8 @@ class MainScene extends Phaser.Scene {
     }
     this.load.spritesheet("effects", pixelAssetUrl("effects.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("items", pixelAssetUrl("items.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.spritesheet("soilAlgae", pixelAssetUrl("soil_algae.png"), { frameWidth: TILE, frameHeight: TILE });
+    this.load.spritesheet("veinEvo2Aura", pixelAssetUrl("vein_evo2_aura.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("debuffs", pixelAssetUrl("debuffs.png"), { frameWidth: TILE, frameHeight: TILE });
     this.load.spritesheet("dialoguePortraits", pixelAssetUrl("dialogue_portraits.png"), { frameWidth: TILE, frameHeight: TILE });
     for (const track of BGM_TRACKS) this.load.audio(track.key, audioAssetUrl(track.file));
@@ -560,11 +562,21 @@ class MainScene extends Phaser.Scene {
         sprite.setOrigin(0.5, 0.5);
         sprite.setDepth(0);
         this.tileSprites.push(sprite);
+        const algae = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, "soilAlgae", 0);
+        algae.setOrigin(0.5, 0.5);
+        algae.setDepth(5);
+        algae.setVisible(false);
+        this.soilAlgaeSprites.push(algae);
         const vein = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, "tiles", 0);
         vein.setOrigin(0.5, 0.5);
         vein.setDepth(10);
         vein.setVisible(false);
         this.veinSprites.push(vein);
+        const aura = this.add.image(c * TILE + TILE / 2, r * TILE + TILE / 2, "veinEvo2Aura", 0);
+        aura.setOrigin(0.5, 0.5);
+        aura.setDepth(12);
+        aura.setVisible(false);
+        this.veinAuraSprites.push(aura);
       }
     }
     this.soilGraphics = this.add.graphics();
@@ -596,7 +608,10 @@ class MainScene extends Phaser.Scene {
       for (let c = 0; c < COLS; c++) {
         const tile = gameApi.grid[r][c];
         const sprite = this.tileSprites[r * COLS + c];
+        const algae = this.soilAlgaeSprites[r * COLS + c];
         const overlay = this.veinSprites[r * COLS + c];
+        const aura = this.veinAuraSprites[r * COLS + c];
+        const overlayFrames = tileOverlayFrameState(tile, this.time.now, c, r);
         const baseKey = tile.t === "earth" && tile.sub ? "earth" : tileKey(tile);
         const idx = PIXEL_TILES.indexOf(baseKey);
         sprite.setFrame(idx >= 0 ? idx : 1);
@@ -613,15 +628,45 @@ class MainScene extends Phaser.Scene {
         if (tile.t === "earth" && tile.sub) {
           const veinIdx = PIXEL_TILES.indexOf(tileKey(tile));
           const fade = Math.max(0, Math.min(1, ((tile.age || 0) - gameApi.VEIN_FADE_START) / (gameApi.VEIN_DECAY_TIME - gameApi.VEIN_FADE_START)));
+          const veinAlpha = 1 - fade * 0.72;
           overlay.setVisible(true);
           overlay.setFrame(veinIdx >= 0 ? veinIdx : idx);
-          overlay.setAlpha(1 - fade * 0.72);
+          overlay.setAlpha(veinAlpha);
           if (fade > 0) overlay.setTint(0xf1d9c4);
           else overlay.clearTint();
+          if (overlayFrames.auraFrame !== null) {
+            const auraTint = tintFromColor(gameApi.VEIN[tile.sub] && gameApi.VEIN[tile.sub].color);
+            aura.setVisible(true);
+            aura.setFrame(overlayFrames.auraFrame);
+            aura.setAlpha(veinAlpha);
+            if (auraTint === null) aura.clearTint();
+            else aura.setTint(auraTint);
+          } else {
+            aura.setVisible(false);
+            aura.setFrame(0);
+            aura.setAlpha(1);
+            aura.clearTint();
+          }
         } else {
           overlay.setVisible(false);
+          overlay.setFrame(0);
           overlay.setAlpha(1);
           overlay.clearTint();
+          aura.setVisible(false);
+          aura.setFrame(0);
+          aura.setAlpha(1);
+          aura.clearTint();
+        }
+        if (overlayFrames.algaeFrame !== null) {
+          algae.setVisible(true);
+          algae.setFrame(overlayFrames.algaeFrame);
+          algae.setAlpha(1);
+          algae.clearTint();
+        } else {
+          algae.setVisible(false);
+          algae.setFrame(0);
+          algae.setAlpha(1);
+          algae.clearTint();
         }
         this.drawSoilMana(c, r, tile);
         this.drawEntryZone(c, r);
@@ -665,7 +710,6 @@ class MainScene extends Phaser.Scene {
 
   drawSoilMana(col, row, tile) {
     if (!this.soilGraphics || tile.t !== "earth") return;
-    const stage = soilStage(tile);
     const x = col * TILE;
     const y = row * TILE;
     const hint = gameApi.itemHighlights && gameApi.itemHighlights().find((cell) => cell.col === col && cell.row === row);
@@ -676,20 +720,6 @@ class MainScene extends Phaser.Scene {
       this.soilGraphics.strokeRect(x + 6, y + 6, TILE - 12, TILE - 12);
       this.soilGraphics.fillStyle(tint, 0.05 + pulse * 0.04);
       this.soilGraphics.fillRect(x + 8, y + 8, TILE - 16, TILE - 16);
-    }
-    if (stage > 0) {
-      const tint = SOIL_TINTS[stage - 1] || SOIL_TINTS[SOIL_TINTS.length - 1];
-      this.soilGraphics.fillStyle(tint, 0.03 + stage * 0.016);
-      this.soilGraphics.fillRect(x + 2, y + 2, TILE - 4, TILE - 4);
-      const sparkCount = Math.min(4, Math.ceil(stage / 2));
-      for (let i = 0; i < sparkCount; i++) {
-        const sx = x + 9 + ((col * 17 + row * 7 + i * 13) % 30);
-        const sy = y + 9 + ((col * 5 + row * 19 + i * 11) % 28);
-        const size = stage >= 6 && i === 0 ? 2 : 1;
-        this.soilGraphics.fillStyle(0xbffff0, 0.12 + stage * 0.025);
-        this.soilGraphics.fillRect(sx - size, sy, size * 2 + 1, 1);
-        this.soilGraphics.fillRect(sx, sy - size, 1, size * 2 + 1);
-      }
     }
   }
 
@@ -948,13 +978,6 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
-function progressSets() {
-  return {
-    monsters: new Set(progress.discoveredMonsters),
-    heroes: new Set(progress.discoveredHeroes),
-  };
-}
-
 function unlockedFamilySet() {
   const ids = new Set(progress.unlockedMonsterFamilies || []);
   for (const id in MONSTER_FAMILIES) if (MONSTER_FAMILIES[id].default) ids.add(id);
@@ -1027,7 +1050,7 @@ function loopOptionsHtml() {
 function familySpriteHtml(id) {
   const row = MONSTER_FAMILIES[id];
   const kind = row && row.kinds[0];
-  return kind ? `<span class="home-monster-sprite" style='${codexSpriteStyle(kind)}'></span>` : "";
+  return kind ? `<span class="home-monster-sprite" style='${actorPreviewStyle(kind)}'></span>` : "";
 }
 
 function familyStagesText(id) {
@@ -1052,17 +1075,20 @@ function familyCard(id) {
   const classes = ["home-card", selected ? "selected" : "", unlocked ? "" : "locked"].filter(Boolean).join(" ");
   return `
     <article class="${classes}">
-      ${familySpriteHtml(id)}
-      <span class="home-card-body">
-        <b>${escapeHtml(row.name)}</b>
-        <em>${escapeHtml(familyStagesText(id))}</em>
-        <small>${escapeHtml(unlocked ? row.trait : `${row.trait} / ${gate}`)}</small>
-      </span>
-      <button type="button" ${attr}${disabled ? " disabled" : ""}>${escapeHtml(action)}</button>
+      <button type="button" class="home-card-detail" data-deck-family-detail="${escapeHtml(id)}" aria-label="${escapeHtml(row.name)}の詳細を見る">
+        ${familySpriteHtml(id)}
+        <span class="home-card-body">
+          <b>${escapeHtml(row.name)}</b>
+          <em>${escapeHtml(familyStagesText(id))}</em>
+          <small>${escapeHtml(unlocked ? row.trait : `${row.trait} / ${gate}`)}</small>
+        </span>
+      </button>
+      <button type="button" class="home-card-action" ${attr}${disabled ? " disabled" : ""}>${escapeHtml(action)}</button>
     </article>`;
 }
 
 function renderDeckHome() {
+  if (deckDetailFamilyId) return renderMonsterFamilyDetail(deckDetailFamilyId);
   const veins = ["moss", "meat", "venom", "stone", "ember"];
   return veins.map((vein) => {
     const veinName = (gameApi.VEIN[vein] && gameApi.VEIN[vein].legend.split("→")[0]) || vein;
@@ -1072,23 +1098,6 @@ function renderDeckHome() {
       .join("");
     return `<section class="home-group"><h3>${escapeHtml(veinName)}</h3><div class="home-card-list">${cards}</div></section>`;
   }).join("");
-}
-
-function codexMonsterFamilyCard(id) {
-  const row = MONSTER_FAMILIES[id];
-  if (!row) return "";
-  const unlocked = unlockedFamilySet().has(id);
-  const familyLabels = { moss: "苔系統", meat: "獣系統", venom: "虫系統", stone: "岩系統", ember: "龍系統" };
-  return `
-    <button type="button" class="codex-card codex-family-card" data-codex-family="${escapeHtml(id)}">
-      <div class="codex-sprite-wrap">${familySpriteHtml(id)}</div>
-      <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(row.name)}</strong><em>${unlocked ? "解放済み" : "未解放"}</em></div>
-        <div class="codex-stats">
-          ${statPill("分類", familyLabels[row.vein] || "魔物系統")}${statPill("デッキ", unlocked ? "利用可" : "利用不可")}
-        </div>
-      </div>
-    </button>`;
 }
 
 function renderDefenseHome() {
@@ -1103,23 +1112,11 @@ function renderDefenseHome() {
     </div>`;
 }
 
-function renderCodexHome() {
-  return `
-    <section class="codex home-codex" aria-label="図鑑">
-      <div class="codex-tabs" role="tablist" aria-label="図鑑切替">
-        <button class="codex-tab active" data-codex-tab="monster" role="tab" aria-selected="true">モンスター</button>
-        <button class="codex-tab" data-codex-tab="hero" role="tab" aria-selected="false">冒険者</button>
-        <button class="codex-tab" data-codex-tab="item" role="tab" aria-selected="false">アイテム</button>
-      </div>
-      <div class="codex-grid" id="codexGrid"></div>
-    </section>`;
-}
-
 function renderHomeSubscreen(title, content) {
   return `
     <div class="home-subhead">
       <h2>${escapeHtml(title)}</h2>
-      <button type="button" data-home-back>戻る</button>
+      <button type="button" class="btn-back-action" data-home-back>← ホームへ戻る</button>
     </div>
     ${content}`;
 }
@@ -1144,7 +1141,7 @@ function renderDevSettingsHome() {
         <button type="button" id="exportDevJsonBtn">JSON出力</button>
         <button type="button" id="copyDevJsonBtn">コピー</button>
         <button type="button" id="resetDevBtn">初期化</button>
-        <button type="button" id="resetProgressBtn">図鑑初期化</button>
+        <button type="button" id="resetProgressBtn">進行状況を初期化</button>
       </div>
       <div class="progress-status" id="progressStatus">最高到達 W0 / 魔物 0 / 冒険者 0</div>
       <textarea id="devJsonOutput" class="dev-json-output" readonly spellcheck="false" aria-label="開発JSON"></textarea>
@@ -1166,9 +1163,8 @@ function homeRenderKey() {
     state: gameApi.gameState,
     homeTab,
     settingsTab,
-    codexTab,
-    codexFamilyId,
-    codexStage,
+    deckDetailFamilyId,
+    deckDetailStage,
     selectedLoop,
     maxLoop: selectableMaxLoop(),
     message: homeMessage,
@@ -1200,9 +1196,13 @@ function renderHome(force = false) {
   homeRenderCacheKey = key;
   if (homeTab === "deck") {
     body.innerHTML = renderHomeSubscreen("モンスターデッキ", renderDeckHome());
-  } else if (homeTab === "codex") {
-    body.innerHTML = renderHomeSubscreen("図鑑", renderCodexHome());
-    renderCodex();
+    if (restoreDeckListScroll && !deckDetailFamilyId) {
+      restoreDeckListScroll = false;
+      requestAnimationFrame(() => {
+        const currentBody = document.getElementById("homeBody");
+        if (currentBody) currentBody.scrollTop = deckListScrollTop;
+      });
+    }
   } else if (homeTab === "settings") {
     body.innerHTML = renderHomeSubscreen("設定", renderSettingsHome());
     if (settingsTab === "dev") {
@@ -1215,7 +1215,7 @@ function renderHome(force = false) {
     body.innerHTML = renderHomeSubscreen("防衛", renderDefenseHome());
     renderLoopSelector();
   } else {
-    body.innerHTML = `<p class="home-intro">守り方を選んでください。</p>`;
+    body.innerHTML = "";
   }
 }
 
@@ -1284,7 +1284,6 @@ function syncProgressEvents() {
   saveProgress(progress);
   updateProgressStatus();
   renderLoopSelector();
-  if (homeTab === "codex") renderHome(true);
 }
 
 function legendHtml() {
@@ -1298,15 +1297,7 @@ function legendHtml() {
   return html;
 }
 
-function roleLabel(role) {
-  if (role === "fighter") return "前衛";
-  if (role === "tank") return "盾役";
-  if (role === "caster") return "遠距離";
-  if (role === "healer") return "回復";
-  return "特殊";
-}
-
-function codexSpriteStyle(name) {
+function actorPreviewStyle(name) {
   const info = pixelActorFrameInfo(name, "idle", "s", 1);
   return `background-image:url("${actorAssetUrl(info.sheet)}");background-size:${info.sheetWidth}px ${info.sheetHeight}px;background-position:-${info.x}px -${info.y}px;`;
 }
@@ -1360,13 +1351,6 @@ function dialoguePortraitStyle(id, size = 48) {
 
 function itemTypeInfo(type) {
   return { ...(ITEM_TYPE_FALLBACKS[type] || { name: type, primary: "補正", profile: "迷宮を強化する装備。" }), ...((gameApi.ITEM_TYPES && gameApi.ITEM_TYPES[type]) || {}) };
-}
-
-function itemPrimaryLabel(type) {
-  const primary = itemTypeInfo(type).primary;
-  if (!Array.isArray(primary)) return primary || "補正";
-  const labels = Object.fromEntries(ITEM_STAT_DEFS);
-  return primary.map((key) => labels[key] || key).join("・");
 }
 
 function equipmentMap() {
@@ -1424,36 +1408,6 @@ function debuffLabel(id) {
   return `${d.name}: ${d.profile}`;
 }
 
-function heroCard(cls) {
-  const c = gameApi.HERO_CLASSES[cls];
-  const found = progressSets().heroes.has(cls);
-  if (!found) {
-    return `
-      <article class="codex-card locked">
-        <div class="codex-sprite-wrap"><div class="codex-sprite silhouette" style='${codexSpriteStyle(cls)}'></div></div>
-        <div class="codex-body">
-          <div class="codex-title"><strong>???</strong><em>未発見</em></div>
-          <div class="codex-stats">
-            ${statPill("HP", "???")}${statPill("攻", "???")}${statPill("射", "???")}${statPill("解禁", "???")}
-          </div>
-          <p>まだ記録がない。</p>
-        </div>
-      </article>`;
-  }
-  const stats = gameApi.resolveHeroStats(cls, Math.max(c.unlock, 1));
-  return `
-    <article class="codex-card">
-      <div class="codex-sprite-wrap"><div class="codex-sprite" style='${codexSpriteStyle(cls)}'></div></div>
-      <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(c.name)}</strong><em>${escapeHtml(roleLabel(c.role))}</em></div>
-        <div class="codex-stats">
-          ${statPill("HP", stats.hp)}${statPill("攻", stats.atk)}${statPill("射", c.range)}${statPill("解禁", `W${c.unlock}`)}
-        </div>
-        <p>${escapeHtml(c.profile)}</p>
-      </div>
-    </article>`;
-}
-
 function normalizedMonsterStats(kindId) {
   const kind = gameApi.KINDS[kindId];
   const population = Object.values(MONSTER_FAMILIES).flatMap((family) => family.kinds).map((id) => gameApi.KINDS[id]).filter(Boolean);
@@ -1494,80 +1448,35 @@ function monsterRadarHtml(stats) {
 function renderMonsterFamilyDetail(id) {
   const family = MONSTER_FAMILIES[id];
   if (!family) return "";
-  const stage = clampNumber(codexStage, 0, family.kinds.length - 1);
+  const stage = clampNumber(deckDetailStage, 0, family.kinds.length - 1);
   const kindId = family.kinds[stage];
   const kind = gameApi.KINDS[kindId];
   const unlocked = unlockedFamilySet().has(id);
   const stats = normalizedMonsterStats(kindId);
   const stageNames = ["通常", "第一進化", "第二進化"];
   return `
-    <section class="codex-detail" data-codex-detail="${escapeHtml(id)}">
-      <div class="codex-detail-head">
-        <button type="button" data-codex-list-back>一覧へ戻る</button>
+    <section class="deck-detail" data-deck-detail="${escapeHtml(id)}">
+      <div class="deck-detail-head">
+        <button type="button" class="btn-back-action" data-deck-list-back>← デッキ一覧へ戻る</button>
         <span>${unlocked ? "解放済み" : "未解放"}</span>
       </div>
       <h3>${escapeHtml(family.name)}</h3>
-      <p class="codex-family-trait">${escapeHtml(family.trait)}</p>
-      <div class="codex-stage-list">
+      <p class="deck-family-trait">${escapeHtml(family.trait)}</p>
+      <div class="deck-stage-list">
         ${family.kinds.map((candidate, index) => {
           const row = gameApi.KINDS[candidate];
-          return `<button type="button" class="${index === stage ? "active" : ""}" data-codex-stage="${index}" aria-pressed="${index === stage ? "true" : "false"}"><span class="codex-sprite" style='${codexSpriteStyle(candidate)}'></span><b>${stageNames[index]}</b><em>${escapeHtml(row.name)}</em></button>`;
+          return `<button type="button" class="${index === stage ? "active" : ""}" data-deck-stage="${index}" aria-pressed="${index === stage ? "true" : "false"}"><span class="monster-detail-sprite" style='${actorPreviewStyle(candidate)}'></span><b>${stageNames[index]}</b><em>${escapeHtml(row.name)}</em></button>`;
         }).join("")}
       </div>
-      <article class="codex-creature-detail">
-        <div class="codex-creature-copy"><h4>${escapeHtml(kind.name)}</h4><p>${escapeHtml(kind.profile)}</p></div>
-        <div class="codex-radar-wrap">${monsterRadarHtml(stats)}</div>
-        <div class="codex-raw-stats">
+      <article class="monster-creature-detail">
+        <div class="monster-creature-copy"><h4>${escapeHtml(kind.name)}</h4><p>${escapeHtml(kind.profile)}</p></div>
+        <div class="monster-radar-wrap">${monsterRadarHtml(stats)}</div>
+        <div class="monster-raw-stats">
           ${statPill("体力", kind.hp)}${statPill("攻撃", kind.atk)}${statPill("射程", kind.range)}${statPill("移動間隔", `${kind.moveCd}ms`)}${statPill("攻撃間隔", `${kind.atkCd}ms`)}
         </div>
-        <div class="codex-normalized-stats">${stats.map((stat) => `<span><b>${escapeHtml(stat.label)}</b>${stat.score.toFixed(1)} / 5</span>`).join("")}</div>
+        <div class="monster-normalized-stats">${stats.map((stat) => `<span><b>${escapeHtml(stat.label)}</b>${stat.score.toFixed(1)} / 5</span>`).join("")}</div>
       </article>
     </section>`;
-}
-
-function codexItemCard(type) {
-  const info = itemTypeInfo(type);
-  const rarityValues = { iron: 6, bronze: 10, silver: 14, gold: 19, diamond: 25 };
-  const rarityHtml = Object.keys(rarityValues).map((rarity) => {
-    const row = gameApi.ITEM_RARITIES[rarity] || {};
-    const value = row.mainValue ?? row.main ?? rarityValues[rarity];
-    return `<span class="codex-rarity-row item-frame-${rarity}">${itemRarityBadgeHtml(rarity)}<b>主能力 +${escapeHtml(value)}%</b></span>`;
-  }).join("");
-  return `
-    <article class="codex-card codex-item-card">
-      <div class="codex-sprite-wrap">${itemIconHtml(type, "codex-item-icon", 48)}</div>
-      <div class="codex-body">
-        <div class="codex-title"><strong>${escapeHtml(info.name)}</strong><em>全レアリティ</em></div>
-        <div class="codex-stats">
-          ${statPill("保証主能力", itemPrimaryLabel(type))}
-        </div>
-        <p>${escapeHtml(info.profile)}</p>
-        <div class="codex-rarity-list">${rarityHtml}</div>
-      </div>
-    </article>`;
-}
-
-function renderCodex() {
-  const grid = document.getElementById("codexGrid");
-  if (!grid) return;
-  const htmlByTab = {
-    monster: codexFamilyId ? renderMonsterFamilyDetail(codexFamilyId) : Object.keys(MONSTER_FAMILIES).map(codexMonsterFamilyCard).join(""),
-    hero: HERO_CODEX_ORDER.map(heroCard).join(""),
-    item: ITEM_CODEX_ORDER.map(codexItemCard).join(""),
-  };
-  grid.innerHTML = htmlByTab[codexTab] || htmlByTab.monster;
-  for (const btn of document.querySelectorAll("[data-codex-tab]")) {
-    const active = btn.dataset.codexTab === codexTab;
-    btn.classList.toggle("active", active);
-    btn.setAttribute("aria-selected", active ? "true" : "false");
-  }
-  if (restoreCodexListScroll && codexTab === "monster" && !codexFamilyId) {
-    restoreCodexListScroll = false;
-    requestAnimationFrame(() => {
-      const body = document.getElementById("homeBody");
-      if (body) body.scrollTop = codexListScrollTop;
-    });
-  }
 }
 
 function devFieldInfo(labels, key) {
@@ -1703,7 +1612,7 @@ function updateProgressStatus() {
   const status = document.getElementById("progressStatus");
   if (!status) return;
   const penalty = progress.resetPenaltyActive ? " / リセット罰あり" : "";
-  status.textContent = `コイン ${progress.coins || 0} / 最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_CODEX_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_CODEX_ORDER.length}${penalty}`;
+  status.textContent = `コイン ${progress.coins || 0} / 最高到達 W${progress.highestWave} / 魔物 ${progress.discoveredMonsters.length}/${MONSTER_KIND_ORDER.length} / 冒険者 ${progress.discoveredHeroes.length}/${HERO_KIND_ORDER.length}${penalty}`;
 }
 
 function saveDevPanel() {
@@ -1846,7 +1755,7 @@ function renderItems() {
   if (key === lastItemBarKey) return;
   lastItemBarKey = key;
   if (activeItemPopupKey && !held[activeItemPopupKey] && !debuffs.includes(activeItemPopupKey)) hideItemPopup();
-  const itemHtml = ITEM_CODEX_ORDER.map((type) => {
+  const itemHtml = ITEM_SLOT_ORDER.map((type) => {
     const item = held[type];
     const info = itemTypeInfo(type);
     if (!item) return `<span class="item equipment-slot equipment-slot-empty" aria-label="${escapeHtml(info.name)} 空き枠" title="${escapeHtml(info.name)}: 装備なし">${itemIconHtml(type, "item-icon", 28)}<small>空</small></span>`;
@@ -2052,13 +1961,14 @@ function renderDialogue() {
   const dialogue = gameApi.dialogue;
   const visible = !!dialogue && gameApi.gameState === "dialogue";
   overlay.classList.toggle("hidden", !visible);
+  overlay.classList.toggle("dialogue-event", visible && dialogue.id !== "intro");
   if (!visible) return;
   portrait.className = `dialogue-portrait dialogue-${dialogue.portrait || "mark"}`;
   portrait.removeAttribute("style");
   portrait.innerHTML = "";
   if (dialogue.portrait === "slime") {
     portrait.classList.add("dialogue-sprite");
-    portrait.innerHTML = `<span class="dialogue-sprite-crop" style='${codexSpriteStyle("slime")}'></span>`;
+    portrait.innerHTML = `<span class="dialogue-sprite-crop" style='${actorPreviewStyle("slime")}'></span>`;
   } else if (PIXEL_DIALOGUE_PORTRAITS.includes(dialogue.portrait)) {
     portrait.classList.add("dialogue-sprite");
     portrait.innerHTML = `<span class="dialogue-sprite-crop" style='${dialoguePortraitStyle(dialogue.portrait)}'></span>`;
@@ -2248,9 +2158,10 @@ function openStartFlow() {
   lastItemBarKey = "";
   lastShopOfferKey = "";
   homeTab = "menu";
-  codexTab = "monster";
-  codexFamilyId = null;
-  codexStage = 0;
+  deckDetailFamilyId = null;
+  deckDetailStage = 0;
+  deckListScrollTop = 0;
+  restoreDeckListScroll = false;
   equipmentStatusOpen = false;
   pendingEquipmentChoice = null;
   quitConfirmOpen = false;
@@ -2288,7 +2199,10 @@ function boot() {
       if (target && target.closest("[data-home-back]")) {
         homeTab = "menu";
         homeMessage = "";
-        codexFamilyId = null;
+        deckDetailFamilyId = null;
+        deckDetailStage = 0;
+        deckListScrollTop = 0;
+        restoreDeckListScroll = false;
         homeRenderCacheKey = "";
         renderHome(true);
         return;
@@ -2297,11 +2211,11 @@ function boot() {
       if (tab) {
         homeTab = tab.dataset.homeTab || "menu";
         homeMessage = "";
-        if (homeTab === "codex") {
-          codexTab = "monster";
-          codexFamilyId = null;
-          codexStage = 0;
-          codexListScrollTop = 0;
+        if (homeTab === "deck") {
+          deckDetailFamilyId = null;
+          deckDetailStage = 0;
+          deckListScrollTop = 0;
+          restoreDeckListScroll = false;
         }
         renderHome(true);
         return;
@@ -2312,38 +2226,26 @@ function boot() {
         renderHome(true);
         return;
       }
-      const codex = target ? target.closest("[data-codex-tab]") : null;
-      if (codex) {
-        codexTab = codex.dataset.codexTab || "monster";
-        codexFamilyId = null;
-        codexStage = 0;
-        renderCodex();
-        homeRenderCacheKey = homeRenderKey();
-        return;
-      }
-      const familyDetail = target ? target.closest("[data-codex-family]") : null;
+      const familyDetail = target ? target.closest("[data-deck-family-detail]") : null;
       if (familyDetail) {
         const body = document.getElementById("homeBody");
-        codexListScrollTop = body ? body.scrollTop : 0;
-        codexFamilyId = familyDetail.dataset.codexFamily || null;
-        codexStage = 0;
-        renderCodex();
-        homeRenderCacheKey = homeRenderKey();
+        deckListScrollTop = body ? body.scrollTop : 0;
+        deckDetailFamilyId = familyDetail.dataset.deckFamilyDetail || null;
+        deckDetailStage = 0;
+        renderHome(true);
         if (body) body.scrollTop = 0;
         return;
       }
-      if (target && target.closest("[data-codex-list-back]")) {
-        codexFamilyId = null;
-        restoreCodexListScroll = true;
-        renderCodex();
-        homeRenderCacheKey = homeRenderKey();
+      if (target && target.closest("[data-deck-list-back]")) {
+        deckDetailFamilyId = null;
+        restoreDeckListScroll = true;
+        renderHome(true);
         return;
       }
-      const stage = target ? target.closest("[data-codex-stage]") : null;
+      const stage = target ? target.closest("[data-deck-stage]") : null;
       if (stage) {
-        codexStage = clampNumber(Math.floor(Number(stage.dataset.codexStage) || 0), 0, 2);
-        renderCodex();
-        homeRenderCacheKey = homeRenderKey();
+        deckDetailStage = clampNumber(Math.floor(Number(stage.dataset.deckStage) || 0), 0, 2);
+        renderHome(true);
         return;
       }
       const familyBuy = target ? target.closest("[data-buy-family]") : null;

@@ -10,6 +10,8 @@ import {
   ITEM_RARITIES,
   ITEM_STAT_KEYS,
   ITEM_STAT_LIMITS,
+  MONSTER_FAMILIES,
+  RULE_TABLE_NUMBER_KEYS,
   VEIN,
   PIXEL_ITEMS,
   PIXEL_DEBUFFS,
@@ -21,14 +23,14 @@ import {
 
 let G;
 
-function carveAll() {
-  for (let r = 0; r < G.ROWS; r++) {
-    for (let c = 0; c < G.COLS; c++) {
-      G.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
+function carveAll(game = G) {
+  for (let r = 0; r < game.ROWS; r++) {
+    for (let c = 0; c < game.COLS; c++) {
+      game.grid[r][c] = { t: "tunnel", sub: null, shade: 0 };
     }
   }
-  G.grid[0][G.ENTRANCE_COL].t = "surface";
-  G.grid[G.CORE_ROW][G.CORE_COL].t = "core";
+  game.grid[0][game.ENTRANCE_COL].t = "surface";
+  game.grid[game.CORE_ROW][game.CORE_COL].t = "core";
 }
 
 function hero(cls, col, row, extra = {}) {
@@ -99,6 +101,70 @@ function resolveRunPause(game) {
     game.acknowledgeDebuffNotice();
   }
 }
+
+const ADDITIONAL_KIND_BASELINES = [
+  ["moss_shroom", 9, 1, 570, 760, 13000, 4, 1],
+  ["moss_mycelia", 48, 6, 540, 720, 0, 2, 1],
+  ["moss_myceliaKing", 104, 12, 520, 690, 0, 1, 1],
+  ["moss_virus", 8, 1, 620, 900, 15000, 3, 1],
+  ["moss_crystalVirus", 42, 5, 600, 860, 0, 2, 1],
+  ["moss_crownVirus", 94, 11, 570, 830, 0, 1, 1],
+  ["moss_root", 14, 2, 690, 780, 16500, 2, 1],
+  ["moss_tangleRoot", 60, 7, 660, 740, 0, 2, 1],
+  ["moss_ancientRoot", 130, 15, 640, 700, 0, 1, 1],
+  ["meat_wolf", 22, 4, 500, 620, 32000, 2, 1],
+  ["meat_shadowWolf", 78, 14, 480, 590, 0, 1, 1],
+  ["meat_nightfangKing", 158, 27, 460, 560, 0, 1, 1],
+  ["meat_boar", 30, 5, 650, 730, 36000, 2, 1],
+  ["meat_fangBoar", 102, 18, 630, 700, 0, 1, 1],
+  ["meat_ironBoar", 190, 32, 610, 660, 0, 1, 1],
+  ["meat_hedgehog", 28, 4, 620, 720, 34000, 2, 1],
+  ["meat_steelHedgehog", 94, 15, 600, 690, 0, 1, 1],
+  ["meat_spineKing", 178, 28, 580, 650, 0, 1, 1],
+  ["bug_centipede", 28, 7, 420, 760, 42000, 2, 1],
+  ["bug_steelCentipede", 96, 16, 400, 720, 0, 1, 1],
+  ["bug_goldCentipede", 188, 31, 380, 690, 0, 1, 1],
+  ["bug_beetle", 42, 5, 780, 920, 46000, 2, 1],
+  ["bug_shieldBeetle", 124, 16, 760, 880, 0, 1, 1],
+  ["bug_fortressBeetle", 240, 28, 740, 850, 0, 1, 1],
+  ["bug_needler", 26, 6, 600, 900, 43000, 2, 2],
+  ["bug_flyingNeedler", 92, 17, 580, 850, 0, 1, 3],
+  ["bug_bowNeedler", 176, 32, 560, 810, 0, 1, 3],
+  ["stone_turtle", 140, 4, 1200, 1100, 0, 1, 1],
+  ["stone_ironTurtle", 310, 14, 1180, 1060, 0, 1, 1],
+  ["stone_goldTurtle", 575, 28, 1160, 1020, 0, 1, 1],
+  ["stone_magnetCrab", 115, 5, 980, 980, 0, 1, 1],
+  ["stone_ironCrab", 275, 15, 960, 940, 0, 1, 1],
+  ["stone_blackCrab", 520, 29, 940, 900, 0, 1, 1],
+  ["stone_crystalEye", 82, 9, 1000, 980, 0, 1, 3],
+  ["stone_quartzEye", 210, 24, 980, 940, 0, 1, 3],
+  ["stone_rainbowEye", 390, 44, 960, 900, 0, 1, 4],
+  ["dragon_serpent", 92, 17, 560, 700, 0, 1, 1],
+  ["dragon_flameSerpent", 205, 32, 540, 660, 0, 1, 1],
+  ["dragon_whiteSerpent", 405, 58, 520, 620, 0, 1, 1],
+  ["dragon_salamander", 76, 13, 520, 740, 0, 1, 1],
+  ["dragon_lavaSalamander", 185, 28, 500, 700, 0, 1, 1],
+  ["dragon_mirageSalamander", 360, 52, 480, 660, 0, 1, 1],
+  ["dragon_wyvern", 66, 12, 500, 820, 0, 1, 3],
+  ["dragon_stormWyvern", 170, 28, 480, 780, 0, 1, 3],
+  ["dragon_skyWyvern", 330, 54, 460, 740, 0, 1, 4],
+];
+
+const ADDITIONAL_TRAIT_BASELINES = {
+  moss_shroom: { soilGrow: 1 }, moss_mycelia: { soilGrow: 2 }, moss_myceliaKing: { soilGrow: 3 },
+  moss_virus: { weakenMs: 3200, weakenMul: 0.92 }, moss_crystalVirus: { weakenMs: 4200, weakenMul: 0.88 }, moss_crownVirus: { weakenMs: 5600, weakenMul: 0.84 },
+  moss_root: { hitSlowMs: 360 }, moss_tangleRoot: { hitSlowMs: 560 }, moss_ancientRoot: { hitSlowMs: 760 },
+  meat_wolf: { packBoost: 0.08 }, meat_shadowWolf: { packBoost: 0.11 }, meat_nightfangKing: { packBoost: 0.14 },
+  meat_boar: { chargeMs: 1400, chargeMul: 1.35 }, meat_fangBoar: { chargeMs: 1500, chargeMul: 1.45 }, meat_ironBoar: { chargeMs: 1700, chargeMul: 1.55 },
+  meat_hedgehog: { thorns: 2 }, meat_steelHedgehog: { thorns: 4 }, meat_spineKing: { thorns: 7 },
+  bug_centipede: { skitter: 0.88 }, bug_steelCentipede: { skitter: 0.82 }, bug_goldCentipede: { skitter: 0.76 },
+  bug_beetle: { frontGuard: 0.18 }, bug_shieldBeetle: { frontGuard: 0.25 }, bug_fortressBeetle: { frontGuard: 0.32 },
+  stone_turtle: { idleRegen: 0.018 }, stone_ironTurtle: { idleRegen: 0.024 }, stone_goldTurtle: { idleRegen: 0.030 },
+  stone_magnetCrab: { guardAura: 0.08 }, stone_ironCrab: { guardAura: 0.12 }, stone_blackCrab: { guardAura: 0.16 },
+  dragon_serpent: { hitSlowMs: 500 }, dragon_flameSerpent: { hitSlowMs: 700 }, dragon_whiteSerpent: { hitSlowMs: 900 },
+  dragon_salamander: { heatTrailDmg: 2 }, dragon_lavaSalamander: { heatTrailDmg: 3 }, dragon_mirageSalamander: { heatTrailDmg: 5 },
+  dragon_wyvern: { hitSlowMs: 300 }, dragon_stormWyvern: { hitSlowMs: 450 }, dragon_skyWyvern: { hitSlowMs: 600 },
+};
 
 describe("ゲームルール", () => {
   it("移動差分と向きは8方向で一致する", () => {
@@ -245,6 +311,90 @@ describe("ゲームルール", () => {
       decked.tryDig(decked.ENTRANCE_COL, 3);
       expect(decked.monsters[0].kind).toBe(expected);
     }
+  });
+
+  it("追加15系統の全45種だけ基礎値を90%へ下げ、行動と繁殖設定を維持する", () => {
+    const additionalKinds = Object.values(MONSTER_FAMILIES)
+      .filter((family) => !family.default)
+      .flatMap((family) => family.kinds);
+    expect(additionalKinds).toEqual(ADDITIONAL_KIND_BASELINES.map(([id]) => id));
+    expect(additionalKinds).toHaveLength(45);
+
+    for (const [id, oldHp, oldAtk, moveCd, atkCd, breedEvery, breedCap, expectedRange] of ADDITIONAL_KIND_BASELINES) {
+      expect(KINDS[id], id).toMatchObject({
+        hp: Math.max(1, Math.round(oldHp * 0.9)),
+        atk: Math.max(1, Math.round(oldAtk * 0.9)),
+        moveCd,
+        atkCd,
+        breedEvery,
+        breedCap,
+        range: expectedRange,
+      });
+    }
+
+    const defaultStats = [
+      ["slime", 10, 2], ["superslime", 52, 7], ["crownslime", 112, 14],
+      ["carniv", 26, 5], ["evolved", 90, 16], ["direfang", 178, 30],
+      ["spitter", 34, 8], ["tarantula", 108, 19], ["goldweaver", 205, 36],
+      ["golem", 125, 5], ["titan", 285, 16], ["goldcore", 540, 31],
+      ["flame", 84, 18], ["infernal", 195, 34], ["whiteflame", 390, 62],
+    ];
+    const defaultKinds = Object.values(MONSTER_FAMILIES)
+      .filter((family) => family.default)
+      .flatMap((family) => family.kinds);
+    expect(defaultKinds).toEqual(defaultStats.map(([id]) => id));
+    for (const [id, hp, atk] of defaultStats) expect(KINDS[id], id).toMatchObject({ hp, atk });
+  });
+
+  it("追加魔物の固有能力を15%縮小し、土壌育成量だけ維持する", () => {
+    const timeKeys = new Set(["weakenMs", "hitSlowMs", "chargeMs"]);
+    const oneBasedMultiplierKeys = new Set(["weakenMul", "chargeMul", "skitter"]);
+    const integerKeys = new Set(["thorns", "heatTrailDmg"]);
+    const rateKeys = new Set(["packBoost", "frontGuard", "idleRegen", "guardAura"]);
+    const traitKeys = ["soilGrow", ...timeKeys, ...oneBasedMultiplierKeys, ...integerKeys, ...rateKeys];
+    expect(RULE_TABLE_NUMBER_KEYS.kinds).toEqual(expect.arrayContaining(traitKeys));
+
+    for (const [id, oldTraits] of Object.entries(ADDITIONAL_TRAIT_BASELINES)) {
+      for (const [key, oldValue] of Object.entries(oldTraits)) {
+        let expected = oldValue;
+        if (timeKeys.has(key)) expected = Math.round(oldValue * 0.85 / 10) * 10;
+        else if (oneBasedMultiplierKeys.has(key)) expected = 1 + (oldValue - 1) * 0.85;
+        else if (integerKeys.has(key)) expected = Math.max(1, Math.round(oldValue * 0.85));
+        else if (rateKeys.has(key)) expected = oldValue * 0.85;
+        expect(KINDS[id][key], `${id}.${key}`).toBeCloseTo(expected, 8);
+      }
+    }
+  });
+
+  it("苔系12種は近接射程を守り、ウイルスは隣接命中時だけ弱体化する", () => {
+    const mossKinds = Object.values(MONSTER_FAMILIES)
+      .filter((family) => family.vein === "moss")
+      .flatMap((family) => family.kinds);
+    expect(mossKinds).toHaveLength(12);
+    for (const id of mossKinds) expect(KINDS[id].range, id).toBe(1);
+    carveAll();
+    G.spawnMonster("moss_virus", 5, 5);
+    const virus = G.monsters[0];
+    finishBirth(virus);
+    Object.assign(virus, { atkCd: 0, moveCd: 999999, moveCharge: 0 });
+    const target = hero("warrior", 7, 5, { hp: 100, maxHp: 100, atkCd: 999999, moveCd: 999999, moveCharge: 0 });
+    G.heroes.push(target);
+
+    G.update(100);
+    expect(target.hp).toBe(100);
+    expect(target.weakenMs || 0).toBe(0);
+    G.damageHero(target, 1, virus);
+    expect(target.weakenMs || 0).toBe(0);
+
+    Object.assign(target, { col: 6, row: 5, px: G.cx(6), py: G.cy(5) });
+    virus.atkCd = 0;
+    G.effects.length = 0;
+    G.update(100);
+    expect(target.hp).toBeLessThan(99);
+    expect(target.weakenMs).toBeGreaterThan(0);
+    expect(virus.actionType).toBe("attack");
+    expect(G.effects.some((effect) => effect.type === "shot")).toBe(false);
+    expect(G.effects.some((effect) => effect.type === "slash")).toBe(true);
   });
 
   it("追加モンスターの代表特性が発火する", () => {
@@ -1620,7 +1770,7 @@ describe("ゲームルール", () => {
     }
     G.wave = 4;
     G.settleWave();
-    expect(G.itemOffer.choices.some((item) => item.type === "lifeEgg")).toBe(true);
+    expect(G.itemOffer.choices.some((item) => item.type === "air")).toBe(true);
   });
 
   it("撃退後イベントは40%で、無料装備なしが3回続いた次の撃退で救済する", () => {
@@ -1667,6 +1817,21 @@ describe("ゲームルール", () => {
     expect(G.nutrients).toBe(beforeNutrients);
   });
 
+  it("資源アイテムは砂・水・菌・ミネラル・空気の5種類と能力対応を使う", () => {
+    expect(Object.keys(ITEM_TYPES)).toEqual(["sand", "water", "fungus", "mineral", "air"]);
+    expect(Object.fromEntries(Object.entries(ITEM_TYPES).map(([id, row]) => [id, row.primary]))).toEqual({
+      sand: ["soil"],
+      water: ["attack"],
+      fungus: ["defense"],
+      mineral: ["speed"],
+      air: ["breed", "recovery"],
+    });
+    for (const oldId of ["earthCore", "demonFang", "guardianCarapace", "windFeather", "lifeEgg"]) {
+      expect(G.createEquipment(oldId, "iron", 1), oldId).toBe(null);
+      expect(G.equipItem(equipmentItem(oldId)), oldId).toBe(false);
+    }
+  });
+
   it("装備個体の生成はレアリティ表、主能力、非重複副能力を守る", () => {
     expect(Object.keys(ITEM_RARITIES)).toEqual(["iron", "bronze", "silver", "gold", "diamond"]);
     expect(G.itemRarityWeights(1, 1)).toEqual({ iron: 70, bronze: 30, silver: 0, gold: 0, diamond: 0 });
@@ -1677,15 +1842,15 @@ describe("ゲームルール", () => {
     expect(G.effectiveItemWave(11, 20)).toBe(14);
 
     G.setRandom(() => 0);
-    const fang = G.createEquipment("demonFang", "iron", 1);
-    expect(fang.mods).toEqual({ soil: 1, attack: 8, defense: -2, speed: 0, breed: 0, recovery: 0 });
-    const egg = G.createEquipment("lifeEgg", "iron", 1);
-    expect(egg.mods.breed).toBe(4);
-    expect(egg.mods.recovery).toBe(4);
-    expect(Object.values(egg.mods).filter((value) => value < 0)).toHaveLength(1);
+    const water = G.createEquipment("water", "iron", 1);
+    expect(water.mods).toEqual({ soil: 1, attack: 8, defense: -2, speed: 0, breed: 0, recovery: 0 });
+    const air = G.createEquipment("air", "iron", 1);
+    expect(air.mods.breed).toBe(4);
+    expect(air.mods.recovery).toBe(4);
+    expect(Object.values(air.mods).filter((value) => value < 0)).toHaveLength(1);
 
     for (const rarity of Object.keys(ITEM_RARITIES)) {
-      const item = G.createEquipment("guardianCarapace", rarity, 14);
+      const item = G.createEquipment("fungus", rarity, 14);
       expect(item.rarity).toBe(rarity);
       expect(Object.keys(item.mods)).toEqual(ITEM_STAT_KEYS);
       expect(Object.values(item.mods).filter((value) => value < 0).length).toBeLessThanOrEqual(1);
@@ -1712,25 +1877,25 @@ describe("ゲームルール", () => {
     expect(Object.values(G.equipment).filter(Boolean)).toHaveLength(5);
     for (const key of ITEM_STAT_KEYS) expect(G.itemStats[key]).toBe(ITEM_STAT_LIMITS[key][1]);
 
-    const oldFang = G.equipment.demonFang;
-    const replacement = equipmentItem("demonFang", { attack: -100 }, "iron");
+    const oldWater = G.equipment.water;
+    const replacement = equipmentItem("water", { attack: -100 }, "iron");
     expect(G.equipItem(replacement)).toBe(true);
-    expect(G.equipment.demonFang.uid).toBe(replacement.uid);
-    expect(G.equipment.demonFang.uid).not.toBe(oldFang.uid);
+    expect(G.equipment.water.uid).toBe(replacement.uid);
+    expect(G.equipment.water.uid).not.toBe(oldWater.uid);
 
     for (const type of types) expect(G.equipItem(equipmentItem(type, Object.fromEntries(ITEM_STAT_KEYS.map((key) => [key, -100]))))).toBe(true);
     for (const key of ITEM_STAT_KEYS) expect(G.itemStats[key]).toBe(ITEM_STAT_LIMITS[key][0]);
 
     const snapshot = G.equipment;
-    snapshot.earthCore.mods.soil = 999;
-    expect(G.equipment.earthCore.mods.soil).toBe(-100);
-    expect(G.equipItem({ uid: "bad", type: "earthCore", rarity: "iron", mods: { soil: 1 } })).toBe(false);
+    snapshot.sand.mods.soil = 999;
+    expect(G.equipment.sand.mods.soil).toBe(-100);
+    expect(G.equipItem({ uid: "bad", type: "sand", rarity: "iron", mods: { soil: 1 } })).toBe(false);
   });
 
   it("攻撃と防御補正は最終ダメージへ一度だけ反映する", () => {
     carveAll();
-    expect(G.equipItem(equipmentItem("demonFang", { attack: 50 }))).toBe(true);
-    expect(G.equipItem(equipmentItem("guardianCarapace", { defense: 50 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("water", { attack: 50 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("fungus", { defense: 50 }))).toBe(true);
     G.spawnMonster("slime", 5, 5);
     const m = G.monsters[0];
     finishBirth(m);
@@ -1744,8 +1909,8 @@ describe("ゲームルール", () => {
 
   it("土壌と速度補正は小数蓄積と魔物の移動・攻撃間隔へ反映する", () => {
     carveAll();
-    expect(G.equipItem(equipmentItem("earthCore", { soil: 80 }))).toBe(true);
-    expect(G.equipItem(equipmentItem("windFeather", { speed: 50 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("sand", { soil: 80 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("mineral", { speed: 50 }))).toBe(true);
     G.grid[5][7] = { t: "earth", sub: null, shade: 0, soilMana: 0 };
     G.spawnMonster("slime", 5, 5);
     const m = G.monsters[0];
@@ -1772,7 +1937,7 @@ describe("ゲームルール", () => {
 
   it("繁殖補正は直接増殖、産卵判定、孵化の時間進行だけを速める", () => {
     carveAll();
-    expect(G.equipItem(equipmentItem("lifeEgg", { breed: 50 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("air", { breed: 50 }))).toBe(true);
 
     G.spawnMonster("slime", 3, 5);
     const breeder = G.monsters[0];
@@ -1798,7 +1963,7 @@ describe("ゲームルール", () => {
 
   it("回復補正は非戦闘4秒後から小数蓄積し、攻撃か被弾で待機を戻す", () => {
     carveAll();
-    expect(G.equipItem(equipmentItem("lifeEgg", { recovery: 40 }))).toBe(true);
+    expect(G.equipItem(equipmentItem("air", { recovery: 40 }))).toBe(true);
     G.spawnMonster("golem", 5, 5);
     const m = G.monsters[0];
     finishBirth(m);
@@ -2008,6 +2173,51 @@ describe("ゲームルール", () => {
     expect(resolvedOffers).toBeGreaterThan(0);
   });
 
+  it("追加15系統を全て配置した複数seed長時間進行でも状態と上限を壊さない", () => {
+    const additionalKinds = Object.values(MONSTER_FAMILIES)
+      .filter((family) => !family.default)
+      .flatMap((family) => family.kinds);
+
+    for (const seed of [11, 29, 47]) {
+      const game = createGame({ seed });
+      game.resetGame(seed);
+      carveAll(game);
+      game.gameState = "playing";
+      game.waveCountdown = 1_000_000_000;
+      game.coreHP = 1_000_000;
+      const cells = [];
+      for (let row = 1; row < game.ROWS - 1; row++) {
+        for (let col = 0; col < game.COLS; col++) {
+          if (!game.isMonsterForbiddenCell(col, row)) cells.push({ col, row });
+        }
+      }
+      for (let i = 0; i < additionalKinds.length; i++) {
+        game.spawnMonster(additionalKinds[i], cells[i].col, cells[i].row);
+      }
+      finishBirth(game.monsters);
+      expect(new Set(game.monsters.map((monster) => monster.kind))).toEqual(new Set(additionalKinds));
+
+      for (let elapsed = 0; elapsed < 600_000; elapsed += 1000) {
+        game.update(1000);
+        if (elapsed % 30_000 !== 0) continue;
+        expect(game.monsters.length + game.eggs.length).toBeLessThanOrEqual(game.MONSTER_CAP);
+        expect(game.effects.length).toBeLessThanOrEqual(game.EFFECT_CAP);
+        expect(Number.isFinite(game.nutrients)).toBe(true);
+        expect(Number.isFinite(game.coreHP)).toBe(true);
+        for (const actor of [...game.monsters, ...game.heroes]) {
+          expect(Number.isFinite(actor.hp), `${actor.kind || actor.cls}.hp`).toBe(true);
+          expect(Number.isFinite(actor.col), `${actor.kind || actor.cls}.col`).toBe(true);
+          expect(Number.isFinite(actor.row), `${actor.kind || actor.cls}.row`).toBe(true);
+          expect(actor.col).toBeGreaterThanOrEqual(0);
+          expect(actor.col).toBeLessThan(game.COLS);
+          expect(actor.row).toBeGreaterThanOrEqual(0);
+          expect(actor.row).toBeLessThan(game.ROWS);
+        }
+      }
+      expect(game.gameState).toBe("playing");
+    }
+  }, 20_000);
+
   it("ruleConfigでゲーム単位のバランス値を上書きできる", () => {
     const tuned = createGame({
       seed: 1,
@@ -2021,6 +2231,17 @@ describe("ゲームルール", () => {
         },
         kinds: {
           slime: { hp: 24, atk: 6, breedEvery: 5000 },
+          moss_shroom: { soilGrow: 9 },
+          moss_virus: { weakenMs: 9990, weakenMul: 0.5 },
+          moss_root: { hitSlowMs: 1230 },
+          meat_wolf: { packBoost: 0.25 },
+          meat_boar: { chargeMs: 2220, chargeMul: 1.8 },
+          meat_hedgehog: { thorns: 11 },
+          bug_centipede: { skitter: 0.7 },
+          bug_beetle: { frontGuard: 0.4 },
+          stone_turtle: { idleRegen: 0.2 },
+          stone_magnetCrab: { guardAura: 0.3 },
+          dragon_salamander: { heatTrailDmg: 12 },
         },
         veins: {
           moss: { touchNeed: 9, finalTouchNeed: 18 },
@@ -2041,6 +2262,17 @@ describe("ゲームルール", () => {
     expect(tuned.KINDS.slime.hp).toBe(24);
     expect(tuned.KINDS.slime.atk).toBe(6);
     expect(tuned.KINDS.slime.breedEvery).toBe(5000);
+    expect(tuned.KINDS.moss_shroom.soilGrow).toBe(9);
+    expect(tuned.KINDS.moss_virus).toMatchObject({ weakenMs: 9990, weakenMul: 0.5 });
+    expect(tuned.KINDS.moss_root.hitSlowMs).toBe(1230);
+    expect(tuned.KINDS.meat_wolf.packBoost).toBe(0.25);
+    expect(tuned.KINDS.meat_boar).toMatchObject({ chargeMs: 2220, chargeMul: 1.8 });
+    expect(tuned.KINDS.meat_hedgehog.thorns).toBe(11);
+    expect(tuned.KINDS.bug_centipede.skitter).toBe(0.7);
+    expect(tuned.KINDS.bug_beetle.frontGuard).toBe(0.4);
+    expect(tuned.KINDS.stone_turtle.idleRegen).toBe(0.2);
+    expect(tuned.KINDS.stone_magnetCrab.guardAura).toBe(0.3);
+    expect(tuned.KINDS.dragon_salamander.heatTrailDmg).toBe(12);
     expect(tuned.veinTouchNeed("moss")).toBe(9);
     expect(tuned.veinNextTouchNeed("moss", { evoStage: 1, soilMana: 0 })).toBe(18);
     expect(tuned.resolveHeroStats("warrior", 1)).toMatchObject({ hp: 68, atk: 16 });

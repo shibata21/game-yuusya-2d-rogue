@@ -232,16 +232,15 @@ async function reloadAndWaitForReady(client, label, ignoreCache = false) {
   );
 }
 
-async function inspectCodexLayout(client, width, height) {
+async function inspectDeckLayout(client, width, height) {
   await client.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 2, mobile: true });
   await evaluate(client, `new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
   const layout = await evaluate(client, `(() => {
-    const codex = document.querySelector(".codex");
-    const grid = document.getElementById("codexGrid");
-    const cards = [...grid.querySelectorAll(":scope > .codex-card")];
+    const grid = document.getElementById("homeBody");
+    const cards = [...grid.querySelectorAll(".home-card")];
     const cardRects = cards.map((card) => card.getBoundingClientRect());
-    const bodyWidths = cards.map((card) => card.querySelector(".codex-body")?.getBoundingClientRect().width || 0);
-    const horizontal = [codex, grid, ...cards, ...cards.map((card) => card.querySelector(".codex-body"))]
+    const bodyWidths = cards.map((card) => card.querySelector(".home-card-body")?.getBoundingClientRect().width || 0);
+    const horizontal = [grid, ...cards, ...cards.map((card) => card.querySelector(".home-card-body"))]
       .filter(Boolean)
       .every((node) => getComputedStyle(node).writingMode === "horizontal-tb");
     const oneColumn = cardRects.every((rect, index) => {
@@ -250,11 +249,13 @@ async function inspectCodexLayout(client, width, height) {
       return Math.abs(rect.left - cardRects[0].left) <= 1 && rect.top >= previous.bottom - 1;
     });
     const contentFits = cards.every((card) => {
-      const body = card.querySelector(".codex-body");
-      const button = card.querySelector("button");
+      const body = card.querySelector(".home-card-body");
+      const detail = card.querySelector(".home-card-detail");
+      const action = card.querySelector(".home-card-action");
       return card.scrollWidth <= card.clientWidth + 1
         && (!body || body.scrollWidth <= body.clientWidth + 1)
-        && (!button || button.scrollWidth <= button.clientWidth + 1);
+        && (!detail || detail.scrollWidth <= detail.clientWidth + 1)
+        && (!action || action.scrollWidth <= action.clientWidth + 1);
     });
     const noPageOverflow = document.documentElement.scrollWidth <= innerWidth + 1
       && cardRects.every((rect) => rect.left >= -1 && rect.right <= innerWidth + 1);
@@ -420,7 +421,7 @@ async function run() {
       menuVisible: !document.querySelector(".home-tabs").classList.contains("hidden"),
       oldBottom: !!document.getElementById("codexBtn") || !!document.getElementById("loopSelect") || !!document.getElementById("soundPanel")
     })`);
-    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || Math.abs(loaded.canvasRatio - 528 / 768) > 0.002 || loaded.state !== "title" || loaded.startDisabled || loaded.startBusy !== "false" || loaded.startText !== "防衛開始" || !loaded.startHidden || !loaded.loadHidden || !loaded.menuVisible || loaded.oldBottom || loaded.tabs.join("/") !== "防衛/モンスターデッキ/図鑑/設定") {
+    if (loaded.title !== "迷宮を守る" || !loaded.app || !loaded.canvas || Math.abs(loaded.canvasRatio - 528 / 768) > 0.002 || loaded.state !== "title" || loaded.startDisabled || loaded.startBusy !== "false" || loaded.startText !== "防衛開始" || !loaded.startHidden || !loaded.loadHidden || !loaded.menuVisible || loaded.oldBottom || loaded.tabs.join("/") !== "防衛/モンスターデッキ/設定") {
       throw new Error(`初回ロード状態が不正です: ${JSON.stringify(loaded)}`);
     }
 
@@ -476,45 +477,37 @@ async function run() {
     client.events.length = 0;
     await client.send("Network.setCacheDisabled", { cacheDisabled: false });
 
-    await evaluate(client, `document.querySelector('[data-home-tab="codex"]').click()`);
-    await waitFor(client, `!!document.getElementById("codexGrid")`, "図鑑表示");
-    const initialCodex = await evaluate(client, `(() => {
-      const tabs = [...document.querySelectorAll("[data-codex-tab]")].map((button) => {
-        const rect = button.getBoundingClientRect();
-        return {
-          tab: button.dataset.codexTab,
-          text: button.textContent.trim(),
-          width: Math.round(rect.width),
-          height: Math.round(rect.height),
-          left: Math.round(rect.left),
-          right: Math.round(rect.right),
-          visible: rect.width > 0 && rect.height > 0 && rect.left >= 0 && rect.right <= innerWidth && getComputedStyle(button).visibility === "visible",
-        };
-      });
-      const cards = [...document.querySelectorAll("#codexGrid .codex-card")];
+    await evaluate(client, `document.querySelector('[data-home-tab="deck"]').click()`);
+    await waitFor(client, `document.querySelectorAll(".home-card").length === 20`, "モンスターデッキ表示");
+    const initialDeck = await evaluate(client, `(() => {
+      const cards = [...document.querySelectorAll(".home-card")];
       const slime = cards.find((card) => card.textContent.includes("スライム"));
+      const back = document.querySelector("[data-home-back]");
+      const backRect = back?.getBoundingClientRect();
       return {
         width: innerWidth,
         menuHidden: document.querySelector(".home-tabs").classList.contains("hidden"),
-        backVisible: !!document.querySelector("[data-home-back]"),
-        tabs,
+        backText: back?.textContent.trim() || "",
+        backHeight: Math.round(backRect?.height || 0),
         cards: cards.length,
+        detailButtons: document.querySelectorAll("[data-deck-family-detail]").length,
+        actionButtons: document.querySelectorAll(".home-card-action").length,
         slimeText: slime?.textContent || "",
-        familySilhouettes: document.querySelectorAll(".codex-family-card .silhouette").length,
+        actionsNestedInDetail: [...document.querySelectorAll(".home-card-action")].some((button) => button.closest(".home-card-detail")),
+        codexTabs: document.querySelectorAll("[data-codex-tab]").length,
       };
     })()`);
-    const itemTab = initialCodex.tabs.find((tab) => tab.tab === "item");
-    if (!initialCodex.menuHidden || !initialCodex.backVisible || initialCodex.width !== 390 || initialCodex.tabs.length !== 3 || !itemTab || itemTab.text !== "アイテム" || !itemTab.visible || initialCodex.cards !== 20 || !initialCodex.slimeText.includes("解放済み") || initialCodex.familySilhouettes !== 0) {
-      throw new Error(`図鑑タブ表示が不正です: ${JSON.stringify(initialCodex)}`);
+    if (!initialDeck.menuHidden || initialDeck.backText !== "← ホームへ戻る" || initialDeck.backHeight < 44 || initialDeck.width !== 390 || initialDeck.cards !== 20 || initialDeck.detailButtons !== 20 || initialDeck.actionButtons !== 20 || !initialDeck.slimeText.includes("選択中") || initialDeck.actionsNestedInDetail || initialDeck.codexTabs !== 0) {
+      throw new Error(`モンスターデッキ表示が不正です: ${JSON.stringify(initialDeck)}`);
     }
 
-    const codexLayouts = [];
+    const deckLayouts = [];
     for (const [width, height] of [[320, 568], [390, 844], [844, 390]]) {
-      codexLayouts.push(await inspectCodexLayout(client, width, height));
+      deckLayouts.push(await inspectDeckLayout(client, width, height));
     }
-    const invalidLayout = codexLayouts.find((layout) => layout.width !== layout.requestedWidth || layout.height !== layout.requestedHeight || layout.cards !== 20 || !layout.horizontal || !layout.oneColumn || layout.minBodyWidth < 120 || !layout.contentFits || !layout.noPageOverflow);
+    const invalidLayout = deckLayouts.find((layout) => layout.width !== layout.requestedWidth || layout.height !== layout.requestedHeight || layout.cards !== 20 || !layout.horizontal || !layout.oneColumn || layout.minBodyWidth < 80 || !layout.contentFits || !layout.noPageOverflow);
     if (invalidLayout) {
-      throw new Error(`図鑑のレスポンシブ表示が不正です: ${JSON.stringify(codexLayouts)}`);
+      throw new Error(`モンスターデッキのレスポンシブ表示が不正です: ${JSON.stringify(deckLayouts)}`);
     }
     await client.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
     await evaluate(client, `new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
@@ -522,15 +515,15 @@ async function run() {
     await evaluate(client, `(() => {
       const body = document.getElementById("homeBody");
       body.scrollTop = 180;
-      document.querySelector('[data-codex-family="bug_beetle"]').click();
+      document.querySelector('[data-deck-family-detail="bug_beetle"]').click();
     })()`);
-    await waitFor(client, `!!document.querySelector('[data-codex-detail="bug_beetle"]')`, "図鑑系統詳細表示");
+    await waitFor(client, `!!document.querySelector('[data-deck-detail="bug_beetle"]')`, "デッキ系統詳細表示");
     const detailLayouts = [];
     for (const [width, height] of [[320, 568], [390, 844], [844, 390]]) {
       await client.send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: 2, mobile: true });
       await evaluate(client, `new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))`);
       detailLayouts.push(await evaluate(client, `(() => {
-        const detail = document.querySelector(".codex-detail");
+        const detail = document.querySelector(".deck-detail");
         const radar = document.querySelector(".monster-radar");
         const rect = detail.getBoundingClientRect();
         return {
@@ -540,29 +533,30 @@ async function run() {
           left: Math.round(rect.left),
           radar: !!radar,
           polygon: radar?.querySelector(".radar-value")?.getAttribute("points") || "",
-          stages: document.querySelectorAll("[data-codex-stage]").length,
+          stages: document.querySelectorAll("[data-deck-stage]").length,
+          backHeight: Math.round(document.querySelector("[data-deck-list-back]").getBoundingClientRect().height),
           noPageOverflow: document.documentElement.scrollWidth <= innerWidth + 1,
         };
       })()`));
     }
-    if (detailLayouts.some((layout) => layout.width <= 0 || layout.stages !== 3 || !layout.radar || !layout.polygon || layout.left < -1 || layout.right > layout.width + 1 || !layout.noPageOverflow)) {
-      throw new Error(`図鑑詳細のレスポンシブ表示が不正です: ${JSON.stringify(detailLayouts)}`);
+    if (detailLayouts.some((layout) => layout.width <= 0 || layout.stages !== 3 || layout.backHeight < 44 || !layout.radar || !layout.polygon || layout.left < -1 || layout.right > layout.width + 1 || !layout.noPageOverflow)) {
+      throw new Error(`デッキ詳細のレスポンシブ表示が不正です: ${JSON.stringify(detailLayouts)}`);
     }
     await client.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
-    await evaluate(client, `document.querySelector('[data-codex-stage="2"]').click()`);
-    const codexEvolution = await evaluate(client, `({
-      active: document.querySelector('[data-codex-stage="2"]').classList.contains("active"),
-      name: document.querySelector(".codex-creature-copy h4").textContent,
-      raw: document.querySelector(".codex-raw-stats").textContent,
-      normalized: document.querySelector(".codex-normalized-stats").textContent
+    await evaluate(client, `document.querySelector('[data-deck-stage="2"]').click()`);
+    const deckEvolution = await evaluate(client, `({
+      active: document.querySelector('[data-deck-stage="2"]').classList.contains("active"),
+      name: document.querySelector(".monster-creature-copy h4").textContent,
+      raw: document.querySelector(".monster-raw-stats").textContent,
+      normalized: document.querySelector(".monster-normalized-stats").textContent
     })`);
-    if (!codexEvolution.active || !codexEvolution.name.includes("城塞甲虫") || !codexEvolution.raw.includes("移動間隔") || !codexEvolution.normalized.includes("5")) {
-      throw new Error(`図鑑進化切替が不正です: ${JSON.stringify(codexEvolution)}`);
+    if (!deckEvolution.active || !deckEvolution.name.includes("城塞甲虫") || !deckEvolution.raw.includes("移動間隔") || !deckEvolution.normalized.includes("5")) {
+      throw new Error(`デッキ進化切替が不正です: ${JSON.stringify(deckEvolution)}`);
     }
-    await evaluate(client, `document.querySelector("[data-codex-list-back]").click()`);
-    await waitFor(client, `document.querySelectorAll("#codexGrid .codex-family-card").length === 20 && document.getElementById("homeBody").scrollTop >= 150`, "図鑑一覧のスクロール復元");
+    await evaluate(client, `document.querySelector("[data-deck-list-back]").click()`);
+    await waitFor(client, `document.querySelectorAll(".home-card").length === 20 && document.getElementById("homeBody").scrollTop >= 150`, "デッキ一覧のスクロール復元");
     await evaluate(client, `document.querySelector("[data-home-back]").click()`);
-    await waitFor(client, `!document.querySelector(".home-tabs").classList.contains("hidden")`, "図鑑から初期画面へ戻る操作");
+    await waitFor(client, `!document.querySelector(".home-tabs").classList.contains("hidden")`, "デッキから初期画面へ戻る操作");
     await evaluate(client, `document.querySelector('[data-home-tab="defense"]').click()`);
     const loopUi = await evaluate(client, `(() => ({
       controlsSelect: !!document.querySelector(".controls select"),
@@ -641,6 +635,27 @@ async function run() {
     await client.send("Network.setCacheDisabled", { cacheDisabled: true });
     await evaluate(client, `document.querySelector('[data-home-tab="deck"]').click()`);
     await waitFor(client, `!!document.querySelector('[data-select-family="moss_shroom"]')`, "菌糸デッキ候補表示");
+
+    const lockedDetailBefore = await evaluate(client, `({
+      coins: Number(document.getElementById("homeCoinNum").textContent),
+      actionText: document.querySelector('[data-buy-family="moss_virus"]')?.textContent.trim() || "",
+    })`);
+    await evaluate(client, `document.querySelector('[data-deck-family-detail="moss_virus"]').click()`);
+    await waitFor(client, `!!document.querySelector('[data-deck-detail="moss_virus"]')`, "未解放ウイルス詳細表示");
+    const lockedDetailAfter = await evaluate(client, `({
+      coins: Number(document.getElementById("homeCoinNum").textContent),
+      unlockedLabel: document.querySelector(".deck-detail-head span")?.textContent.trim() || "",
+      actionInsideDetail: !!document.querySelector('.deck-detail [data-buy-family], .deck-detail [data-select-family]'),
+    })`);
+    if (lockedDetailBefore.coins !== 9999 || !lockedDetailBefore.actionText.startsWith("解放 ") || lockedDetailAfter.coins !== lockedDetailBefore.coins || lockedDetailAfter.unlockedLabel !== "未解放" || lockedDetailAfter.actionInsideDetail) {
+      throw new Error(`未解放詳細と解放操作が競合しています: ${JSON.stringify({ lockedDetailBefore, lockedDetailAfter })}`);
+    }
+    await evaluate(client, `document.querySelector("[data-deck-list-back]").click()`);
+    await waitFor(client, `!!document.querySelector('[data-buy-family="moss_virus"]')`, "未解放詳細から一覧復帰");
+    await evaluate(client, `document.querySelector('[data-buy-family="moss_virus"]').click()`);
+    await waitFor(client, `document.querySelector('[data-select-family="moss_virus"]')?.textContent.trim() === "入れる" && !document.querySelector("[data-deck-detail]")`, "ウイルス解放操作");
+    await waitForStoredProgress(client, (value) => value.coins === 9839 && value.unlockedMonsterFamilies?.includes("moss_virus") && value.monsterDeck?.moss !== "moss_virus", "ウイルス解放の保存");
+
     const deckCandidate = await evaluate(client, `(() => {
       const button = document.querySelector('[data-select-family="moss_shroom"]');
       const sprite = button.closest(".home-card").querySelector(".home-monster-sprite");
@@ -703,9 +718,10 @@ async function run() {
       text: document.getElementById("dialogueText").textContent,
       label: document.getElementById("waveLabel").textContent,
       timer: document.getElementById("waveTimer").textContent,
-      startHidden: document.getElementById("startOverlay").classList.contains("hidden")
+      startHidden: document.getElementById("startOverlay").classList.contains("hidden"),
+      eventLayout: document.getElementById("dialogueOverlay").classList.contains("dialogue-event")
     })`);
-    if (introDialogue.state !== "dialogue" || introDialogue.id !== "intro" || introDialogue.speaker !== "迷宮王直属幹部" || introDialogue.topic !== "防衛開始" || !introDialogue.text.includes("最下層コア") || introDialogue.label !== "会話中" || introDialogue.timer !== "時間停止中" || !introDialogue.startHidden) {
+    if (introDialogue.state !== "dialogue" || introDialogue.id !== "intro" || introDialogue.speaker !== "迷宮王直属幹部" || introDialogue.topic !== "防衛開始" || !introDialogue.text.includes("最下層コア") || introDialogue.label !== "会話中" || introDialogue.timer !== "時間停止中" || !introDialogue.startHidden || introDialogue.eventLayout) {
       throw new Error(`開始チュートリアル会話が不正です: ${JSON.stringify(introDialogue)}`);
     }
     await advanceDialogueTo(client, "playing", "開始チュートリアル後のplaying状態");
@@ -747,6 +763,8 @@ async function run() {
           quitOpen: !overlay.classList.contains("hidden"),
           timer: document.getElementById("waveTimer").textContent,
           countdown: globalThis.MakaiDefense.current.waveCountdown,
+          cancelHeight: Math.round(document.getElementById("cancelQuitBtn").getBoundingClientRect().height),
+          cancelText: document.getElementById("cancelQuitBtn").textContent.trim(),
           noPageOverflow: document.documentElement.scrollWidth <= innerWidth + 1 && rect.left >= -1 && rect.right <= innerWidth + 1,
         };
       })()`));
@@ -756,7 +774,7 @@ async function run() {
       const resumed = await evaluate(client, `globalThis.MakaiDefense.current.waveCountdown`);
       if (resumed >= beforePause) throw new Error(`終了確認キャンセル後に時間が再開しません: ${beforePause} -> ${resumed}`);
     }
-    const invalidRunControl = runControlLayouts.find((layout) => layout.stats !== 6 || !layout.statsText.includes("土壌") || !layout.statsText.includes("回復") || !layout.statsText.includes("+0%") || !layout.statusOpen || !layout.quitOpen || layout.timer !== "時間停止中" || layout.pauseDelta > 0.01 || !layout.noPageOverflow);
+    const invalidRunControl = runControlLayouts.find((layout) => layout.stats !== 6 || !layout.statsText.includes("土壌") || !layout.statsText.includes("回復") || !layout.statsText.includes("+0%") || !layout.statusOpen || !layout.quitOpen || layout.timer !== "時間停止中" || layout.pauseDelta > 0.01 || layout.cancelHeight < 44 || layout.cancelText !== "← 防衛へ戻る" || !layout.noPageOverflow);
     if (invalidRunControl) throw new Error(`ステータス・終了確認のレスポンシブ表示が不正です: ${JSON.stringify(runControlLayouts)}`);
     await client.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
 
@@ -770,14 +788,26 @@ async function run() {
       game.settleWave();
     })()`);
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "dialogue" && globalThis.MakaiDefense.current.dialogue?.id === "itemChoice" && !document.getElementById("dialogueOverlay").classList.contains("hidden")`, "装備3択前会話表示");
-    const itemDialogue = await evaluate(client, `({
-      state: globalThis.MakaiDefense.current.gameState,
-      speaker: document.getElementById("dialogueSpeaker").textContent,
-      hiddenChoice: document.getElementById("itemChoiceOverlay").classList.contains("hidden"),
-      label: document.getElementById("waveLabel").textContent,
-      timer: document.getElementById("waveTimer").textContent
-    })`);
-    if (itemDialogue.state !== "dialogue" || itemDialogue.speaker !== "ゴリラおばさん" || !itemDialogue.hiddenChoice || itemDialogue.label !== "会話中" || itemDialogue.timer !== "時間停止中") {
+    const itemDialogue = await evaluate(client, `(() => {
+      const overlay = document.getElementById("dialogueOverlay");
+      const box = document.getElementById("dialogueAdvanceBtn");
+      const overlayRect = overlay.getBoundingClientRect();
+      const boxRect = box.getBoundingClientRect();
+      return {
+        state: globalThis.MakaiDefense.current.gameState,
+        speaker: document.getElementById("dialogueSpeaker").textContent,
+        hiddenChoice: document.getElementById("itemChoiceOverlay").classList.contains("hidden"),
+        label: document.getElementById("waveLabel").textContent,
+        timer: document.getElementById("waveTimer").textContent,
+        eventLayout: overlay.classList.contains("dialogue-event"),
+        centerDelta: Math.round(Math.abs((boxRect.top + boxRect.bottom) / 2 - (overlayRect.top + overlayRect.bottom) / 2)),
+        boxMinHeight: parseFloat(getComputedStyle(box).minHeight),
+        portraitWidth: parseFloat(getComputedStyle(document.getElementById("dialoguePortrait")).width),
+        speakerSize: parseFloat(getComputedStyle(document.getElementById("dialogueSpeaker")).fontSize),
+        textSize: parseFloat(getComputedStyle(document.getElementById("dialogueText")).fontSize),
+      };
+    })()`);
+    if (itemDialogue.state !== "dialogue" || itemDialogue.speaker !== "ゴリラおばさん" || !itemDialogue.hiddenChoice || itemDialogue.label !== "会話中" || itemDialogue.timer !== "時間停止中" || !itemDialogue.eventLayout || itemDialogue.centerDelta > 2 || itemDialogue.boxMinHeight < 156 || itemDialogue.portraitWidth < 74 || itemDialogue.speakerSize < 16 || itemDialogue.textSize < 15) {
       throw new Error(`装備3択前会話が不正です: ${JSON.stringify(itemDialogue)}`);
     }
     await advanceDialogueTo(client, "itemChoice", "装備3択前会話後の選択状態");
@@ -789,19 +819,19 @@ async function run() {
       label: document.getElementById("waveLabel").textContent,
       timer: document.getElementById("waveTimer").textContent
     })`);
-    if (offer.state !== "itemChoice" || offer.cards !== 3 || offer.choices.map((item) => item.type).join(",") !== "earthCore,demonFang,guardianCarapace" || offer.choices.some((item) => !item.uid || !item.mods) || offer.label !== "装備選択" || offer.timer !== "時間停止中") {
+    if (offer.state !== "itemChoice" || offer.cards !== 3 || offer.choices.map((item) => item.type).join(",") !== "sand,water,fungus" || offer.choices.some((item) => !item.uid || !item.mods) || offer.label !== "装備選択" || offer.timer !== "時間停止中") {
       throw new Error(`装備3択表示が不正です: ${JSON.stringify(offer)}`);
     }
-    await evaluate(client, `document.querySelector('[data-item-choice="' + globalThis.MakaiDefense.current.itemOffer.choices.find((item) => item.type === "earthCore").uid + '"]').click()`);
+    await evaluate(client, `document.querySelector('[data-item-choice="' + globalThis.MakaiDefense.current.itemOffer.choices.find((item) => item.type === "sand").uid + '"]').click()`);
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemChoiceOverlay").classList.contains("hidden") && document.getElementById("itemShopOverlay").classList.contains("hidden")`, "装備選択後の再開");
     const itemResult = await evaluate(client, `({
       equipment: globalThis.MakaiDefense.current.equipment,
       stats: globalThis.MakaiDefense.current.itemStats,
       slots: document.querySelectorAll("#itemBar .equipment-slot").length,
-      buttonLabel: document.querySelector('[data-equipment-type="earthCore"]')?.getAttribute("aria-label") || "",
+      buttonLabel: document.querySelector('[data-equipment-type="sand"]')?.getAttribute("aria-label") || "",
       popupExists: !!document.getElementById("itemPopup")
     })`);
-    if (!itemResult.equipment.earthCore || itemResult.slots !== 5 || !itemResult.buttonLabel.includes("地脈石") || itemResult.stats.soil <= 0 || !itemResult.popupExists) {
+    if (!itemResult.equipment.sand || itemResult.slots !== 5 || !itemResult.buttonLabel.includes("砂") || itemResult.stats.soil <= 0 || !itemResult.popupExists) {
       throw new Error(`装備選択後状態が不正です: ${JSON.stringify(itemResult)}`);
     }
 
@@ -815,10 +845,10 @@ async function run() {
       game.settleWave();
     })()`);
     await advanceDialogueTo(client, "itemChoice", "同種装備3択前会話後の選択状態");
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "itemChoice" && globalThis.MakaiDefense.current.itemOffer.choices.some((item) => item.type === "earthCore")`, "同種装備候補表示");
-    const previousEarthUid = itemResult.equipment.earthCore.uid;
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "itemChoice" && globalThis.MakaiDefense.current.itemOffer.choices.some((item) => item.type === "sand")`, "同種装備候補表示");
+    const previousSandUid = itemResult.equipment.sand.uid;
     await evaluate(client, `(() => {
-      const item = globalThis.MakaiDefense.current.itemOffer.choices.find((entry) => entry.type === "earthCore");
+      const item = globalThis.MakaiDefense.current.itemOffer.choices.find((entry) => entry.type === "sand");
       document.querySelector('[data-item-choice="' + item.uid + '"]').click();
     })()`);
     const comparison = await evaluate(client, `({
@@ -827,19 +857,21 @@ async function run() {
       cards: document.querySelectorAll(".equipment-compare-cards article").length,
       totals: document.querySelectorAll(".equipment-total-compare > span").length,
       text: document.getElementById("equipmentCompareBody").textContent,
-      uid: globalThis.MakaiDefense.current.equipment.earthCore.uid
+      uid: globalThis.MakaiDefense.current.equipment.sand.uid,
+      backHeight: Math.round(document.getElementById("backToItemChoicesBtn").getBoundingClientRect().height),
+      backText: document.getElementById("backToItemChoicesBtn").textContent.trim()
     })`);
-    if (comparison.state !== "itemChoice" || !comparison.visible || comparison.cards !== 2 || comparison.totals !== 6 || !comparison.text.includes("装備後の実効値") || comparison.uid !== previousEarthUid) {
+    if (comparison.state !== "itemChoice" || !comparison.visible || comparison.cards !== 2 || comparison.totals !== 6 || !comparison.text.includes("装備後の実効値") || comparison.uid !== previousSandUid || comparison.backHeight < 44 || comparison.backText !== "← 選択肢へ戻る") {
       throw new Error(`同種装備比較が不正です: ${JSON.stringify(comparison)}`);
     }
     await evaluate(client, `document.getElementById("backToItemChoicesBtn").click()`);
     await waitFor(client, `document.getElementById("equipmentCompareOverlay").classList.contains("hidden") && globalThis.MakaiDefense.current.gameState === "itemChoice"`, "装備比較から選択肢へ戻る操作");
     await evaluate(client, `(() => {
-      const item = globalThis.MakaiDefense.current.itemOffer.choices.find((entry) => entry.type === "earthCore");
+      const item = globalThis.MakaiDefense.current.itemOffer.choices.find((entry) => entry.type === "sand");
       document.querySelector('[data-item-choice="' + item.uid + '"]').click();
       document.getElementById("confirmReplaceBtn").click();
     })()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && globalThis.MakaiDefense.current.equipment.earthCore.uid !== ${JSON.stringify(previousEarthUid)}`, "同種装備の入れ替え");
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && globalThis.MakaiDefense.current.equipment.sand.uid !== ${JSON.stringify(previousSandUid)}`, "同種装備の入れ替え");
     await evaluate(client, `globalThis.MakaiDefense.current.applyDebuff("rottenRations")`);
     await waitFor(client, `!!document.querySelector('[data-debuff-id="rottenRations"]')`, "デバフの装備欄同居表示");
 
@@ -855,14 +887,22 @@ async function run() {
       game.settleWave();
     })()`);
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "dialogue" && globalThis.MakaiDefense.current.dialogue?.id === "shop" && !document.getElementById("dialogueOverlay").classList.contains("hidden")`, "ショップ前会話表示");
-    const shopDialogue = await evaluate(client, `({
-      state: globalThis.MakaiDefense.current.gameState,
-      speaker: document.getElementById("dialogueSpeaker").textContent,
-      hiddenShop: document.getElementById("itemShopOverlay").classList.contains("hidden"),
-      label: document.getElementById("waveLabel").textContent,
-      timer: document.getElementById("waveTimer").textContent
-    })`);
-    if (shopDialogue.state !== "dialogue" || shopDialogue.speaker !== "コンビニ店員のスライム" || !shopDialogue.hiddenShop || shopDialogue.label !== "会話中" || shopDialogue.timer !== "時間停止中") {
+    const shopDialogue = await evaluate(client, `(() => {
+      const overlay = document.getElementById("dialogueOverlay");
+      const box = document.getElementById("dialogueAdvanceBtn");
+      const overlayRect = overlay.getBoundingClientRect();
+      const boxRect = box.getBoundingClientRect();
+      return {
+        state: globalThis.MakaiDefense.current.gameState,
+        speaker: document.getElementById("dialogueSpeaker").textContent,
+        hiddenShop: document.getElementById("itemShopOverlay").classList.contains("hidden"),
+        label: document.getElementById("waveLabel").textContent,
+        timer: document.getElementById("waveTimer").textContent,
+        eventLayout: overlay.classList.contains("dialogue-event"),
+        centerDelta: Math.round(Math.abs((boxRect.top + boxRect.bottom) / 2 - (overlayRect.top + overlayRect.bottom) / 2)),
+      };
+    })()`);
+    if (shopDialogue.state !== "dialogue" || shopDialogue.speaker !== "コンビニ店員のスライム" || !shopDialogue.hiddenShop || shopDialogue.label !== "会話中" || shopDialogue.timer !== "時間停止中" || !shopDialogue.eventLayout || shopDialogue.centerDelta > 2) {
       throw new Error(`ショップ前会話が不正です: ${JSON.stringify(shopDialogue)}`);
     }
     await advanceDialogueTo(client, "shop", "ショップ前会話後のショップ状態");
@@ -873,21 +913,23 @@ async function run() {
       cards: document.querySelectorAll("[data-shop-item]").length,
       label: document.getElementById("waveLabel").textContent,
       timer: document.getElementById("waveTimer").textContent,
-      priceText: document.querySelector("[data-shop-item] .shop-price")?.textContent || ""
+      priceText: document.querySelector("[data-shop-item] .shop-price")?.textContent || "",
+      closeHeight: Math.round(document.getElementById("closeShopBtn").getBoundingClientRect().height),
+      closeText: document.getElementById("closeShopBtn").textContent.trim()
     })`);
-    if (shop.state !== "shop" || shop.cards !== 5 || shop.goods.map((good) => good.item.type).join(",") !== "earthCore,demonFang,guardianCarapace,windFeather,lifeEgg" || shop.goods.some((good) => !good.item.uid || good.sold) || shop.label !== "ショップ" || shop.timer !== "時間停止中" || !shop.priceText.includes("栄養")) {
+    if (shop.state !== "shop" || shop.cards !== 5 || shop.goods.map((good) => good.item.type).join(",") !== "sand,water,fungus,mineral,air" || shop.goods.some((good) => !good.item.uid || good.sold) || shop.label !== "ショップ" || shop.timer !== "時間停止中" || !shop.priceText.includes("栄養") || shop.closeHeight < 44 || shop.closeText !== "← 防衛へ戻る") {
       throw new Error(`ショップ表示が不正です: ${JSON.stringify(shop)}`);
     }
     await evaluate(client, `(() => {
-      const good = globalThis.MakaiDefense.current.shopOffer.goods.find((entry) => entry.item.type === "demonFang");
+      const good = globalThis.MakaiDefense.current.shopOffer.goods.find((entry) => entry.item.type === "water");
       document.querySelector('[data-shop-item="' + good.item.uid + '"]').click();
     })()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && !!globalThis.MakaiDefense.current.equipment.demonFang && globalThis.MakaiDefense.current.shopOffer.goods.find((entry) => entry.item.type === "demonFang").sold`, "商店の1個目購入");
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && !!globalThis.MakaiDefense.current.equipment.water && globalThis.MakaiDefense.current.shopOffer.goods.find((entry) => entry.item.type === "water").sold`, "商店の1個目購入");
     await evaluate(client, `(() => {
-      const good = globalThis.MakaiDefense.current.shopOffer.goods.find((entry) => entry.item.type === "guardianCarapace");
+      const good = globalThis.MakaiDefense.current.shopOffer.goods.find((entry) => entry.item.type === "fungus");
       document.querySelector('[data-shop-item="' + good.item.uid + '"]').click();
     })()`);
-    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && !!globalThis.MakaiDefense.current.equipment.guardianCarapace && Object.values(globalThis.MakaiDefense.current.equipment).filter(Boolean).length === 3`, "商店の複数購入");
+    await waitFor(client, `globalThis.MakaiDefense.current.gameState === "shop" && !!globalThis.MakaiDefense.current.equipment.fungus && Object.values(globalThis.MakaiDefense.current.equipment).filter(Boolean).length === 3`, "商店の複数購入");
     await evaluate(client, `document.getElementById("closeShopBtn").click()`);
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && document.getElementById("itemShopOverlay").classList.contains("hidden")`, "ショップ閉店後の再開");
     await evaluate(client, `(() => {
@@ -901,7 +943,7 @@ async function run() {
     })()`);
     await waitFor(client, `globalThis.MakaiDefense.current.gameState === "playing" && globalThis.MakaiDefense.current.postWaveEvent === null`, "撃退後イベントなし");
     const popupResult = await evaluate(client, `new Promise((resolve) => {
-      const button = document.querySelector('[data-equipment-type="earthCore"]');
+      const button = document.querySelector('[data-equipment-type="sand"]');
       const rect = button.getBoundingClientRect();
       const x = rect.left + rect.width / 2;
       const y = rect.top + rect.height / 2;
@@ -916,7 +958,7 @@ async function run() {
         });
       }, 650);
     })`);
-    if (popupResult.hidden || !popupResult.text.includes("地脈石") || !popupResult.text.includes("土壌") || popupResult.selection) {
+    if (popupResult.hidden || !popupResult.text.includes("砂") || !popupResult.text.includes("土壌") || popupResult.selection) {
       throw new Error(`装備長押しポップアップが不正です: ${JSON.stringify(popupResult)}`);
     }
 
@@ -926,30 +968,24 @@ async function run() {
     if (interruptedProgress?.activeRun !== null || Object.prototype.hasOwnProperty.call(interruptedProgress || {}, "discoveredItems") || Object.prototype.hasOwnProperty.call(interruptedProgress || {}, "unlockedItems")) {
       throw new Error(`終了確定後の保存状態が不正です: ${JSON.stringify(interruptedProgress)}`);
     }
-    await evaluate(client, `document.querySelector('[data-home-tab="codex"]').click()`);
-    await waitFor(client, `!!document.getElementById("codexGrid")`, "図鑑表示");
-    await evaluate(client, `document.querySelector('[data-codex-tab="item"]').click()`);
-    const codex = await evaluate(client, `(() => {
-      const cards = [...document.querySelectorAll("#codexGrid .codex-card")];
-      const item = cards.find((card) => card.textContent.includes("地脈石"));
-      const locked = cards.filter((card) => card.classList.contains("locked"));
-      return {
-        active: document.querySelector('[data-codex-tab="item"]').classList.contains("active"),
-        cards: cards.length,
-        itemText: item?.textContent || "",
-        lockedCount: locked.length,
-        rarityRows: document.querySelectorAll(".codex-rarity-row").length,
-        names: cards.map((card) => card.querySelector(".codex-title strong")?.textContent || ""),
-      };
-    })()`);
-    if (!codex.active || codex.cards !== 5 || !codex.itemText.includes("土壌") || codex.lockedCount !== 0 || codex.rarityRows !== 25 || codex.names.join(",") !== "地脈石,魔牙,守護甲,風羽,命卵") {
-      throw new Error(`装備図鑑表示が不正です: ${JSON.stringify(codex)}`);
+    const removedCodex = await evaluate(client, `({
+      homeTabs: [...document.querySelectorAll("[data-home-tab]")].map((button) => button.textContent.trim()),
+      codexTab: !!document.querySelector('[data-home-tab="codex"]'),
+      codexGrid: !!document.getElementById("codexGrid"),
+      resetLabel: (() => {
+        document.querySelector('[data-home-tab="settings"]').click();
+        document.querySelector('[data-settings-tab="dev"]').click();
+        return document.getElementById("resetProgressBtn")?.textContent.trim() || "";
+      })(),
+    })`);
+    if (removedCodex.homeTabs.join("/") !== "防衛/モンスターデッキ/設定" || removedCodex.codexTab || removedCodex.codexGrid || removedCodex.resetLabel !== "進行状況を初期化") {
+      throw new Error(`独立図鑑の削除状態が不正です: ${JSON.stringify(removedCodex)}`);
     }
 
     const issues = collectIssues(client.events);
     if (issues.length) throw new Error(`ブラウザ実行エラー:\n${issues.join("\n")}`);
 
-    console.log("OK: 初回素材の開始保留・失敗表示・再読み込み復旧、専用ホーム画面、20系統図鑑と詳細、3画面幅、設定、開始会話、canvas描画、ステータス、終了確認の停止・キャンセル・確定、装備3択、同種比較・交換、デバフ同居、装備商店の複数購入、長押しポップアップ、5種装備図鑑を検査しました");
+    console.log("OK: 初回素材の開始保留・失敗表示・再読み込み復旧、3択ホーム画面、20系統デッキ詳細、3画面幅、設定、中央イベント会話、canvas描画、ステータス、終了確認、装備3択・交換・商店・長押しを検査しました");
   } catch (error) {
     if (previewLog) console.error(previewLog.slice(-2000));
     if (chromeLog) console.error(chromeLog.slice(-2000));

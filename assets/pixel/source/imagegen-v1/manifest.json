@@ -2,7 +2,7 @@
   "version": "imagegen-v1",
   "generator": {
     "tool": "OpenAI imagegen（組み込みツール）",
-    "generatedOn": "2026-07-13",
+    "generatedOn": "2026-07-17",
     "styleReference": "reference/style-anchor.png",
     "policy": "新規・更新画像はimagegenで生成する。imagegenが利用不能、失敗、または上限到達の場合は、JS・Canvas・SVG・外部素材・手描画で代替せず、生成できない理由と未完了範囲を利用者へ報告する。"
   },
@@ -56,6 +56,28 @@
       "trimRatio": 0.05,
       "kinds": ["moss", "meat", "venom", "stone", "ember"],
       "levels": ["normal", "evo", "evo2"]
+    },
+    "soilAlgae": {
+      "files": [
+        "tiles/soil-algae-stage-1.png",
+        "tiles/soil-algae-stage-2.png",
+        "tiles/soil-algae-stage-3.png",
+        "tiles/soil-algae-stage-4.png",
+        "tiles/soil-algae-stage-5.png",
+        "tiles/soil-algae-stage-6.png",
+        "tiles/soil-algae-stage-7.png"
+      ],
+      "stages": [1, 2, 3, 4, 5, 6, 7]
+    },
+    "veinEvo2Aura": {
+      "files": [
+        "tiles/vein-evo2-aura-frame-1.png",
+        "tiles/vein-evo2-aura-frame-2.png",
+        "tiles/vein-evo2-aura-frame-3.png",
+        "tiles/vein-evo2-aura-frame-4.png"
+      ],
+      "frames": 4,
+      "innerPadding": 6
     },
     "effects": {
       "file": "effects/effects.png",
@@ -165,9 +187,9 @@
     "moss_shroom": {"ne": ["*"]},
     "moss_mycelia": {"ne": ["*"]},
     "moss_myceliaKing": {"ne": ["*"]},
-    "moss_virus": {"e": ["*"], "se": ["*"], "ne": ["heal", "eat"]},
-    "moss_crystalVirus": {"e": ["*"], "se": ["*"], "ne": ["heal", "eat"]},
-    "moss_crownVirus": {"e": ["*"], "se": ["*"], "ne": ["heal", "eat"]},
+    "moss_virus": {"e": ["*"], "se": ["*"], "ne": ["eat"]},
+    "moss_crystalVirus": {"e": ["*"], "se": ["*"], "ne": ["eat"]},
+    "moss_crownVirus": {"e": ["*"], "se": ["*"], "ne": ["eat"]},
     "moss_root": {"e": ["*"], "se": ["*"]},
     "moss_tangleRoot": {"e": ["*"], "se": ["*"]},
     "moss_ancientRoot": {"e": ["*"], "se": ["*"]},
@@ -238,43 +260,43 @@
   "paletteVariants": {},
   "itemSheets": [
     {
-      "file": "items/equipment-earth-core.png",
+      "file": "items/equipment-sand.png",
       "columns": 1,
       "rows": 1,
-      "ids": ["earthCore"]
+      "ids": ["sand"]
     },
     {
-      "file": "items/equipment-demon-fang.png",
+      "file": "items/equipment-water.png",
       "columns": 1,
       "rows": 1,
-      "ids": ["demonFang"]
+      "ids": ["water"]
     },
     {
-      "file": "items/equipment-guardian-carapace.png",
+      "file": "items/equipment-fungus.png",
       "columns": 1,
       "rows": 1,
-      "ids": ["guardianCarapace"]
+      "ids": ["fungus"]
     },
     {
-      "file": "items/equipment-wind-feather.png",
+      "file": "items/equipment-mineral.png",
       "columns": 1,
       "rows": 1,
-      "ids": ["windFeather"]
+      "ids": ["mineral"]
     },
     {
-      "file": "items/equipment-life-egg.png",
+      "file": "items/equipment-air.png",
       "columns": 1,
       "rows": 1,
-      "ids": ["lifeEgg"]
+      "ids": ["air"]
     }
   ],
   "prompts": {
     "style": "High-density handcrafted pixel art with crisp hard-edged square pixel clusters, strong readable silhouettes at 48x48, high contrast, dark subterranean fantasy palette, no antialiasing, no gradients, no blur.",
     "actors": "Exact 5 columns by 7 rows. Columns are east, southeast, south, northeast, north. Rows are idle, attack, cast, dig, heal, eat, dodge. One character per cell on a solid chroma-key background, with no text or separators.",
     "eggs": "3列x3行。全セルで同じ中立的な卵形を使い、列は毒・石・炎、行は通常・第一進化・第二進化のモンスター土壌模様をそのまま載せる。モンスター固有の姿や部位は加えない。背景は単色クロマキー。",
-    "tiles": "見下ろし全画面タイル。環境シートは土・通路・岩盤・地表・コア。鉱脈シートは5素材行x通常・第一進化・第二進化列。第二進化は外周を発光させず、第一進化とは異なる内部模様で示す。",
+    "tiles": "見下ろし全画面タイル。環境シートは土・通路・岩盤・地表・コア。鉱脈シートは5素材行x通常・第一進化・第二進化列。第二進化は外周を発光させず、第一進化とは異なる内部模様で示す。土壌養分は1〜7段階で藻が単調に増える独立オーバーレイ、第二進化鉱脈は枠内側だけを漂う4フレームの独立オーラで示す。",
     "effects": "Exact 4 by 5 chronological animation sheet for slash, projectile, bite, birth and smoke effects on a solid chroma-key background.",
-    "items": "Five individual 1 by 1 equipment relic icons for earth core, demon fang, guardian carapace, wind feather and life egg. Each source has a transparent background, no labels, rarity colors or UI frames.",
+    "items": "砂、水、菌、ミネラル、空気の5資源を表す独立した1x1アイコン。各原画は透過背景で、文字、レアリティ色、UI枠を含めない。",
     "debuffs": "Exact 5 by 1 compact status icon sheet for rotten rations, cracked core, informant map, sharpened blade and dull feed.",
     "dialogue": "Exact 2 by 1 chest-up portrait sheet for the Dungeon King's executive and Gorilla Auntie, facing inward on a solid chroma-key background."
   }

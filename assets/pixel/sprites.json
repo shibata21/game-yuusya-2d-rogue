@@ -258,34 +258,34 @@
       "assignedComponents": 117
     },
     "moss_virus": {
-      "scale": 0.189573,
+      "scale": 0.25,
       "targetCenterX": 24,
       "targetFootY": 45,
       "minEffectScale": 1,
       "sourceWidth": 1536,
       "sourceHeight": 1024,
-      "sourceComponents": 85,
-      "assignedComponents": 85
+      "sourceComponents": 44,
+      "assignedComponents": 44
     },
     "moss_crystalVirus": {
-      "scale": 0.193237,
+      "scale": 0.231214,
       "targetCenterX": 24,
       "targetFootY": 45,
       "minEffectScale": 1,
       "sourceWidth": 1536,
       "sourceHeight": 1024,
-      "sourceComponents": 89,
-      "assignedComponents": 89
+      "sourceComponents": 54,
+      "assignedComponents": 54
     },
     "moss_crownVirus": {
-      "scale": 0.188679,
+      "scale": 0.222222,
       "targetCenterX": 24,
       "targetFootY": 45,
       "minEffectScale": 1,
       "sourceWidth": 1536,
       "sourceHeight": 1024,
-      "sourceComponents": 99,
-      "assignedComponents": 99
+      "sourceComponents": 58,
+      "assignedComponents": 58
     },
     "moss_root": {
       "scale": 0.201005,
@@ -2349,7 +2349,7 @@
     }
   },
   "items": {
-    "earthCore": {
+    "sand": {
       "sheet": "items",
       "x": 0,
       "y": 0,
@@ -2360,7 +2360,7 @@
         24
       ]
     },
-    "demonFang": {
+    "water": {
       "sheet": "items",
       "x": 48,
       "y": 0,
@@ -2371,7 +2371,7 @@
         24
       ]
     },
-    "guardianCarapace": {
+    "fungus": {
       "sheet": "items",
       "x": 96,
       "y": 0,
@@ -2382,7 +2382,7 @@
         24
       ]
     },
-    "windFeather": {
+    "mineral": {
       "sheet": "items",
       "x": 144,
       "y": 0,
@@ -2393,12 +2393,120 @@
         24
       ]
     },
-    "lifeEgg": {
+    "air": {
       "sheet": "items",
       "x": 192,
       "y": 0,
       "w": 48,
       "h": 48,
+      "anchor": [
+        24,
+        24
+      ]
+    }
+  },
+  "soilAlgae": {
+    "1": {
+      "sheet": "soil_algae",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "stage": 1
+    },
+    "2": {
+      "sheet": "soil_algae",
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "stage": 2
+    },
+    "3": {
+      "sheet": "soil_algae",
+      "x": 96,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "stage": 3
+    },
+    "4": {
+      "sheet": "soil_algae",
+      "x": 144,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "stage": 4
+    },
+    "5": {
+      "sheet": "soil_algae",
+      "x": 192,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "stage": 5
+    },
+    "6": {
+      "sheet": "soil_algae",
+      "x": 240,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "stage": 6
+    },
+    "7": {
+      "sheet": "soil_algae",
+      "x": 288,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "stage": 7
+    }
+  },
+  "veinEvo2Aura": {
+    "0": {
+      "sheet": "vein_evo2_aura",
+      "x": 0,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "frame": 0,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "1": {
+      "sheet": "vein_evo2_aura",
+      "x": 48,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "frame": 1,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "2": {
+      "sheet": "vein_evo2_aura",
+      "x": 96,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "frame": 2,
+      "anchor": [
+        24,
+        24
+      ]
+    },
+    "3": {
+      "sheet": "vein_evo2_aura",
+      "x": 144,
+      "y": 0,
+      "w": 48,
+      "h": 48,
+      "frame": 3,
       "anchor": [
         24,
         24

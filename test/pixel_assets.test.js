@@ -19,6 +19,8 @@ import {
   PIXEL_FRAMES,
   PIXEL_TILES,
   PIXEL_ITEMS,
+  PIXEL_SOIL_ALGAE_STAGES,
+  PIXEL_VEIN_EVO2_AURA_FRAMES,
   PIXEL_DEBUFFS,
   PIXEL_DIALOGUE_PORTRAITS,
   PIXEL_ASSET_VERSION,
@@ -158,6 +160,45 @@ function opaqueEdgeCount(img) {
   return count;
 }
 
+function opaqueOuterBandCount(img, padding) {
+  let count = 0;
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      if (x >= padding && y >= padding && x < img.width - padding && y < img.height - padding) continue;
+      if (img.data[(y * img.width + x) * 4 + 3] > 12) count++;
+    }
+  }
+  return count;
+}
+
+function opaqueComponentCount(img) {
+  const seen = new Uint8Array(img.width * img.height);
+  let components = 0;
+  for (let start = 0; start < seen.length; start++) {
+    if (seen[start] || img.data[start * 4 + 3] <= 12) continue;
+    components++;
+    const queue = [start];
+    seen[start] = 1;
+    for (let head = 0; head < queue.length; head++) {
+      const pixel = queue[head];
+      const x = pixel % img.width;
+      const y = Math.floor(pixel / img.width);
+      for (let oy = -1; oy <= 1; oy++) {
+        for (let ox = -1; ox <= 1; ox++) {
+          const nx = x + ox;
+          const ny = y + oy;
+          if (nx < 0 || ny < 0 || nx >= img.width || ny >= img.height) continue;
+          const neighbor = ny * img.width + nx;
+          if (seen[neighbor] || img.data[neighbor * 4 + 3] <= 12) continue;
+          seen[neighbor] = 1;
+          queue.push(neighbor);
+        }
+      }
+    }
+  }
+  return components;
+}
+
 function alphaJaccardDiff(a, b) {
   let intersection = 0;
   let union = 0;
@@ -216,6 +257,10 @@ describe("imagegenピクセル素材", () => {
     expect(Object.keys(meta.tiles)).toEqual(PIXEL_TILES);
     expect(Object.keys(meta.effects)).toEqual(PIXEL_EFFECTS);
     expect(Object.keys(meta.items)).toEqual(PIXEL_ITEMS);
+    expect(Object.keys(meta.soilAlgae).map(Number)).toEqual(PIXEL_SOIL_ALGAE_STAGES);
+    expect(Object.keys(meta.veinEvo2Aura).map(Number)).toEqual(
+      Array.from({ length: PIXEL_VEIN_EVO2_AURA_FRAMES }, (_, frame) => frame),
+    );
     expect(Object.keys(meta.debuffs)).toEqual(PIXEL_DEBUFFS);
     expect(Object.keys(meta.dialogue)).toEqual(PIXEL_DIALOGUE_PORTRAITS);
     for (const name of PIXEL_ACTORS) {
@@ -258,13 +303,15 @@ describe("imagegenピクセル素材", () => {
   });
 
   it("公開アセットURLとフレーム参照が新しい版を使う", () => {
-    expect(PIXEL_ASSET_VERSION).toBe("v33-actor-anchor");
-    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v33-actor-anchor");
-    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v33-actor-anchor");
-    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v33-actor-anchor");
-    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v33-actor-anchor");
+    expect(PIXEL_ASSET_VERSION).toBe("v34-soil-resources");
+    expect(pixelAssetUrl("tiles.png")).toBe("assets/pixel/tiles.png?v=v34-soil-resources");
+    expect(pixelAssetUrl("items.png")).toBe("assets/pixel/items.png?v=v34-soil-resources");
+    expect(pixelAssetUrl("soil_algae.png")).toBe("assets/pixel/soil_algae.png?v=v34-soil-resources");
+    expect(pixelAssetUrl("vein_evo2_aura.png")).toBe("assets/pixel/vein_evo2_aura.png?v=v34-soil-resources");
+    expect(pixelAssetUrl("debuffs.png")).toBe("assets/pixel/debuffs.png?v=v34-soil-resources");
+    expect(pixelAssetUrl("dialogue_portraits.png")).toBe("assets/pixel/dialogue_portraits.png?v=v34-soil-resources");
     expect(pixelAssetUrl(pixelActorFileName("venom_spider"))).toBe(
-      "assets/pixel/actor_venom_spider.png?v=v33-actor-anchor",
+      "assets/pixel/actor_venom_spider.png?v=v34-soil-resources",
     );
 
     const east = pixelActorFrameInfo("slime", "idle", "e", 0);
@@ -273,8 +320,8 @@ describe("imagegenピクセル素材", () => {
     expect(west.frame).toBe(east.frame);
     expect(west.flipX).toBe(true);
     expect(east.flipX).toBe(false);
-    expect(PIXEL_ITEMS).toEqual(["earthCore", "demonFang", "guardianCarapace", "windFeather", "lifeEgg"]);
-    expect(pixelItemFrameIndex("lifeEgg")).toBe(4);
+    expect(PIXEL_ITEMS).toEqual(["sand", "water", "fungus", "mineral", "air"]);
+    expect(pixelItemFrameIndex("air")).toBe(4);
     expect(pixelDebuffFrameIndex("sharpenedBlade")).toBe(3);
     expect(pixelDialoguePortraitFrameIndex("gorilla")).toBe(1);
   });
@@ -296,6 +343,14 @@ describe("imagegenピクセル素材", () => {
     });
     expect(png("assets/pixel/items.png")).toMatchObject({
       width: PIXEL_CELL * PIXEL_ITEMS.length,
+      height: PIXEL_CELL,
+    });
+    expect(png("assets/pixel/soil_algae.png")).toMatchObject({
+      width: PIXEL_CELL * PIXEL_SOIL_ALGAE_STAGES.length,
+      height: PIXEL_CELL,
+    });
+    expect(png("assets/pixel/vein_evo2_aura.png")).toMatchObject({
+      width: PIXEL_CELL * PIXEL_VEIN_EVO2_AURA_FRAMES,
       height: PIXEL_CELL,
     });
     expect(png("assets/pixel/debuffs.png")).toMatchObject({
@@ -372,7 +427,7 @@ describe("imagegenピクセル素材", () => {
     set(["slime", "superslime", "crownslime"], { se: ["*"], ne: ["cast", "heal", "eat", "dodge"] });
     set(["carniv", "evolved", "direfang"], { e: ["*"], se: ["*"] });
     set(["moss_shroom", "moss_mycelia", "moss_myceliaKing"], { ne: ["*"] });
-    set(["moss_virus", "moss_crystalVirus", "moss_crownVirus"], { e: ["*"], se: ["*"], ne: ["heal", "eat"] });
+    set(["moss_virus", "moss_crystalVirus", "moss_crownVirus"], { e: ["*"], se: ["*"], ne: ["eat"] });
     set(["moss_root", "moss_tangleRoot", "moss_ancientRoot"], { e: ["*"], se: ["*"] });
     set(["meat_wolf", "meat_shadowWolf", "meat_nightfangKing"], { e: ["*"], se: ["*"], ne: ["*"] });
     set([
@@ -402,7 +457,7 @@ describe("imagegenピクセル素材", () => {
 
   it("旧個別ポーズを使わずNEとNWを新しい本体シートから描画する", () => {
     expect(manifest.actorPoseOverrides).toEqual({});
-    expect(manifest.actorSourceFlipX.moss_virus.ne).toEqual(["heal", "eat"]);
+    expect(manifest.actorSourceFlipX.moss_virus.ne).toEqual(["eat"]);
     for (const action of PIXEL_ACTIONS) {
       const northeast = pixelActorFrameInfo("moss_virus", action, "ne", 0);
       const northwest = pixelActorFrameInfo("moss_virus", action, "nw", 0);
@@ -461,7 +516,6 @@ describe("imagegenピクセル素材", () => {
       expect(hasOpaqueMagenta(source), sheet.file).toBe(false);
       expect(opaqueEdgeCount(source), sheet.file).toBe(0);
     });
-
     PIXEL_DEBUFFS.forEach((_, index) => {
       expect(opaqueCount(atlasCell("debuffs.png", index))).toBeGreaterThan(60);
     });
@@ -470,6 +524,52 @@ describe("imagegenピクセル素材", () => {
     expect(opaqueCount(executive)).toBeGreaterThan(180);
     expect(opaqueCount(gorilla)).toBeGreaterThan(180);
     expect(diffStats(executive, gorilla).colorRatio).toBeGreaterThan(0.3);
+  });
+
+  it("土壌の藻はstage 0を持たず1〜7で被覆量が増える", () => {
+    expect(PIXEL_SOIL_ALGAE_STAGES).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(manifest.layouts.soilAlgae.stages).toEqual(PIXEL_SOIL_ALGAE_STAGES);
+    expect(manifest.layouts.soilAlgae.files).toHaveLength(PIXEL_SOIL_ALGAE_STAGES.length);
+    const atlas = png("assets/pixel/soil_algae.png");
+    let previousCoverage = 0;
+    PIXEL_SOIL_ALGAE_STAGES.forEach((stage, index) => {
+      const overlay = crop(atlas, index * PIXEL_CELL, 0);
+      const coverage = opaqueCount(overlay);
+      expect(coverage, `stage ${stage}`).toBeGreaterThan(previousCoverage);
+      expect(opaqueEdgeCount(overlay), `stage ${stage}`).toBe(0);
+      previousCoverage = coverage;
+      const source = png(`assets/pixel/source/imagegen-v1/${manifest.layouts.soilAlgae.files[index]}`);
+      expect(hasOpaqueMagenta(source), `stage ${stage}`).toBe(false);
+      expect(opaqueEdgeCount(source), `stage ${stage}`).toBe(0);
+    });
+  });
+
+  it("第二進化鉱脈オーラは内側6pxだけで4フレームが漂う", () => {
+    expect(PIXEL_VEIN_EVO2_AURA_FRAMES).toBe(4);
+    expect(manifest.layouts.veinEvo2Aura).toMatchObject({ frames: 4, innerPadding: 6 });
+    const atlas = png("assets/pixel/vein_evo2_aura.png");
+    const hashes = [];
+    for (let frame = 0; frame < PIXEL_VEIN_EVO2_AURA_FRAMES; frame++) {
+      const aura = crop(atlas, frame * PIXEL_CELL, 0);
+      expect(opaqueCount(aura), `frame ${frame}`).toBeGreaterThan(8);
+      expect(opaqueOuterBandCount(aura, 6), `frame ${frame}`).toBe(0);
+      hashes.push(imageHash(aura));
+      const source = png(`assets/pixel/source/imagegen-v1/${manifest.layouts.veinEvo2Aura.files[frame]}`);
+      expect(hasOpaqueMagenta(source), `source ${frame}`).toBe(false);
+      expect(opaqueEdgeCount(source), `source ${frame}`).toBe(0);
+    }
+    expect(new Set(hashes).size).toBe(PIXEL_VEIN_EVO2_AURA_FRAMES);
+  });
+
+  it("近接化した苔ウイルスの攻撃セルに分離した飛び道具がない", () => {
+    for (const name of ["moss_virus", "moss_crystalVirus", "moss_crownVirus"]) {
+      for (const direction of PIXEL_ACTOR_RENDER_DIRS) {
+        for (let frame = 0; frame < PIXEL_FRAMES; frame++) {
+          const attack = actorCrop(name, "attack", direction, frame);
+          expect(opaqueComponentCount(attack), `${name}:${direction}:${frame}`).toBe(1);
+        }
+      }
+    }
   });
 
   it("全進化段階の鉱脈に原画セル境界や発光外周を焼き込まない", () => {

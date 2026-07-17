@@ -43,6 +43,7 @@ export const SOIL_MANA_MAX_STAGE = 7;
 export const SOIL_CHARGE_MOVES = 10;
 export const SOIL_MANA_EVO_STEP = 3;
 export const SOIL_MANA_EVO_MAX = 2;
+export const VEIN_EVO_MAX_STAGE = 2;
 export const EFFECT_CAP = 90;
 export const ATK_ANIM = 190;
 export const MOVE_ANIM = 220;
@@ -119,7 +120,11 @@ export const RULE_CONSTANT_KEYS = [
 ];
 
 export const RULE_TABLE_NUMBER_KEYS = {
-  kinds: ["hp", "atk", "range", "moveCd", "atkCd", "aggro", "rank", "breedEvery", "breedCap", "eggChance", "evoLevel"],
+  kinds: [
+    "hp", "atk", "range", "moveCd", "atkCd", "aggro", "rank", "breedEvery", "breedCap", "eggChance", "evoLevel",
+    "soilGrow", "weakenMs", "weakenMul", "hitSlowMs", "packBoost", "chargeMs", "chargeMul", "thorns", "skitter",
+    "frontGuard", "idleRegen", "guardAura", "heatTrailDmg",
+  ],
   veins: ["unlock", "touchNeed", "finalTouchNeed", "spawnWeight", "soilAffinity"],
   heroes: ["rank", "hpMul", "atkMul", "defense", "range", "moveMul", "atkCd", "weight", "unlock", "healCd", "healRange", "healMul", "areaScale", "areaMax", "maxPerWave", "dodgeChance", "critChance", "critMul"],
 };
@@ -136,11 +141,11 @@ export const ITEM_STAT_LIMITS = {
 };
 
 export const ITEM_TYPES = {
-  earthCore: { name: "地脈石", primary: ["soil"], profile: "土壌の力を高め、鉱脈が育つ流れを強める。" },
-  demonFang: { name: "魔牙", primary: ["attack"], profile: "魔物の攻撃力を高める鋭い牙。" },
-  guardianCarapace: { name: "守護甲", primary: ["defense"], profile: "魔物が受ける傷を抑える厚い甲殻。" },
-  windFeather: { name: "風羽", primary: ["speed"], profile: "魔物の移動と攻撃を速める軽い羽。" },
-  lifeEgg: { name: "命卵", primary: ["breed", "recovery"], profile: "繁殖を促し、戦いを離れた魔物を癒やす生命の卵。" },
+  sand: { name: "砂", primary: ["soil"], profile: "土壌の力を高め、鉱脈が育つ流れを強める。" },
+  water: { name: "水", primary: ["attack"], profile: "魔物の攻撃力を高める清らかな水。" },
+  fungus: { name: "菌", primary: ["defense"], profile: "魔物が受ける傷を抑える菌糸の膜。" },
+  mineral: { name: "ミネラル", primary: ["speed"], profile: "魔物の移動と攻撃を速める鉱物成分。" },
+  air: { name: "空気", primary: ["breed", "recovery"], profile: "繁殖を促し、戦いを離れた魔物を癒やす澄んだ空気。" },
 };
 
 export const ITEM_RARITIES = {
@@ -173,51 +178,51 @@ export const KINDS = {
   spitter: { hp: 34, atk: 8, range: 2, moveCd: 590, atkCd: 920, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, eggChance: 0.22, col: "#a64dff", name: "蜘蛛", profile: "巣の片づけが異様にうまい。獲物を招く前に照明の位置を直すタイプ。" },
   golem: { hp: 125, atk: 5, range: 1, moveCd: 1100, atkCd: 1050, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.08, col: "#6f86c4", name: "ゴーレム", profile: "動き出すまでが長い。動き出してからも長い。本人は慎重派と言っている。" },
   flame: { hp: 84, atk: 18, range: 3, moveCd: 590, atkCd: 780, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, eggChance: 0.055, lineFire: true, col: "#ff8a3a", name: "火竜", profile: "炎で焼いた石をつまみにする。辛口評論家ぶるが、だいたい何でも食べる。" },
-  moss_shroom: { hp: 9, atk: 1, range: 1, moveCd: 570, atkCd: 760, aggro: 3, rank: 1, breedEvery: 13000, breedCap: 4, family: "moss_shroom", soilGrow: 1, col: "#8fcf6a", name: "胞子茸", profile: "歩くたび胞子を落とす小さな茸。本人は掃除をしているつもりで土を肥やす。" },
-  moss_mycelia: { hp: 48, atk: 6, range: 1, moveCd: 540, atkCd: 720, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_shroom", soilGrow: 2, col: "#b7df7a", eliteOf: "moss_shroom", name: "菌糸茸", profile: "足元から白い菌糸を伸ばす。通ったあとの土はやけに目覚めがいい。" },
-  moss_myceliaKing: { hp: 104, atk: 12, range: 1, moveCd: 520, atkCd: 690, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_shroom", soilGrow: 3, col: "#e0ef9a", eliteOf: "moss_mycelia", evoLevel: 2, name: "菌糸王", profile: "地中に王国を広げる茸。本人が座ると周囲の土が勝手に家臣になる。" },
-  moss_virus: { hp: 8, atk: 1, range: 2, moveCd: 620, atkCd: 900, aggro: 3, rank: 1, breedEvery: 15000, breedCap: 3, family: "moss_virus", weakenMs: 3200, weakenMul: 0.92, col: "#6fe0a8", name: "多脚ウイルス", profile: "立体結晶に細い足が生えたような魔物。近づく冒険者の握力を少し怪しくする。" },
-  moss_crystalVirus: { hp: 42, atk: 5, range: 2, moveCd: 600, atkCd: 860, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_virus", weakenMs: 4200, weakenMul: 0.88, col: "#7cf0d0", eliteOf: "moss_virus", name: "結晶ウイルス", profile: "結晶面をかちかち鳴らして増える。音を聞いた冒険者は武器の振りが鈍る。" },
-  moss_crownVirus: { hp: 94, atk: 11, range: 2, moveCd: 570, atkCd: 830, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_virus", weakenMs: 5600, weakenMul: 0.84, col: "#b4fff0", eliteOf: "moss_crystalVirus", evoLevel: 2, name: "王冠ウイルス", profile: "王冠のような突起を持つ結晶体。威厳はないが、冒険者の腕力は確実に落とす。" },
-  moss_root: { hp: 14, atk: 2, range: 1, moveCd: 690, atkCd: 780, aggro: 3, rank: 1, breedEvery: 16500, breedCap: 2, family: "moss_root", hitSlowMs: 360, col: "#7aa65a", name: "歩き根", profile: "根っこだけで歩く。足を取るのが仕事なので、自分の足取りはあまり気にしない。" },
-  moss_tangleRoot: { hp: 60, atk: 7, range: 1, moveCd: 660, atkCd: 740, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_root", hitSlowMs: 560, col: "#9fbd63", eliteOf: "moss_root", name: "絡み根", profile: "通路の端から蔓のように絡む根。ほどける頃には次の根が待っている。" },
-  moss_ancientRoot: { hp: 130, atk: 15, range: 1, moveCd: 640, atkCd: 700, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_root", hitSlowMs: 760, col: "#c5c96a", eliteOf: "moss_tangleRoot", evoLevel: 2, name: "古根主", profile: "古い根が主になったもの。動きは遅いが、捕まると通路そのものが足首を握る。" },
-  meat_wolf: { hp: 22, atk: 4, range: 1, moveCd: 500, atkCd: 620, aggro: 5, rank: 3, breedEvery: 32000, breedCap: 2, family: "meat_wolf", packBoost: 0.08, col: "#343a4a", name: "黒狼", profile: "群れの気配だけで走る黒い狼。一匹でも二匹分の顔をしている。" },
-  meat_shadowWolf: { hp: 78, atk: 14, range: 1, moveCd: 480, atkCd: 590, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_wolf", packBoost: 0.11, col: "#25283a", eliteOf: "meat_wolf", name: "影牙狼", profile: "影に牙があるのか、牙に影があるのか分からない。群れるほど迷宮の影が濃くなる。" },
-  meat_nightfangKing: { hp: 158, atk: 27, range: 1, moveCd: 460, atkCd: 560, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_wolf", packBoost: 0.14, col: "#1a1d2b", eliteOf: "meat_shadowWolf", evoLevel: 2, name: "夜牙王", profile: "夜の牙を束ねる王。吠えないのに周囲の狼が勝手に速度を合わせる。" },
-  meat_boar: { hp: 30, atk: 5, range: 1, moveCd: 650, atkCd: 730, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, family: "meat_boar", chargeMs: 1400, chargeMul: 1.35, col: "#8a4a32", name: "穴猪", profile: "穴から穴へ突っ込む猪。曲がることは苦手だが、止まることはもっと苦手。" },
-  meat_fangBoar: { hp: 102, atk: 18, range: 1, moveCd: 630, atkCd: 700, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_boar", chargeMs: 1500, chargeMul: 1.45, col: "#ad5b37", eliteOf: "meat_boar", name: "牙穴猪", profile: "牙で通路の空気ごと押す。走った直後の一撃だけ妙に重い。" },
-  meat_ironBoar: { hp: 190, atk: 32, range: 1, moveCd: 610, atkCd: 660, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_boar", chargeMs: 1700, chargeMul: 1.55, col: "#c06d43", eliteOf: "meat_fangBoar", evoLevel: 2, name: "鉄牙猪", profile: "鉄の牙を持つ猪。突進の勢いが残っている間、壁も敵もだいたい同じ扱いになる。" },
-  meat_hedgehog: { hp: 28, atk: 4, range: 1, moveCd: 620, atkCd: 720, aggro: 4, rank: 3, breedEvery: 34000, breedCap: 2, family: "meat_hedgehog", thorns: 2, col: "#7d6750", name: "針獣", profile: "丸まると針しか見えない獣。殴った側が先に顔をしかめる。" },
-  meat_steelHedgehog: { hp: 94, atk: 15, range: 1, moveCd: 600, atkCd: 690, aggro: 4, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_hedgehog", thorns: 4, col: "#9a8a74", eliteOf: "meat_hedgehog", name: "鋼針獣", profile: "針の芯が硬い。防具に当たっても、嫌な音だけは確実に残す。" },
-  meat_spineKing: { hp: 178, atk: 28, range: 1, moveCd: 580, atkCd: 650, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_hedgehog", thorns: 7, col: "#c3b180", eliteOf: "meat_steelHedgehog", evoLevel: 2, name: "針山王", profile: "背中が小さな山になった針獣。王座に座る者はだいたい自分の針で少し痛い。" },
-  bug_centipede: { hp: 28, atk: 7, range: 1, moveCd: 420, atkCd: 760, aggro: 4, rank: 2, breedEvery: 42000, breedCap: 2, family: "bug_centipede", skitter: 0.88, col: "#844bd6", name: "ムカデ", profile: "足の数で通路を覚える虫。数え間違えても速さだけは落ちない。" },
-  bug_steelCentipede: { hp: 96, atk: 16, range: 1, moveCd: 400, atkCd: 720, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_centipede", skitter: 0.82, col: "#b064e8", eliteOf: "bug_centipede", name: "鋼ムカデ", profile: "節の一つ一つが鋼のように硬い。足音が増えるほど前線が近づく。" },
-  bug_goldCentipede: { hp: 188, atk: 31, range: 1, moveCd: 380, atkCd: 690, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_centipede", skitter: 0.76, col: "#d2a744", eliteOf: "bug_steelCentipede", evoLevel: 2, name: "金殻ムカデ", profile: "金色の節が曲がるたびに光る。見とれる前にだいたい噛まれている。" },
-  bug_beetle: { hp: 42, atk: 5, range: 1, moveCd: 780, atkCd: 920, aggro: 4, rank: 2, breedEvery: 46000, breedCap: 2, family: "bug_beetle", frontGuard: 0.18, col: "#52664a", name: "甲虫", profile: "正面だけ妙に立派な甲虫。自信のある面を敵に向けるのが得意。" },
-  bug_shieldBeetle: { hp: 124, atk: 16, range: 1, moveCd: 760, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_beetle", frontGuard: 0.25, col: "#71865c", eliteOf: "bug_beetle", name: "盾甲虫", profile: "甲殻が盾のように広がった虫。横から見られると少し落ち着かない。" },
-  bug_fortressBeetle: { hp: 240, atk: 28, range: 1, moveCd: 740, atkCd: 850, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_beetle", frontGuard: 0.32, col: "#9da45f", eliteOf: "bug_shieldBeetle", evoLevel: 2, name: "城塞甲虫", profile: "通路に置くと城門のようになる甲虫。本人はただ正面を向いているだけ。" },
-  bug_needler: { hp: 26, atk: 6, range: 2, moveCd: 600, atkCd: 900, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, family: "bug_needler", col: "#7c45d6", name: "針虫", profile: "細い針を飛ばす虫。壁越しには撃てないので、律儀に角を曲がってから刺す。" },
-  bug_flyingNeedler: { hp: 92, atk: 17, range: 3, moveCd: 580, atkCd: 850, aggro: 3, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_needler", col: "#b85fcf", eliteOf: "bug_needler", name: "飛針虫", profile: "翅で浮いて針を構える。命中率より、針を構える姿勢の美しさにこだわる。" },
-  bug_bowNeedler: { hp: 176, atk: 32, range: 3, moveCd: 560, atkCd: 810, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_needler", col: "#cf8a3f", eliteOf: "bug_flyingNeedler", evoLevel: 2, name: "弩針虫", profile: "背中が弩のようにしなる針虫。狭い通路ほど照準が落ち着くらしい。" },
-  stone_turtle: { hp: 140, atk: 4, range: 1, moveCd: 1200, atkCd: 1100, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.018, col: "#647a96", name: "鉱亀", profile: "鉱石の甲羅を背負った亀。動かない時間を修理時間だと思っている。" },
-  stone_ironTurtle: { hp: 310, atk: 14, range: 1, moveCd: 1180, atkCd: 1060, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.024, col: "#8d9aa5", eliteOf: "stone_turtle", name: "鉄甲鉱亀", profile: "鉄混じりの甲羅を持つ。止まっていると傷口が鉱石でふさがっていく。" },
-  stone_goldTurtle: { hp: 575, atk: 28, range: 1, moveCd: 1160, atkCd: 1020, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.030, col: "#d1b45f", eliteOf: "stone_ironTurtle", evoLevel: 2, name: "金晶鉱亀", profile: "金晶の甲羅が欠けてもすぐ光を取り戻す。本人は昼寝の成果だと言う。" },
-  stone_magnetCrab: { hp: 115, atk: 5, range: 1, moveCd: 980, atkCd: 980, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.08, col: "#516f86", name: "磁石蟹", profile: "小さな磁力で仲間の鎧や甲殻を引き締める蟹。鉄粉が好物。" },
-  stone_ironCrab: { hp: 275, atk: 15, range: 1, moveCd: 960, atkCd: 940, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.12, col: "#6b8ca2", eliteOf: "stone_magnetCrab", name: "磁鉄蟹", profile: "磁力が強くなり、近くの味方が少し硬くなる。本人は方角をよく間違える。" },
-  stone_blackCrab: { hp: 520, atk: 29, range: 1, moveCd: 940, atkCd: 900, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.16, col: "#334a5a", eliteOf: "stone_ironCrab", evoLevel: 2, name: "黒磁鉄蟹", profile: "黒い磁鉄を抱えた蟹。近くにいるだけで刃先が少し逸れる。" },
-  stone_crystalEye: { hp: 82, atk: 9, range: 3, moveCd: 1000, atkCd: 980, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#8bc7e6", name: "水晶眼", profile: "水晶の目玉だけが浮く石の魔物。見つめた先に光弾を置く。" },
-  stone_quartzEye: { hp: 210, atk: 24, range: 3, moveCd: 980, atkCd: 940, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#c8e2f0", eliteOf: "stone_crystalEye", name: "石英眼", profile: "石英の濁った光を撃つ。視線が合うと、なぜかこちらが謝りたくなる。" },
-  stone_rainbowEye: { hp: 390, atk: 44, range: 4, moveCd: 960, atkCd: 900, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#f0d8ff", eliteOf: "stone_quartzEye", evoLevel: 2, name: "虹晶眼", profile: "虹色の光をたたえた巨大な眼。壁のない通路を見つけるとすぐ撃つ。" },
-  dragon_serpent: { hp: 92, atk: 17, range: 1, moveCd: 560, atkCd: 700, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 500, col: "#5fa36d", name: "大蛇", profile: "太い胴で冒険者を締める。噛むより先に足を遅くするのが礼儀らしい。" },
-  dragon_flameSerpent: { hp: 205, atk: 32, range: 1, moveCd: 540, atkCd: 660, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 700, col: "#d06a3a", eliteOf: "dragon_serpent", name: "炎大蛇", profile: "鱗の隙間から熱が漏れる大蛇。締め付けられると足が熱で重くなる。" },
-  dragon_whiteSerpent: { hp: 405, atk: 58, range: 1, moveCd: 520, atkCd: 620, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 900, col: "#f4f1cf", eliteOf: "dragon_flameSerpent", evoLevel: 2, name: "白鱗大蛇", profile: "白い鱗を持つ大蛇。締めた相手の歩幅まで静かに支配する。" },
-  dragon_salamander: { hp: 76, atk: 13, range: 1, moveCd: 520, atkCd: 740, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 2, col: "#e6502f", name: "火蜥蜴", profile: "尻尾の火で通路を焦がす蜥蜴。急いでいる時ほど足跡が熱い。" },
-  dragon_lavaSalamander: { hp: 185, atk: 28, range: 1, moveCd: 500, atkCd: 700, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 3, col: "#ff7a24", eliteOf: "dragon_salamander", name: "溶岩蜥蜴", profile: "足跡に溶岩の粒を残す。本人は通路を温めているだけのつもり。" },
-  dragon_mirageSalamander: { hp: 360, atk: 52, range: 1, moveCd: 480, atkCd: 660, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 5, col: "#ffd06a", eliteOf: "dragon_lavaSalamander", evoLevel: 2, name: "陽炎蜥蜴", profile: "歩いたあとに陽炎が立つ。踏んだ冒険者は痛みより先に景色を疑う。" },
-  dragon_wyvern: { hp: 66, atk: 12, range: 3, moveCd: 500, atkCd: 820, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 300, col: "#7eb8d8", name: "小飛竜", profile: "小さな翼で突風を撃つ竜。壁越しに撃てないので、風向きには正直。" },
-  dragon_stormWyvern: { hp: 170, atk: 28, range: 3, moveCd: 480, atkCd: 780, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 450, col: "#6ca0f0", eliteOf: "dragon_wyvern", name: "嵐飛竜", profile: "羽ばたきで短い嵐を作る。撃たれた冒険者は前へ出る足が少し遅れる。" },
-  dragon_skyWyvern: { hp: 330, atk: 54, range: 4, moveCd: 460, atkCd: 740, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 600, col: "#d9f2ff", eliteOf: "dragon_stormWyvern", evoLevel: 2, name: "天翼竜", profile: "天井近くを滑るように飛ぶ竜。突風の着弾だけは地面に律儀。" },
+  moss_shroom: { hp: 8, atk: 1, range: 1, moveCd: 570, atkCd: 760, aggro: 3, rank: 1, breedEvery: 13000, breedCap: 4, family: "moss_shroom", soilGrow: 1, col: "#8fcf6a", name: "胞子茸", profile: "歩くたび胞子を落とす小さな茸。本人は掃除をしているつもりで土を肥やす。" },
+  moss_mycelia: { hp: 43, atk: 5, range: 1, moveCd: 540, atkCd: 720, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_shroom", soilGrow: 2, col: "#b7df7a", eliteOf: "moss_shroom", name: "菌糸茸", profile: "足元から白い菌糸を伸ばす。通ったあとの土はやけに目覚めがいい。" },
+  moss_myceliaKing: { hp: 94, atk: 11, range: 1, moveCd: 520, atkCd: 690, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_shroom", soilGrow: 3, col: "#e0ef9a", eliteOf: "moss_mycelia", evoLevel: 2, name: "菌糸王", profile: "地中に王国を広げる茸。本人が座ると周囲の土が勝手に家臣になる。" },
+  moss_virus: { hp: 7, atk: 1, range: 1, moveCd: 620, atkCd: 900, aggro: 3, rank: 1, breedEvery: 15000, breedCap: 3, family: "moss_virus", weakenMs: 2720, weakenMul: 0.932, col: "#6fe0a8", name: "多脚ウイルス", profile: "立体結晶に細い足が生えたような魔物。近づく冒険者の握力を少し怪しくする。" },
+  moss_crystalVirus: { hp: 38, atk: 5, range: 1, moveCd: 600, atkCd: 860, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_virus", weakenMs: 3570, weakenMul: 0.898, col: "#7cf0d0", eliteOf: "moss_virus", name: "結晶ウイルス", profile: "結晶面をかちかち鳴らして増える。接触した冒険者は武器の振りが鈍る。" },
+  moss_crownVirus: { hp: 85, atk: 10, range: 1, moveCd: 570, atkCd: 830, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_virus", weakenMs: 4760, weakenMul: 0.864, col: "#b4fff0", eliteOf: "moss_crystalVirus", evoLevel: 2, name: "王冠ウイルス", profile: "王冠のような突起を持つ結晶体。威厳はないが、触れた冒険者の腕力は確実に落とす。" },
+  moss_root: { hp: 13, atk: 2, range: 1, moveCd: 690, atkCd: 780, aggro: 3, rank: 1, breedEvery: 16500, breedCap: 2, family: "moss_root", hitSlowMs: 310, col: "#7aa65a", name: "歩き根", profile: "根っこだけで歩く。足を取るのが仕事なので、自分の足取りはあまり気にしない。" },
+  moss_tangleRoot: { hp: 54, atk: 6, range: 1, moveCd: 660, atkCd: 740, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, family: "moss_root", hitSlowMs: 480, col: "#9fbd63", eliteOf: "moss_root", name: "絡み根", profile: "通路の端から蔓のように絡む根。ほどける頃には次の根が待っている。" },
+  moss_ancientRoot: { hp: 117, atk: 14, range: 1, moveCd: 640, atkCd: 700, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "moss_root", hitSlowMs: 650, col: "#c5c96a", eliteOf: "moss_tangleRoot", evoLevel: 2, name: "古根主", profile: "古い根が主になったもの。動きは遅いが、捕まると通路そのものが足首を握る。" },
+  meat_wolf: { hp: 20, atk: 4, range: 1, moveCd: 500, atkCd: 620, aggro: 5, rank: 3, breedEvery: 32000, breedCap: 2, family: "meat_wolf", packBoost: 0.068, col: "#343a4a", name: "黒狼", profile: "群れの気配だけで走る黒い狼。一匹でも二匹分の顔をしている。" },
+  meat_shadowWolf: { hp: 70, atk: 13, range: 1, moveCd: 480, atkCd: 590, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_wolf", packBoost: 0.0935, col: "#25283a", eliteOf: "meat_wolf", name: "影牙狼", profile: "影に牙があるのか、牙に影があるのか分からない。群れるほど迷宮の影が濃くなる。" },
+  meat_nightfangKing: { hp: 142, atk: 24, range: 1, moveCd: 460, atkCd: 560, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_wolf", packBoost: 0.119, col: "#1a1d2b", eliteOf: "meat_shadowWolf", evoLevel: 2, name: "夜牙王", profile: "夜の牙を束ねる王。吠えないのに周囲の狼が勝手に速度を合わせる。" },
+  meat_boar: { hp: 27, atk: 5, range: 1, moveCd: 650, atkCd: 730, aggro: 5, rank: 3, breedEvery: 36000, breedCap: 2, family: "meat_boar", chargeMs: 1190, chargeMul: 1.2975, col: "#8a4a32", name: "穴猪", profile: "穴から穴へ突っ込む猪。曲がることは苦手だが、止まることはもっと苦手。" },
+  meat_fangBoar: { hp: 92, atk: 16, range: 1, moveCd: 630, atkCd: 700, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_boar", chargeMs: 1280, chargeMul: 1.3825, col: "#ad5b37", eliteOf: "meat_boar", name: "牙穴猪", profile: "牙で通路の空気ごと押す。走った直後の一撃だけ妙に重い。" },
+  meat_ironBoar: { hp: 171, atk: 29, range: 1, moveCd: 610, atkCd: 660, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_boar", chargeMs: 1450, chargeMul: 1.4675, col: "#c06d43", eliteOf: "meat_fangBoar", evoLevel: 2, name: "鉄牙猪", profile: "鉄の牙を持つ猪。突進の勢いが残っている間、壁も敵もだいたい同じ扱いになる。" },
+  meat_hedgehog: { hp: 25, atk: 4, range: 1, moveCd: 620, atkCd: 720, aggro: 4, rank: 3, breedEvery: 34000, breedCap: 2, family: "meat_hedgehog", thorns: 2, col: "#7d6750", name: "針獣", profile: "丸まると針しか見えない獣。殴った側が先に顔をしかめる。" },
+  meat_steelHedgehog: { hp: 85, atk: 14, range: 1, moveCd: 600, atkCd: 690, aggro: 4, rank: 6, breedEvery: 0, breedCap: 1, family: "meat_hedgehog", thorns: 3, col: "#9a8a74", eliteOf: "meat_hedgehog", name: "鋼針獣", profile: "針の芯が硬い。防具に当たっても、嫌な音だけは確実に残す。" },
+  meat_spineKing: { hp: 160, atk: 25, range: 1, moveCd: 580, atkCd: 650, aggro: 5, rank: 8, breedEvery: 0, breedCap: 1, family: "meat_hedgehog", thorns: 6, col: "#c3b180", eliteOf: "meat_steelHedgehog", evoLevel: 2, name: "針山王", profile: "背中が小さな山になった針獣。王座に座る者はだいたい自分の針で少し痛い。" },
+  bug_centipede: { hp: 25, atk: 6, range: 1, moveCd: 420, atkCd: 760, aggro: 4, rank: 2, breedEvery: 42000, breedCap: 2, family: "bug_centipede", skitter: 0.898, col: "#844bd6", name: "ムカデ", profile: "足の数で通路を覚える虫。数え間違えても速さだけは落ちない。" },
+  bug_steelCentipede: { hp: 86, atk: 14, range: 1, moveCd: 400, atkCd: 720, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_centipede", skitter: 0.847, col: "#b064e8", eliteOf: "bug_centipede", name: "鋼ムカデ", profile: "節の一つ一つが鋼のように硬い。足音が増えるほど前線が近づく。" },
+  bug_goldCentipede: { hp: 169, atk: 28, range: 1, moveCd: 380, atkCd: 690, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_centipede", skitter: 0.796, col: "#d2a744", eliteOf: "bug_steelCentipede", evoLevel: 2, name: "金殻ムカデ", profile: "金色の節が曲がるたびに光る。見とれる前にだいたい噛まれている。" },
+  bug_beetle: { hp: 38, atk: 5, range: 1, moveCd: 780, atkCd: 920, aggro: 4, rank: 2, breedEvery: 46000, breedCap: 2, family: "bug_beetle", frontGuard: 0.153, col: "#52664a", name: "甲虫", profile: "正面だけ妙に立派な甲虫。自信のある面を敵に向けるのが得意。" },
+  bug_shieldBeetle: { hp: 112, atk: 14, range: 1, moveCd: 760, atkCd: 880, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_beetle", frontGuard: 0.2125, col: "#71865c", eliteOf: "bug_beetle", name: "盾甲虫", profile: "甲殻が盾のように広がった虫。横から見られると少し落ち着かない。" },
+  bug_fortressBeetle: { hp: 216, atk: 25, range: 1, moveCd: 740, atkCd: 850, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_beetle", frontGuard: 0.272, col: "#9da45f", eliteOf: "bug_shieldBeetle", evoLevel: 2, name: "城塞甲虫", profile: "通路に置くと城門のようになる甲虫。本人はただ正面を向いているだけ。" },
+  bug_needler: { hp: 23, atk: 5, range: 2, moveCd: 600, atkCd: 900, aggro: 3, rank: 2, breedEvery: 43000, breedCap: 2, family: "bug_needler", col: "#7c45d6", name: "針虫", profile: "細い針を飛ばす虫。壁越しには撃てないので、律儀に角を曲がってから刺す。" },
+  bug_flyingNeedler: { hp: 83, atk: 15, range: 3, moveCd: 580, atkCd: 850, aggro: 3, rank: 4, breedEvery: 0, breedCap: 1, family: "bug_needler", col: "#b85fcf", eliteOf: "bug_needler", name: "飛針虫", profile: "翅で浮いて針を構える。命中率より、針を構える姿勢の美しさにこだわる。" },
+  bug_bowNeedler: { hp: 158, atk: 29, range: 3, moveCd: 560, atkCd: 810, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "bug_needler", col: "#cf8a3f", eliteOf: "bug_flyingNeedler", evoLevel: 2, name: "弩針虫", profile: "背中が弩のようにしなる針虫。狭い通路ほど照準が落ち着くらしい。" },
+  stone_turtle: { hp: 126, atk: 4, range: 1, moveCd: 1200, atkCd: 1100, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.0153, col: "#647a96", name: "鉱亀", profile: "鉱石の甲羅を背負った亀。動かない時間を修理時間だと思っている。" },
+  stone_ironTurtle: { hp: 279, atk: 13, range: 1, moveCd: 1180, atkCd: 1060, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.0204, col: "#8d9aa5", eliteOf: "stone_turtle", name: "鉄甲鉱亀", profile: "鉄混じりの甲羅を持つ。止まっていると傷口が鉱石でふさがっていく。" },
+  stone_goldTurtle: { hp: 518, atk: 25, range: 1, moveCd: 1160, atkCd: 1020, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_turtle", idleRegen: 0.0255, col: "#d1b45f", eliteOf: "stone_ironTurtle", evoLevel: 2, name: "金晶鉱亀", profile: "金晶の甲羅が欠けてもすぐ光を取り戻す。本人は昼寝の成果だと言う。" },
+  stone_magnetCrab: { hp: 104, atk: 5, range: 1, moveCd: 980, atkCd: 980, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.068, col: "#516f86", name: "磁石蟹", profile: "小さな磁力で仲間の鎧や甲殻を引き締める蟹。鉄粉が好物。" },
+  stone_ironCrab: { hp: 248, atk: 14, range: 1, moveCd: 960, atkCd: 940, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.102, col: "#6b8ca2", eliteOf: "stone_magnetCrab", name: "磁鉄蟹", profile: "磁力が強くなり、近くの味方が少し硬くなる。本人は方角をよく間違える。" },
+  stone_blackCrab: { hp: 468, atk: 26, range: 1, moveCd: 940, atkCd: 900, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_magnetCrab", guardAura: 0.136, col: "#334a5a", eliteOf: "stone_ironCrab", evoLevel: 2, name: "黒磁鉄蟹", profile: "黒い磁鉄を抱えた蟹。近くにいるだけで刃先が少し逸れる。" },
+  stone_crystalEye: { hp: 74, atk: 8, range: 3, moveCd: 1000, atkCd: 980, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#8bc7e6", name: "水晶眼", profile: "水晶の目玉だけが浮く石の魔物。見つめた先に光弾を置く。" },
+  stone_quartzEye: { hp: 189, atk: 22, range: 3, moveCd: 980, atkCd: 940, aggro: 4, rank: 7, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#c8e2f0", eliteOf: "stone_crystalEye", name: "石英眼", profile: "石英の濁った光を撃つ。視線が合うと、なぜかこちらが謝りたくなる。" },
+  stone_rainbowEye: { hp: 351, atk: 40, range: 4, moveCd: 960, atkCd: 900, aggro: 4, rank: 9, breedEvery: 0, breedCap: 1, family: "stone_crystalEye", col: "#f0d8ff", eliteOf: "stone_quartzEye", evoLevel: 2, name: "虹晶眼", profile: "虹色の光をたたえた巨大な眼。壁のない通路を見つけるとすぐ撃つ。" },
+  dragon_serpent: { hp: 83, atk: 15, range: 1, moveCd: 560, atkCd: 700, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 430, col: "#5fa36d", name: "大蛇", profile: "太い胴で冒険者を締める。噛むより先に足を遅くするのが礼儀らしい。" },
+  dragon_flameSerpent: { hp: 185, atk: 29, range: 1, moveCd: 540, atkCd: 660, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 600, col: "#d06a3a", eliteOf: "dragon_serpent", name: "炎大蛇", profile: "鱗の隙間から熱が漏れる大蛇。締め付けられると足が熱で重くなる。" },
+  dragon_whiteSerpent: { hp: 365, atk: 52, range: 1, moveCd: 520, atkCd: 620, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_serpent", hitSlowMs: 770, col: "#f4f1cf", eliteOf: "dragon_flameSerpent", evoLevel: 2, name: "白鱗大蛇", profile: "白い鱗を持つ大蛇。締めた相手の歩幅まで静かに支配する。" },
+  dragon_salamander: { hp: 68, atk: 12, range: 1, moveCd: 520, atkCd: 740, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 2, col: "#e6502f", name: "火蜥蜴", profile: "尻尾の火で通路を焦がす蜥蜴。急いでいる時ほど足跡が熱い。" },
+  dragon_lavaSalamander: { hp: 167, atk: 25, range: 1, moveCd: 500, atkCd: 700, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 3, col: "#ff7a24", eliteOf: "dragon_salamander", name: "溶岩蜥蜴", profile: "足跡に溶岩の粒を残す。本人は通路を温めているだけのつもり。" },
+  dragon_mirageSalamander: { hp: 324, atk: 47, range: 1, moveCd: 480, atkCd: 660, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_salamander", heatTrailDmg: 4, col: "#ffd06a", eliteOf: "dragon_lavaSalamander", evoLevel: 2, name: "陽炎蜥蜴", profile: "歩いたあとに陽炎が立つ。踏んだ冒険者は痛みより先に景色を疑う。" },
+  dragon_wyvern: { hp: 59, atk: 11, range: 3, moveCd: 500, atkCd: 820, aggro: 5, rank: 5, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 260, col: "#7eb8d8", name: "小飛竜", profile: "小さな翼で突風を撃つ竜。壁越しに撃てないので、風向きには正直。" },
+  dragon_stormWyvern: { hp: 153, atk: 25, range: 3, moveCd: 480, atkCd: 780, aggro: 5, rank: 7, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 380, col: "#6ca0f0", eliteOf: "dragon_wyvern", name: "嵐飛竜", profile: "羽ばたきで短い嵐を作る。撃たれた冒険者は前へ出る足が少し遅れる。" },
+  dragon_skyWyvern: { hp: 297, atk: 49, range: 4, moveCd: 460, atkCd: 740, aggro: 5, rank: 9, breedEvery: 0, breedCap: 1, family: "dragon_wyvern", hitSlowMs: 510, col: "#d9f2ff", eliteOf: "dragon_stormWyvern", evoLevel: 2, name: "天翼竜", profile: "天井近くを滑るように飛ぶ竜。突風の着弾だけは地面に律儀。" },
   superslime: { hp: 52, atk: 7, range: 1, moveCd: 520, atkCd: 680, aggro: 3, rank: 2, breedEvery: 0, breedCap: 2, col: "#e84a4a", eliteOf: "slime", name: "スーパースライム", profile: "ぷるぷる界の御曹司。怒ると少し赤くなるが、照れても同じ色になる。" },
   evolved: { hp: 90, atk: 16, range: 1, moveCd: 620, atkCd: 660, aggro: 5, rank: 6, breedEvery: 0, breedCap: 1, col: "#9b2f4f", eliteOf: "carniv", name: "凶牙獣", profile: "牙の手入れにうるさい。鏡がないので、水たまりの前でよく止まる。" },
   tarantula: { hp: 108, atk: 19, range: 2, moveCd: 560, atkCd: 840, aggro: 4, rank: 4, breedEvery: 0, breedCap: 1, eggChance: 0.13, col: "#ff6b5a", eliteOf: "spitter", name: "大蜘蛛", profile: "糸の張り方に美学がある。褒めると無言で巣を一部増築する。" },
@@ -462,7 +467,7 @@ function applyMonsterDeckToVeins(veinTable, deck) {
 }
 
 export const PIXEL_ASSET_PATH = "assets/pixel/";
-export const PIXEL_ASSET_VERSION = "v33-actor-anchor";
+export const PIXEL_ASSET_VERSION = "v34-soil-resources";
 export const PIXEL_CELL = 48;
 export const PIXEL_FRAMES = 4;
 export const PIXEL_DIRS = ["e", "se", "s", "sw", "w", "nw", "n", "ne"];
@@ -517,8 +522,24 @@ export const PIXEL_ACTOR_SHEETS = {
 export const PIXEL_TILES = ["earth", "tunnel", "bedrock", "surface", "core", "moss", "meat", "venom", "stone", "ember", "moss_evo", "meat_evo", "venom_evo", "stone_evo", "ember_evo", "moss_evo2", "meat_evo2", "venom_evo2", "stone_evo2", "ember_evo2"];
 export const PIXEL_EFFECTS = ["slash", "shot", "bite", "birth", "puff"];
 export const PIXEL_ITEMS = Object.keys(ITEM_TYPES);
+export const PIXEL_SOIL_ALGAE_STAGES = Array.from({ length: SOIL_MANA_MAX_STAGE }, (_, index) => index + 1);
+export const PIXEL_VEIN_EVO2_AURA_FRAMES = 4;
 export const PIXEL_DEBUFFS = Object.keys(DEBUFF_ITEMS);
 export const PIXEL_DIALOGUE_PORTRAITS = ["executive", "gorilla"];
+
+export function tileOverlayFrameState(tile, elapsedMs = 0, col = 0, row = 0) {
+  const isEarth = !!tile && tile.t === "earth";
+  const hasVein = isEarth && !!tile.sub;
+  const soilMana = Math.max(0, Math.min(SOIL_MANA_MAX_STAGE, Math.floor(Number(tile && tile.soilMana) || 0)));
+  const rawEvoStage = tile && tile.evoStage === undefined ? (tile.evo ? 1 : 0) : Number(tile && tile.evoStage) || 0;
+  const currentEvoStage = Math.max(0, Math.min(VEIN_EVO_MAX_STAGE, Math.floor(rawEvoStage)));
+  const algaeFrame = isEarth && !hasVein && soilMana > 0 ? soilMana - 1 : null;
+  if (!hasVein || currentEvoStage !== VEIN_EVO_MAX_STAGE) return { algaeFrame, auraFrame: null };
+  const phase = Math.floor((Number(elapsedMs) || 0) / 180) + Math.floor(Number(col) || 0) * 3 + Math.floor(Number(row) || 0) * 5;
+  const auraFrame = ((phase % PIXEL_VEIN_EVO2_AURA_FRAMES) + PIXEL_VEIN_EVO2_AURA_FRAMES) % PIXEL_VEIN_EVO2_AURA_FRAMES;
+  return { algaeFrame, auraFrame };
+}
+
 const DIR_VECTORS = { e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1], n: [0, -1], ne: [1, -1] };
 
 const DIALOGUES = {
@@ -1013,7 +1034,7 @@ export function createGame(options = {}) {
       mods[key] = -penalty;
       mainBudget += penalty;
     }
-    if (type === "lifeEgg") {
+    if (type === "air") {
       mods.breed = Math.ceil(mainBudget / 2);
       mods.recovery = Math.floor(mainBudget / 2);
     } else {
@@ -1072,11 +1093,11 @@ export function createGame(options = {}) {
   function evoStageOf(tile) {
     if (!tile) return 0;
     const raw = tile.evoStage === undefined ? (tile.evo ? 1 : 0) : tile.evoStage;
-    return Math.max(0, Math.min(2, Math.floor(raw || 0)));
+    return Math.max(0, Math.min(VEIN_EVO_MAX_STAGE, Math.floor(raw || 0)));
   }
 
   function setEvoStage(tile, stage) {
-    const next = Math.max(0, Math.min(2, Math.floor(stage || 0)));
+    const next = Math.max(0, Math.min(VEIN_EVO_MAX_STAGE, Math.floor(stage || 0)));
     tile.evoStage = next;
     tile.evo = next >= 1;
   }
@@ -1320,7 +1341,7 @@ export function createGame(options = {}) {
     const v = VEIN[vein];
     if (!v) return null;
     const stage = evoStageOf(tile);
-    if (stage >= 2) return v.finalKind || v.evoKind || v.kind;
+    if (stage >= VEIN_EVO_MAX_STAGE) return v.finalKind || v.evoKind || v.kind;
     if (stage >= 1) return v.evoKind || v.kind;
     return v.kind;
   }
@@ -1788,7 +1809,7 @@ export function createGame(options = {}) {
   function updateVeinTouchEvolution() {
     for (let r = 1; r < ROWS - 1; r++) for (let c = 1; c < COLS - 1; c++) {
       const t = grid[r][c];
-      if (t.t !== "earth" || !t.sub || evoStageOf(t) >= 2) continue;
+      if (t.t !== "earth" || !t.sub || evoStageOf(t) >= VEIN_EVO_MAX_STAGE) continue;
       const touching = {};
       for (const m of monsters) {
         if (cardinalDist(m, { col: c, row: r }) === 1) {
@@ -1807,8 +1828,8 @@ export function createGame(options = {}) {
         t.evoChecked = true;
         t.evoStageTouch = 0;
         t.evoTouching = {};
-        effects.push({ type: "evolveVein", x: cx(c), y: cy(r), life: 760, max: 760, color: nextStage >= 2 ? "#ffcf4d" : VEIN[t.sub].color });
-        toast(c, r, nextStage >= 2 ? VEIN[t.sub].finalEvoName : VEIN[t.sub].evoName, nextStage >= 2 ? "#ffcf4d" : "#ffe08a");
+        effects.push({ type: "evolveVein", x: cx(c), y: cy(r), life: 760, max: 760, color: nextStage >= VEIN_EVO_MAX_STAGE ? "#ffcf4d" : VEIN[t.sub].color });
+        toast(c, r, nextStage >= VEIN_EVO_MAX_STAGE ? VEIN[t.sub].finalEvoName : VEIN[t.sub].evoName, nextStage >= VEIN_EVO_MAX_STAGE ? "#ffcf4d" : "#ffe08a");
       }
     }
   }
@@ -2376,7 +2397,7 @@ export function createGame(options = {}) {
 
   function applyMonsterHitTrait(source, h) {
     const k = source && source.kind ? (KINDS[source.kind] || {}) : {};
-    if (k.weakenMs) {
+    if (k.weakenMs && cheb(source, h) <= 1) {
       h.weakenMs = Math.max(h.weakenMs || 0, k.weakenMs);
       h.weakenMul = Math.min(h.weakenMul || 1, k.weakenMul || 0.9);
       popDmg(h.px, h.py - 10, "攻↓", "#9effc3");
@@ -3324,9 +3345,9 @@ export function createGame(options = {}) {
     KINDS, VEIN, HERO_CLASSES, ITEM_TYPES, ITEM_RARITIES, ITEM_STAT_KEYS, ITEM_STAT_LIMITS, ITEM_RARITY_WAVE_WEIGHTS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
     VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
     EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, EAT_CHECK, EAT_CHANCE_STEP, heroDigDmg, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
-    SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
+    SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX, VEIN_EVO_MAX_STAGE,
     VEIN_CAP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+    PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_SOIL_ALGAE_STAGES, PIXEL_VEIN_EVO2_AURA_FRAMES, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS, tileOverlayFrameState,
     PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, cx, cy, ATK_ANIM, MOVE_ANIM, DIG_CD,
   };
 }
@@ -3336,9 +3357,9 @@ export const Core = {
   VEIN, KINDS, HERO_CLASSES, ITEM_TYPES, ITEM_RARITIES, ITEM_STAT_KEYS, ITEM_STAT_LIMITS, ITEM_RARITY_WAVE_WEIGHTS, MONSTER_FAMILIES, DEFAULT_MONSTER_DECK, DEBUFF_ITEMS, POST_WAVE_EVENT_CHANCE, POST_WAVE_EVENT_WEIGHTS, DIG_BREAK, DIG_COST, START_NUT, FIRST_GRACE, WAVE_INTERVAL, HERO_STAGGER, HERO_ENTRY_HOLD, WAVE_SETTLE_DELAY, MOVEMENT_TICK, HEROES_PER_WAVE_CAP, MAX_WAVE, MAX_LOOP,
   VEIN_SPAWN_TICK, VEIN_SPAWN_BASE_CHANCE, VEIN_SPAWN_SOIL_WEIGHT, VEIN_SPAWN_SOIL_CHANCES, VEIN_SPAWN_BURST_CAP,
   EGG_HATCH, EGG_CHECK, EGG_CHANCE, EGG_KIND_CAP, BORN_ANIM, EVO_TIME, VEIN_FADE_START, VEIN_DECAY_TIME,
-  SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX,
+  SOIL_MANA_MAX_STAGE, SOIL_CHARGE_MOVES, SOIL_MANA_EVO_STEP, SOIL_MANA_EVO_MAX, VEIN_EVO_MAX_STAGE,
   CORE_MAX, VEIN_CAP, EAT_CHECK, EAT_CHANCE_STEP, EFFECT_CAP, MONSTER_CAP, MAX_HEROES, BREED_LIMIT, ITEM_OFFER_CHOICES, SHOP_STOCK_COUNT, FREE_ITEM_PITY_WAVES, ITEM_RECOVERY_DELAY, TRAP_EVENT_START_LOOP, DEBUFF_START_LOOP, TERMINATOR_LOOP, REAPER_SPAWN_CHANCE, ENTRANCE_COL, ENTRY_ZONE_COLS, ENTRY_ZONE_ROWS, CORE_COL, CORE_ROW, ROWS, COLS, TILE, W, H,
-  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS,
+  PIXEL_CELL, PIXEL_FRAMES, PIXEL_DIRS, PIXEL_ACTOR_RENDER_DIRS, PIXEL_ACTIONS, PIXEL_ACTOR_ANCHOR_X, PIXEL_ACTOR_ANCHOR_Y, PIXEL_ACTOR_FOOT_Y, PIXEL_ACTOR_FRAMES_PER_ACTOR, PIXEL_ACTOR_ATLAS_COLUMNS, PIXEL_ACTOR_ATLAS_ROWS_PER_ACTOR, PIXEL_ACTORS, PIXEL_ACTOR_SHEETS, PIXEL_TILES, PIXEL_EFFECTS, PIXEL_ITEMS, PIXEL_SOIL_ALGAE_STAGES, PIXEL_VEIN_EVO2_AURA_FRAMES, PIXEL_DEBUFFS, PIXEL_DIALOGUE_PORTRAITS, tileOverlayFrameState,
   PIXEL_ASSET_VERSION, pixelAssetUrl, pixelActorX, pixelActorFrameInfo, pixelActorFrameIndex, pixelActorSheetName, pixelActorTextureKey, pixelActorFileName, pixelActorDisplayLayout, pixelActorDepth, actorDisplayDirection, pixelItemFrameIndex, pixelDebuffFrameIndex, pixelDialoguePortraitFrameIndex, heroDigDmg, resolveHeroStats, loopHpMultiplier, loopAtkMultiplier, loopScoreMultiplier, clampLoop, cx, cy,
 };
 

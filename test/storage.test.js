@@ -14,7 +14,7 @@ import {
   saveStoredRuleConfig,
 } from "../src/storage.js";
 
-const { DEV_RULE_KEY, PROGRESS_KEY } = __storageTestHooks.keys;
+const { DEV_RULE_KEY, LEGACY_DEV_RULE_KEY, PROGRESS_KEY } = __storageTestHooks.keys;
 
 describe("ローカル保存", () => {
   beforeEach(() => {
@@ -27,6 +27,18 @@ describe("ローカル保存", () => {
     expect(loadStoredRuleConfig()).toEqual(config);
     expect(clearStoredRuleConfig()).toBe(true);
     expect(loadStoredRuleConfig()).toBe(null);
+  });
+
+  it("旧v1開発設定は新しい既定バランスを巻き戻さないよう破棄する", () => {
+    const oldSnapshot = { kinds: { moss_virus: { hp: 8, range: 2, weakenMs: 3200 } } };
+    __storageTestHooks.setRaw(LEGACY_DEV_RULE_KEY, JSON.stringify(oldSnapshot));
+    expect(loadStoredRuleConfig()).toBe(null);
+    expect(__storageTestHooks.getRaw(LEGACY_DEV_RULE_KEY)).toBe(null);
+
+    const current = { kinds: { moss_virus: { hp: 6 } } };
+    expect(saveStoredRuleConfig(current)).toBe(true);
+    expect(loadStoredRuleConfig()).toEqual(current);
+    expect(JSON.parse(__storageTestHooks.getRaw(DEV_RULE_KEY))).toEqual(current);
   });
 
   it("進行データは発見イベントと最高到達ウェーブを反映する", () => {

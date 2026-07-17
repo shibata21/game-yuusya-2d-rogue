@@ -21,6 +21,8 @@ const {
   ITEM_ICONS,
   DEBUFF_ICONS,
   DIALOGUE_PORTRAITS,
+  SOIL_ALGAE_STAGES,
+  VEIN_EVO2_AURA_FRAMES,
   readPng,
 } = require("./pixel_asset_common");
 
@@ -72,6 +74,17 @@ function opaqueEdgeCount(img) {
   for (let y = 0; y < img.height; y++) {
     for (let x = 0; x < img.width; x++) {
       if (x > 0 && y > 0 && x < img.width - 1 && y < img.height - 1) continue;
+      if (img.data[(y * img.width + x) * 4 + 3] > 12) count++;
+    }
+  }
+  return count;
+}
+
+function opaqueOuterBandCount(img, padding) {
+  let count = 0;
+  for (let y = 0; y < img.height; y++) {
+    for (let x = 0; x < img.width; x++) {
+      if (x >= padding && y >= padding && x < img.width - padding && y < img.height - padding) continue;
       if (img.data[(y * img.width + x) * 4 + 3] > 12) count++;
     }
   }
@@ -337,6 +350,22 @@ function validateImagegenSource(manifest) {
       fail(`アイテムシート${index + 1} は1画像1装備である必要があります`);
     }
   }
+  if (!sameList(manifest.layouts.soilAlgae.stages, SOIL_ALGAE_STAGES)
+    || manifest.layouts.soilAlgae.files.length !== SOIL_ALGAE_STAGES.length) {
+    fail("土壌の藻原画の段階・枚数が不正です");
+  }
+  for (const [index, file] of manifest.layouts.soilAlgae.files.entries()) {
+    validateTransparentSource(file, `土壌の藻 stage ${SOIL_ALGAE_STAGES[index]}`);
+  }
+  const auraLayout = manifest.layouts.veinEvo2Aura;
+  if (auraLayout.frames !== VEIN_EVO2_AURA_FRAMES
+    || auraLayout.files.length !== VEIN_EVO2_AURA_FRAMES
+    || auraLayout.innerPadding !== 6) {
+    fail("第二進化鉱脈オーラの枚数・内側余白が不正です");
+  }
+  for (const [index, file] of auraLayout.files.entries()) {
+    validateTransparentSource(file, `第二進化鉱脈オーラ frame ${index + 1}`);
+  }
 
   if (!sameList(manifest.layouts.eggs.ids, ACTOR_SHEETS.eggs)) fail("卵の順序が不正です");
   if (!sameList(manifest.layouts.eggs.soilPatternColumns, EGG_SOIL_PATTERN_COLUMNS)) {
@@ -398,6 +427,12 @@ function validateMeta(manifest) {
   if (!sameList(Object.keys(meta.tiles), TILES)) fail("sprites.json のタイル順が不正です");
   if (!sameList(Object.keys(meta.effects), EFFECTS)) fail("sprites.json のエフェクト順が不正です");
   if (!sameList(Object.keys(meta.items), ITEM_ICONS)) fail("sprites.json のアイテム順が不正です");
+  if (!sameList(Object.keys(meta.soilAlgae || {}).map(Number), SOIL_ALGAE_STAGES)) {
+    fail("sprites.json の土壌の藻段階が不正です");
+  }
+  if (!sameList(Object.keys(meta.veinEvo2Aura || {}).map(Number), Array.from({ length: VEIN_EVO2_AURA_FRAMES }, (_, frame) => frame))) {
+    fail("sprites.json の第二進化鉱脈オーラフレームが不正です");
+  }
   if (!sameList(Object.keys(meta.debuffs), DEBUFF_ICONS)) fail("sprites.json のデバフ順が不正です");
   if (!sameList(Object.keys(meta.dialogue), DIALOGUE_PORTRAITS)) fail("sprites.json の会話立ち絵順が不正です");
   for (const actor of ACTORS) {
@@ -473,6 +508,8 @@ function validateAtlases() {
   const tiles = validatePng(path.join(OUT_DIR, "tiles.png"), CELL * TILES.length, CELL);
   const effects = validatePng(path.join(OUT_DIR, "effects.png"), CELL * FRAMES, CELL * EFFECTS.length);
   const items = validatePng(path.join(OUT_DIR, "items.png"), CELL * ITEM_ICONS.length, CELL);
+  const soilAlgae = validatePng(path.join(OUT_DIR, "soil_algae.png"), CELL * SOIL_ALGAE_STAGES.length, CELL);
+  const veinEvo2Aura = validatePng(path.join(OUT_DIR, "vein_evo2_aura.png"), CELL * VEIN_EVO2_AURA_FRAMES, CELL);
   const debuffs = validatePng(path.join(OUT_DIR, "debuffs.png"), CELL * DEBUFF_ICONS.length, CELL);
   const dialogue = validatePng(path.join(OUT_DIR, "dialogue_portraits.png"), CELL * DIALOGUE_PORTRAITS.length, CELL);
 
@@ -542,14 +579,38 @@ function validateAtlases() {
     const icon = crop(items, column * CELL, 0);
     if (opaqueCount(icon) < 60 || uniqueColors(icon) < 8) fail(`アイテム ${name} の情報量が不足しています`);
   });
+  let previousCoverage = 0;
+  SOIL_ALGAE_STAGES.forEach((stage, column) => {
+    const overlay = crop(soilAlgae, column * CELL, 0);
+    const coverage = opaqueCount(overlay);
+    if (coverage <= previousCoverage) {
+      fail(`土壌の藻 stage ${stage} の被覆量が前段階より増えていません: ${previousCoverage} -> ${coverage}`);
+    }
+    if (opaqueEdgeCount(overlay) !== 0) fail(`土壌の藻 stage ${stage} がセル外周へ接触しています`);
+    previousCoverage = coverage;
+  });
+  const auraHashes = new Set();
+  for (let frame = 0; frame < VEIN_EVO2_AURA_FRAMES; frame++) {
+    const aura = crop(veinEvo2Aura, frame * CELL, 0);
+    if (opaqueCount(aura) < 8) fail(`第二進化鉱脈オーラ ${frame} が空です`);
+    if (opaqueOuterBandCount(aura, 6) !== 0) fail(`第二進化鉱脈オーラ ${frame} が内側6pxの外へ出ています`);
+    auraHashes.add(imageHash(aura));
+  }
+  if (auraHashes.size !== VEIN_EVO2_AURA_FRAMES) fail("第二進化鉱脈オーラの4フレーム差分が不足しています");
   DEBUFF_ICONS.forEach((name, column) => {
     if (opaqueCount(crop(debuffs, column * CELL, 0)) < 60) fail(`デバフ ${name} が空です`);
   });
   DIALOGUE_PORTRAITS.forEach((name, column) => {
     if (opaqueCount(crop(dialogue, column * CELL, 0)) < 180) fail(`会話立ち絵 ${name} が小さすぎます`);
   });
+  const atlases = { tiles, effects, items, soilAlgae, veinEvo2Aura, debuffs, dialogue };
+  for (const [name, atlas] of Object.entries(atlases)) {
+    if (atlas && (atlas.width > 4096 || atlas.height > 4096)) {
+      fail(`${name} アトラスがモバイル向け上限4096pxを超えています: ${atlas.width}x${atlas.height}`);
+    }
+  }
   ok("アトラス寸法・セル内容・4フレームを検査しました");
-  return { tiles, items, dialogue };
+  return atlases;
 }
 
 function validateActorVariety(manifest) {

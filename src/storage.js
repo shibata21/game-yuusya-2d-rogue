@@ -1,6 +1,7 @@
 "use strict";
 
-const DEV_RULE_KEY = "makaiDefense.devRuleConfig.v1";
+const LEGACY_DEV_RULE_KEY = "makaiDefense.devRuleConfig.v1";
+const DEV_RULE_KEY = "makaiDefense.devRuleConfig.v2";
 const PROGRESS_KEY = "makaiDefense.progress.v1";
 const STORAGE_DB_NAME = "makaiDefense.storage.v1";
 const STORAGE_STORE_NAME = "entries";
@@ -97,7 +98,7 @@ export async function initStorage() {
   try {
     const db = await openStorageDb();
     if (!db) return false;
-    const entries = await Promise.all([DEV_RULE_KEY, PROGRESS_KEY].map(async (key) => [key, await readStoreValue(db, key)]));
+    const entries = await Promise.all([DEV_RULE_KEY, LEGACY_DEV_RULE_KEY, PROGRESS_KEY].map(async (key) => [key, await readStoreValue(db, key)]));
     db.close();
     for (const [key, value] of entries) {
       if (typeof value === "string") storageCache.set(key, value);
@@ -184,6 +185,7 @@ function cleanProgress(progress) {
 }
 
 export function loadStoredRuleConfig() {
+  if (readStoredText(LEGACY_DEV_RULE_KEY) !== null) removeStoredText(LEGACY_DEV_RULE_KEY);
   return parseJson(readStoredText(DEV_RULE_KEY), null);
 }
 
@@ -264,7 +266,7 @@ export function awardRunCoins(progress, run = {}) {
 }
 
 export const __storageTestHooks = {
-  keys: { DEV_RULE_KEY, PROGRESS_KEY },
+  keys: { DEV_RULE_KEY, LEGACY_DEV_RULE_KEY, PROGRESS_KEY },
   reset() {
     storageCache.clear();
     storageBroken = false;

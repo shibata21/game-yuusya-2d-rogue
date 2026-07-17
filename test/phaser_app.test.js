@@ -16,8 +16,9 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('<script type="module" src="/src/main.js"></script>');
     expect(html).toContain('data-home-tab="defense"');
     expect(html).toContain('data-home-tab="deck"');
-    expect(html).toContain('data-home-tab="codex"');
     expect(html).toContain('data-home-tab="settings"');
+    expect(html).not.toContain('data-home-tab="codex"');
+    expect(html).not.toContain("守り方を選んでください。");
     expect(html).not.toContain('data-home-tab="unlock"');
     expect(html).not.toContain('id="codexBtn"');
     expect(html).not.toContain('id="codexPanel"');
@@ -54,6 +55,11 @@ describe("Phaserアプリ構成", () => {
     expect(html).toContain('id="dialogueOverlay"');
     expect(html).toContain('id="dialogueAdvanceBtn"');
     expect(html).toContain('id="dialogueSpeaker"');
+    expect(html).toContain("← 防衛へ戻る");
+    expect(html).toContain("← 選択肢へ戻る");
+    expect(html).toContain("← 防衛へ戻る");
+    expect(html).toContain("これまでの進行状況は残ります。");
+    expect(html).not.toContain("発見済みの記録は残ります。");
     expect(html).not.toContain('id="startDialoguePanel"');
     expect(html).not.toContain('id="startPowerPanel"');
     expect(html).not.toContain('id="powerConfirmBtn"');
@@ -84,6 +90,8 @@ describe("Phaserアプリ構成", () => {
     expect(src).not.toContain('pixelAssetUrl("actors.png")');
     expect(src).toContain('this.load.spritesheet("effects"');
     expect(src).toContain('this.load.spritesheet("items"');
+    expect(src).toContain('this.load.spritesheet("soilAlgae", pixelAssetUrl("soil_algae.png")');
+    expect(src).toContain('this.load.spritesheet("veinEvo2Aura", pixelAssetUrl("vein_evo2_aura.png")');
     expect(src).toContain('this.load.spritesheet("debuffs"');
     expect(src).toContain("for (const track of BGM_TRACKS)");
     expect(src).toContain("this.load.audio(track.key, audioAssetUrl(track.file))");
@@ -103,6 +111,16 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("drawEntryZone");
     expect(src).toContain("showIntro: selectedLoop === 1 && (progress.highestWave || 0) < 3");
     expect(src).toContain("drawInitialDigHint");
+    expect(src).toContain("this.soilAlgaeSprites");
+    expect(src).toContain("this.veinAuraSprites");
+    expect(src).toContain("tileOverlayFrameState(tile, this.time.now, c, r)");
+    expect(src).toContain("if (overlayFrames.algaeFrame !== null)");
+    expect(src).toContain("if (overlayFrames.auraFrame !== null)");
+    expect(src).toContain("aura.setFrame(overlayFrames.auraFrame)");
+    expect(src).toContain("algae.setFrame(overlayFrames.algaeFrame)");
+    expect(src).toContain("aura.setFrame(0)");
+    expect(src).toContain("algae.setFrame(0)");
+    expect(src).not.toContain("SOIL_TINTS");
     expect(src).toContain("coreShock");
     expect(src).toContain("healArea");
     expect(src).toContain("core-alert");
@@ -115,15 +133,15 @@ describe("Phaserアプリ構成", () => {
     expect(src).not.toContain('getElementById("powerBtn")');
     expect(src).toContain("touch: { capture: false }");
     expect(src).toContain("preventDefaultDown: false");
-    expect(src).toContain("renderCodex");
-    expect(src).toContain('homeTab === "codex"');
-    expect(src).toContain("silhouette");
+    expect(src).not.toContain("renderCodex");
+    expect(src).not.toContain('homeTab === "codex"');
+    expect(src).not.toContain("heroCard");
+    expect(src).not.toContain("codexItemCard");
     expect(src).toContain("discoveredMonsters");
     expect(src).not.toContain("discoveredItems");
     expect(src).not.toContain("unlockedItems");
     expect(src).not.toContain("ITEM_UNLOCKS");
     expect(src).not.toContain("rerollItemOffer");
-    expect(src).toContain("codexItemCard");
     expect(src).toContain("renderItemOffer");
     expect(src).toContain("renderShopOffer");
     expect(src).toContain("renderTrapOffer");
@@ -154,14 +172,20 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("settingsTab");
     expect(src).toContain("applyAudioInput");
     expect(src).toContain('data-settings-tab="volume"');
-    expect(src).toContain("codexMonsterFamilyCard");
-    expect(src).toContain("codexItemCard");
+    expect(src).toContain("data-deck-family-detail");
+    expect(src).toContain("home-card-action");
     expect(src).toContain("renderMonsterFamilyDetail");
     expect(src).toContain("monsterRadarHtml");
     expect(src).toContain("normalizedMonsterStats");
     expect(src).toContain('homeTab = "menu"');
     expect(src).toContain("data-home-back");
-    expect(src).toContain("codexListScrollTop");
+    expect(src).toContain("deckListScrollTop");
+    expect(src).toContain('const ITEM_SLOT_ORDER = ["sand", "water", "fungus", "mineral", "air"]');
+    expect(src).toContain('sand: { name: "砂", primary: "土壌"');
+    expect(src).toContain('water: { name: "水", primary: "攻撃"');
+    expect(src).toContain('fungus: { name: "菌", primary: "防御"');
+    expect(src).toContain('mineral: { name: "ミネラル", primary: "速度"');
+    expect(src).toContain('air: { name: "空気", primary: "繁殖・回復"');
     expect(src).toContain("equipmentMap");
     expect(src).toContain("gameApi.itemStats");
     expect(src).toContain("pendingEquipmentChoice");
@@ -175,7 +199,19 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain("{ loop: false, volume: effectiveVolume(\"bgm\") }");
     expect(src).not.toContain("{ loop: true, volume: effectiveVolume(\"bgm\") }");
     expect(src).not.toContain("codexOpen");
+    expect(src).not.toContain("守り方を選んでください。");
+    expect(src).not.toContain("図鑑初期化");
+    expect(src).toContain("進行状況を初期化");
+    expect(src).toContain("data-deck-list-back");
+    expect(src).toContain("data-deck-stage");
+    expect(src).toContain('overlay.classList.toggle("dialogue-event", visible && dialogue.id !== "intro")');
     expect(src).toContain('["通常", "第一進化", "第二進化"]');
+  });
+
+  it("独立図鑑の文言を本番UIと開発説明へ残さない", () => {
+    const files = ["index.html", "src/main.js", "src/style.css", "src/devTuning.js"];
+    const source = files.map((file) => fs.readFileSync(path.join(repoDir, file), "utf8")).join("\n");
+    expect(source).not.toContain("図鑑");
   });
 
   it("盤面上から縦スクロールできるCSSを持つ", () => {
@@ -183,10 +219,8 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain("touch-action: pan-y");
     expect(css).toContain("box-sizing: content-box");
     expect(css).toContain("width: calc(100% - 4px)");
-    expect(css).toContain(".codex-card");
-    expect(css).toContain(".codex-card.locked");
-    expect(css).toContain(".codex-sprite.silhouette");
-    expect(css).toContain(".codex-item-icon");
+    expect(css).toContain(".home-card-detail");
+    expect(css).toContain(".home-card-action");
     expect(css).toContain(".dev-panel");
     expect(css).toContain(".settings-tabs");
     expect(css).toContain(".sound-fields input[type=\"range\"]");
@@ -208,8 +242,10 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".equipment-status");
     expect(css).toContain(".equipment-compare-body");
     expect(css).toContain(".quit-confirm");
-    expect(css).toContain(".codex-detail");
+    expect(css).toContain(".deck-detail");
     expect(css).toContain(".monster-radar");
+    expect(css).toContain(".btn-back-action");
+    expect(css).toContain("min-height: 44px");
     expect(css).not.toContain(".btn-reroll-item");
     expect(css).not.toContain(".loop-select");
     expect(css).toContain("grid-template-columns: minmax(0, 1fr) 116px");
@@ -221,6 +257,8 @@ describe("Phaserアプリ構成", () => {
     expect(css).toContain(".dialogue-overlay");
     expect(css).toContain(".dialogue-box");
     expect(css).toContain(".dialogue-portrait");
+    expect(css).toContain(".dialogue-overlay.dialogue-event");
+    expect(css).toContain(".dialogue-event .dialogue-box");
     expect(css).toContain(".dev-json-output");
     expect(css).not.toContain(".power-status");
     expect(css).not.toContain("demon-squirrel-king.png");
@@ -228,7 +266,7 @@ describe("Phaserアプリ構成", () => {
     expect(fs.existsSync(path.join(repoDir, "assets/ui/demon-squirrel-king.png"))).toBe(false);
   });
 
-  it("図鑑は20系統の詳細と五角形正規化を持つ", () => {
+  it("モンスターデッキは20系統の詳細と五角形正規化を持つ", () => {
     expect(Object.keys(MONSTER_FAMILIES)).toHaveLength(20);
     const src = fs.readFileSync(path.join(repoDir, "src/main.js"), "utf8");
     expect(src).toContain('["hp", "体力", (kind) => Math.log1p');
@@ -238,6 +276,8 @@ describe("Phaserアプリ構成", () => {
     expect(src).toContain('["atkCd", "攻撃速度"');
     expect(src).toContain("1 + ((measured - min) / (max - min)) * 4");
     expect(src).toContain('viewBox="0 0 220 220"');
+    expect(src).toContain('data-deck-detail="${escapeHtml(id)}"');
+    expect(src).not.toContain("data-codex-tab");
   });
 
   it("ViteビルドはPages配下で読める相対baseを使う", () => {
@@ -254,7 +294,7 @@ describe("Phaserアプリ構成", () => {
     const a = globalThis.MakaiDefense.createGame({ seed: 1 });
     const b = globalThis.MakaiDefense.createGame({ seed: 2 });
     expect(a.monsters).not.toBe(b.monsters);
-    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v33-actor-anchor");
+    expect(globalThis.MakaiDefense.Core.PIXEL_ASSET_VERSION).toBe("v34-soil-resources");
   });
 
   it("採掘入力先のルールAPIはPhaser非依存で動く", () => {

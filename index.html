@@ -65,7 +65,6 @@
               <div class="home-tabs" role="tablist" aria-label="ホームメニュー">
                 <button type="button" data-home-tab="defense">防衛</button>
                 <button type="button" data-home-tab="deck">モンスターデッキ</button>
-                <button type="button" data-home-tab="codex">図鑑</button>
                 <button type="button" data-home-tab="settings">設定</button>
               </div>
               <div class="home-body" id="homeBody"></div>
@@ -94,7 +93,7 @@
           <div class="overlay item-shop hidden" id="itemShopOverlay">
             <h2>装備商店</h2>
             <div class="item-shop-grid" id="itemShopGrid"></div>
-            <button class="btn-close-shop" id="closeShopBtn" type="button">店へ戻る</button>
+            <button class="btn-back-action btn-close-shop" id="closeShopBtn" type="button">← 防衛へ戻る</button>
           </div>
 
           <div class="overlay equipment-compare hidden" id="equipmentCompareOverlay" role="dialog" aria-modal="true" aria-labelledby="equipmentCompareTitle">
@@ -102,16 +101,16 @@
             <div class="equipment-compare-body" id="equipmentCompareBody"></div>
             <div class="equipment-compare-actions">
               <button class="btn-confirm-replace" id="confirmReplaceBtn" type="button">入れ替える</button>
-              <button class="btn-back-choices" id="backToItemChoicesBtn" type="button">選択肢へ戻る</button>
+              <button class="btn-back-action btn-back-choices" id="backToItemChoicesBtn" type="button">← 選択肢へ戻る</button>
             </div>
           </div>
 
           <div class="overlay quit-confirm hidden" id="quitConfirmOverlay" role="dialog" aria-modal="true" aria-labelledby="quitConfirmTitle">
             <h2 id="quitConfirmTitle">防衛をやめますか？</h2>
-            <p>この防衛の報酬は受け取れません。発見済みの記録は残ります。</p>
+            <p>この防衛の報酬は受け取れません。これまでの進行状況は残ります。</p>
             <div class="quit-confirm-actions">
               <button class="btn-confirm-quit" id="confirmQuitBtn" type="button">やめる</button>
-              <button class="btn-cancel-quit" id="cancelQuitBtn" type="button">防衛へ戻る</button>
+              <button class="btn-back-action btn-cancel-quit" id="cancelQuitBtn" type="button">← 防衛へ戻る</button>
             </div>
           </div>
 

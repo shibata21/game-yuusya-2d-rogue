@@ -21,6 +21,8 @@ const {
   ITEM_ICONS,
   DEBUFF_ICONS,
   DIALOGUE_PORTRAITS,
+  SOIL_ALGAE_STAGES,
+  VEIN_EVO2_AURA_FRAMES,
   ensureDir,
   image,
   writePng,
@@ -71,6 +73,15 @@ function validateManifest() {
   assertList("デバフ", manifest.layouts.debuffs.ids, DEBUFF_ICONS);
   assertList("会話立ち絵", manifest.layouts.dialogue.ids, DIALOGUE_PORTRAITS);
   assertList("アイテム", manifest.itemSheets.flatMap((sheet) => sheet.ids), ITEM_ICONS);
+  assertList("土壌の藻", manifest.layouts.soilAlgae.stages, SOIL_ALGAE_STAGES);
+  if (manifest.layouts.soilAlgae.files.length !== SOIL_ALGAE_STAGES.length) {
+    throw new Error("土壌の藻原画数が不正です。");
+  }
+  if (manifest.layouts.veinEvo2Aura.frames !== VEIN_EVO2_AURA_FRAMES
+    || manifest.layouts.veinEvo2Aura.files.length !== VEIN_EVO2_AURA_FRAMES
+    || manifest.layouts.veinEvo2Aura.innerPadding !== 6) {
+    throw new Error("第二進化鉱脈オーラの原画仕様が不正です。");
+  }
   for (const [label, layout] of [["通常タイル", manifest.layouts.environmentTiles], ["鉱脈タイル", manifest.layouts.veinTiles]]) {
     if (!Number.isFinite(layout.trimRatio) || layout.trimRatio <= 0 || layout.trimRatio >= 0.25) {
       throw new Error(`${label} のトリム率が不正です。`);
@@ -655,6 +666,13 @@ function normalizeTile(src, trimRatio) {
   return resizeNearest(crop(src, x + trim, y + trim, size - trim * 2, size - trim * 2), CELL, CELL);
 }
 
+function normalizeFullFrame(src) {
+  const size = Math.min(src.width, src.height);
+  const x = Math.floor((src.width - size) / 2);
+  const y = Math.floor((src.height - size) / 2);
+  return resizeNearest(crop(src, x, y, size, size), CELL, CELL);
+}
+
 function shifted(src, dx, dy) {
   const out = image();
   for (let y = 0; y < src.height; y++) {
@@ -833,6 +851,24 @@ function writeItemAtlas() {
   writePng(path.join(OUT_DIR, "items.png"), atlas);
 }
 
+function writeSoilAlgaeAtlas() {
+  const layout = manifest.layouts.soilAlgae;
+  const atlas = image(CELL * SOIL_ALGAE_STAGES.length, CELL);
+  layout.files.forEach((file, column) => {
+    copyInto(atlas, normalizeFullFrame(sourceImage(file)), column * CELL, 0);
+  });
+  writePng(path.join(OUT_DIR, "soil_algae.png"), atlas);
+}
+
+function writeVeinEvo2AuraAtlas() {
+  const layout = manifest.layouts.veinEvo2Aura;
+  const atlas = image(CELL * VEIN_EVO2_AURA_FRAMES, CELL);
+  layout.files.forEach((file, frame) => {
+    copyInto(atlas, normalizeFullFrame(sourceImage(file)), frame * CELL, 0);
+  });
+  writePng(path.join(OUT_DIR, "vein_evo2_aura.png"), atlas);
+}
+
 function writeSingleRowAtlas(layout, ids, filename, maxSize) {
   const src = sourceImage(layout.file);
   const atlas = image(CELL * ids.length, CELL);
@@ -868,6 +904,8 @@ function writeMeta() {
     tiles: {},
     effects: {},
     items: {},
+    soilAlgae: {},
+    veinEvo2Aura: {},
     debuffs: {},
     dialogue: {},
   };
@@ -931,6 +969,27 @@ function writeMeta() {
       anchor: [CELL / 2, CELL / 2],
     };
   });
+  SOIL_ALGAE_STAGES.forEach((stage, column) => {
+    meta.soilAlgae[stage] = {
+      sheet: "soil_algae",
+      x: column * CELL,
+      y: 0,
+      w: CELL,
+      h: CELL,
+      stage,
+    };
+  });
+  for (let frame = 0; frame < VEIN_EVO2_AURA_FRAMES; frame++) {
+    meta.veinEvo2Aura[frame] = {
+      sheet: "vein_evo2_aura",
+      x: frame * CELL,
+      y: 0,
+      w: CELL,
+      h: CELL,
+      frame,
+      anchor: [CELL / 2, CELL / 2],
+    };
+  }
   DEBUFF_ICONS.forEach((name, column) => {
     meta.debuffs[name] = {
       sheet: "debuffs",
@@ -961,6 +1020,8 @@ function build() {
   writeTileAtlas();
   writeEffectAtlas();
   writeItemAtlas();
+  writeSoilAlgaeAtlas();
+  writeVeinEvo2AuraAtlas();
   writeSingleRowAtlas(manifest.layouts.debuffs, DEBUFF_ICONS, "debuffs.png", 42);
   writeSingleRowAtlas(manifest.layouts.dialogue, DIALOGUE_PORTRAITS, "dialogue_portraits.png", 46);
   writeMeta();
